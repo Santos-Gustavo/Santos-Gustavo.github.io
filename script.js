@@ -6,8 +6,8 @@ const S = {
   works: [], photos: [], incidents: [], extras: [], nextSteps: []
 };
 
-const SUPABASE_URL = "https://haiwrmwpltzhdnrqzxep.supabase.co/rest/v1/";
-const SUPABASE_ANON_KEY = "7BaioDK27QvB5O0b";
+const SUPABASE_URL = "https://haiwrmwpltzhdnrqzxep.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_zAz-dP8YMWOnUqVNqbFt2Q_u734JSv0";
 
 const supabaseClient = supabase.createClient(
   SUPABASE_URL,
