@@ -6,6 +6,14 @@ const S = {
   works: [], photos: [], incidents: [], extras: [], nextSteps: []
 };
 
+const SUPABASE_URL = "https://haiwrmwpltzhdnrqzxep.supabase.co/rest/v1/";
+const SUPABASE_ANON_KEY = "7BaioDK27QvB5O0b";
+
+const supabaseClient = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
 const JOB_TYPES = [
   'Alvenaria / Paredes',
   'AVAC / Climatização',
