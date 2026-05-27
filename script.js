@@ -446,6 +446,85 @@ function fmtRange(s, e) {
   return '';
 }
 
+// ── DATABASE LINK ──────────────────────────────────────────────────
+async function saveAndGenerateReport() {
+  const savedReport = await saveReportToSupabase();
+
+  if (!savedReport) return;
+
+  generateReport();
+}
+
+async function saveReportToSupabase() {
+  const v = getV();
+
+  const payload = {
+    company_name: v.companyName,
+    company_nif: v.companyNif,
+    company_impic: v.companyInci, // rename the form field later to companyImpic
+    responsible: v.responsible,
+    company_phone: v.companyPhone,
+    company_email: v.companyEmail,
+
+    project_name: v.projectName,
+    client_name: v.clientName,
+    location: v.location,
+    contract_num: v.contractNum,
+    report_num: v.reportNum ? Number(v.reportNum) : null,
+
+    period_start: v.periodStart || null,
+    period_end: v.periodEnd || null,
+    report_date: v.reportDate || null,
+    distributed_to: v.distributedTo,
+    sent_via: v.sentVia,
+
+    phase: S.phase,
+    progress_pct: v.progressPct ? Number(v.progressPct) : 0,
+    week_summary: v.weekSummary,
+
+    alert_on: S.alertOn,
+    alert_title: v.alertTitle,
+    alert_desc: v.alertDesc,
+    alert_deadline: v.alertDeadline || null,
+    alert_consequence: v.alertConsequence,
+
+    incidents_on: S.incidentsOn,
+
+    contract_value: v.contractValue ? Number(v.contractValue) : null,
+    financial_note: v.financialNote,
+
+    works: S.works,
+    photos: S.photos.map(photo => ({
+      id: photo.id,
+      type: photo.type,
+      area: photo.area,
+      desc: photo.desc,
+      worker: photo.worker
+      // Do not store base64 images in the DB long-term.
+      // Use Supabase Storage instead.
+    })),
+    incidents: S.incidents,
+    extras: S.extras,
+    next_steps: S.nextSteps
+  };
+
+  const { data, error } = await supabaseClient
+    .from("reports")
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Supabase save error:", error);
+    alert("Erro ao guardar relatório: " + error.message);
+    return null;
+  }
+
+  console.log("Report saved:", data);
+  alert("Relatório guardado com sucesso.");
+  return data;
+}
+
 // ── GENERATE REPORT ──────────────────────────────────────────────────
 function generateReport() {
   const v = getV();
