@@ -13,6 +13,9 @@ const supabaseClient = supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 );
+console.log("Supabase URL:", SUPABASE_URL);
+console.log("Supabase key starts with:", SUPABASE_ANON_KEY.slice(0, 12));
+console.log("Supabase client:", supabaseClient);
 
 const JOB_TYPES = [
   'Alvenaria / Paredes',
