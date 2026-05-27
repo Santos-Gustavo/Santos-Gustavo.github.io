@@ -114,8 +114,7 @@
       <div class="field"><label>Enviado via</label>
         <select id="sentVia">
           <option value="Email">Email</option>
-          <option value="WhatsApp">WhatsApp</option>
-          <option value="Email + Portal" selected>Email + Portal</option>
+          <option value="WhatsApp" selected>WhatsApp</option>
           <option value="Portal">Portal</option>
           <option value="Impresso">Impresso</option>
         </select>
@@ -149,11 +148,6 @@
         <div class="slider-value" id="progressPct">0%</div>
         <input type="range" id="progressSlider" min="0" max="100" value="0" style="width:100%; height:36px; padding:0; border:none; background:none;" oninput="document.getElementById('progressPct').textContent=this.value+'%'" />
       </div>
-      <div class="field-row">
-        <div class="field"><label>Tarefas Concluídas</label><input type="number" id="tasksDone" placeholder="0" min="0" /></div>
-        <div class="field"><label>Em Curso</label><input type="number" id="tasksProgress" placeholder="0" min="0" /></div>
-      </div>
-      <div class="field" style="max-width:50%"><label>Pendentes</label><input type="number" id="tasksBlocked" placeholder="0" min="0" /></div>
     </div>
     <div class="nav-bar">
       <button class="btn btn-back" onclick="goBack()">←</button>
@@ -655,9 +649,6 @@ function getV() {
     distributedTo: document.getElementById('distributedTo').value,
     sentVia: document.getElementById('sentVia').value,
     progressPct: document.getElementById('progressSlider').value,
-    tasksDone: document.getElementById('tasksDone').value,
-    tasksProgress: document.getElementById('tasksProgress').value,
-    tasksBlocked: document.getElementById('tasksBlocked').value,
     weekSummary: document.getElementById('weekSummary').value,
     alertTitle: document.getElementById('alertTitle').value,
     alertDesc: document.getElementById('alertDesc').value,
@@ -700,9 +691,9 @@ function generateReport() {
   const pending = S.extras.filter(e=>e.status==='pending').reduce((s,e)=>s+(parseFloat(e.cost)||0),0);
   const fmt = n => n.toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
 
-  const tasksDone = parseInt(v.tasksDone)||S.works.filter(w=>w.status==='done').length;
-  const tasksProg = parseInt(v.tasksProgress)||S.works.filter(w=>w.status==='progress').length;
-  const tasksBlk = parseInt(v.tasksBlocked)||S.works.filter(w=>w.status==='blocked').length;
+  const tasksDone = S.works.filter(w=>w.status==='done').length;
+  const tasksProg = S.works.filter(w=>w.status==='progress').length;
+  const tasksBlk = S.works.filter(w=>w.status==='blocked').length;
 
   const allPhases = ['Fundações','Estrutura e Alvenaria','Impermeabilização','Cobertura','Instalações','Acabamentos'];
   const phaseIdx = allPhases.indexOf(S.phase);
@@ -881,6 +872,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
 .footer-contact{text-align:right;font-size:10px;color:#9ca3af;line-height:1.6}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .print-btn{position:fixed;bottom:24px;right:24px;background:#1c2b3a;color:white;border:none;border-radius:8px;padding:14px 20px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:999}
+.legal-strip{background:#f9fafb;border-top:1px solid #e5e7eb;padding:12px 36px;font-size:9.5px;color:#9ca3af;line-height:1.7;text-align:justify}
 </style></head><body>
 <button class="print-btn no-print" onclick="window.print()">🖨 Imprimir / PDF</button>
 <div class="page">
@@ -955,7 +947,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
       <div class="ack-section">
         <div class="ack-header">Acuse de Recibo e Declaração do Cliente</div>
         <div class="ack-body">
-          <div class="ack-notice">Este relatório documenta o estado da obra e os trabalhos executados no período indicado. A receção sem objecção no prazo de 48 horas constitui aceitação tácita do estado descrito. Eventuais discordâncias devem ser comunicadas por escrito ao responsável de obra no prazo de 48h após receção.</div>
+          <div class="ack-notice">Eventuais discordâncias devem ser comunicadas por escrito no prazo de 48h. A falta de resposta não constitui aprovação de trabalhos extra, alterações de preço ou alterações ao projeto, salvo se tal estiver expressamente previsto no contrato.</div>
           <div class="ack-grid">
             <div class="ack-field"><label>Nome do cliente</label><div class="ack-line"></div></div>
             <div class="ack-field"><label>Data de receção</label><div class="ack-line"></div></div>
@@ -967,6 +959,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
       </div>
     </div>
   </div>
+  <div class="legal-strip">Este relatório é emitido para efeitos de acompanhamento, comunicação e arquivo documental da obra. Não substitui o contrato de empreitada, o Livro de Obra, autos de medição, faturas, licenças, projetos aprovados, termos de responsabilidade ou aprovações formais exigidas por lei ou contrato. Trabalhos extra, alterações de preço, prazo ou projeto carecem de aprovação expressa por escrito, salvo disposição contratual em contrário.</div>
   <div class="footer">
     <div class="footer-company"><strong>${esc(v.companyName||'—')}</strong>${v.companyNif?'NIF '+esc(v.companyNif):''}${v.companyInci?' · INCI n.º '+esc(v.companyInci):''}<br>Relatório ${reportId} · gerado ${fmtShort(v.reportDate)||'—'}</div>
     <div class="footer-center">Página 1 de 1</div>
