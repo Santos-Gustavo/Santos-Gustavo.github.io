@@ -46,3 +46,8 @@ function handlePhoto(id, input) {
 }
 function setPhoto(id, k, v) { const p = S.photos.find(x=>x.id===id); if(p) p[k]=v; }
 
+window.addPhotoItem = addPhotoItem;
+window.removePhoto = removePhoto;
+window.handlePhoto = handlePhoto;
+window.setPhoto = setPhoto;
+

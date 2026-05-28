@@ -53,3 +53,7 @@ function renderExtras() {
 }
 function setExtra(id, k, v) { const e = S.extras.find(x=>x.id===id); if(e) e[k]=v; }
 
+window.addExtra = addExtra;
+window.removeExtra = removeExtra;
+window.setExtra = setExtra;
+

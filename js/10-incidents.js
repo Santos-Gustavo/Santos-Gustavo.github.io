@@ -15,3 +15,7 @@ function renderIncidents() {
 }
 function setInc(id, k, v) { const i = S.incidents.find(x=>x.id===id); if(i) i[k]=v; }
 
+window.addIncident = addIncident;
+window.removeIncident = removeIncident;
+window.setInc = setInc;
+

@@ -15,7 +15,7 @@ async function initAuth() {
   CURRENT_USER = data.session?.user || null;
 
   if (CURRENT_USER) {
-    showLoggedInUI();
+    await showLoggedInUI();
   } else {
     showLoggedOutUI();
   }
@@ -66,7 +66,7 @@ async function signUp() {
 
   CURRENT_USER = data.user;
   showAuthMessage("Conta criada com sucesso.", false);
-  showLoggedInUI();
+  await showLoggedInUI();
 }
 
 async function signIn() {
@@ -91,7 +91,7 @@ async function signIn() {
 
   CURRENT_USER = data.user;
   showAuthMessage("Login efetuado com sucesso.", false);
-  showLoggedInUI();
+  await showLoggedInUI();
 }
 
 async function signOut() {

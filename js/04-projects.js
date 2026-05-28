@@ -127,6 +127,9 @@ function loadProjectIntoForm(proj) {
   document.getElementById("p-sentVia").value = o.sentVia || "WhatsApp";
 }
 
+window.newProject = newProject;
+window.selectProject = selectProject;
+
 async function saveCurrentProjectFromForm() {
   const v = getV();
 

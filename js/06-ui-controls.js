@@ -17,3 +17,7 @@ function toggleIncidents() {
   document.getElementById('incidentFields').classList.toggle('hidden', !S.incidentsOn);
 }
 
+window.selectPhase = selectPhase;
+window.toggleAlert = toggleAlert;
+window.toggleIncidents = toggleIncidents;
+

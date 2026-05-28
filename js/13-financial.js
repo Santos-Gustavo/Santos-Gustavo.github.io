@@ -18,3 +18,5 @@ function updateFinancialPreview() {
     </div>`;
 }
 
+window.updateFinancialPreview = updateFinancialPreview;
+

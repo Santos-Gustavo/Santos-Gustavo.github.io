@@ -35,3 +35,7 @@ function renderWorks() {
 }
 function setWork(id, k, v) { const w = S.works.find(x => x.id===id); if(w) w[k]=v; }
 
+window.addWorkItem = addWorkItem;
+window.removeWork = removeWork;
+window.setWork = setWork;
+

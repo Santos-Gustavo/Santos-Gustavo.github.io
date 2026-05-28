@@ -18,3 +18,7 @@ function renderNextSteps() {
 }
 function setStep(id, k, v) { const s = S.nextSteps.find(x=>x.id===id); if(s) s[k]=v; }
 
+window.addNextStep = addNextStep;
+window.removeNextStep = removeNextStep;
+window.setStep = setStep;
+
