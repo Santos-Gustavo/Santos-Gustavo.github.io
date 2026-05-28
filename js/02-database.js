@@ -26,9 +26,24 @@ async function saveReportToSupabase() {
   const v = getV();
 
   try {
-    const company = await findOrCreateCompany(v);
-    const client = await findOrCreateClient(company.id, v);
-    const project = await findOrCreateProject(company.id, client.id, v);
+    let company;
+    let client;
+    let project;
+
+    if (S.currentCompanyId && S.currentClientId && S.currentProjectId) {
+      company = { id: S.currentCompanyId };
+      client = { id: S.currentClientId };
+      project = { id: S.currentProjectId };
+    } else {
+      company = await findOrCreateCompany(v);
+      client = await findOrCreateClient(company.id, v);
+      project = await findOrCreateProject(company.id, client.id, v);
+
+      S.currentCompanyId = company.id;
+      S.currentClientId = client.id;
+      S.currentProjectId = project.id;
+    }
+
     const report = await createReport(company.id, client.id, project.id, v);
 
     const photos = await savePhotosForReport({
@@ -47,6 +62,8 @@ async function saveReportToSupabase() {
     });
 
     alert("Relatório guardado com sucesso.");
+
+    await renderProjectList();
 
     return {
       company,

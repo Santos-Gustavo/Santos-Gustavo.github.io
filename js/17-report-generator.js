@@ -301,15 +301,19 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
 </div>
 </body></html>`;
 
-  // Update lastReportNum in localStorage
-  if (S.currentProjectId) {
-    const projects = loadProjects();
-    const proj = projects.find(p => p.id === S.currentProjectId);
-    if (proj) {
-      proj.lastReportNum = parseInt(v.reportNum) || proj.lastReportNum + 1;
-      saveProjects(projects);
+// Update project cache after generating report.
+// DB report was already created by saveReportToSupabase().
+if (S.currentProjectId && Array.isArray(S.projectsCache)) {
+  const proj = S.projectsCache.find(p => p.id === S.currentProjectId);
+
+  if (proj) {
+    const newReportNum = parseInt(v.reportNum, 10);
+
+    if (Number.isFinite(newReportNum)) {
+      proj.lastReportNum = Math.max(proj.lastReportNum || 0, newReportNum);
     }
   }
+}
 
   const blob = new Blob([html], {type:'text/html'});
   window.open(URL.createObjectURL(blob), '_blank');

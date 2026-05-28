@@ -76,25 +76,58 @@ function selectMode(mode) {
   goToStepId(S.flow[0]);
 }
 
-function goNext() {
+async function goNext() {
+  console.log("goNext clicked. Current step:", S.currentStepId);
+
   const cur = S.currentStepId;
 
-  // New project setup steps
-  if (cur === 1) { goToStepId(2); return; }
-  if (cur === 2) {
-    saveCurrentProjectFromForm();
-    document.getElementById('modeProjectLabel').textContent =
-      document.getElementById('projectName').value || 'Nova Obra';
-    goToStepId('mode');
+  // Step 1: company info → project info
+  if (cur === 1) {
+    goToStepId(2);
     return;
   }
 
-  if (!S.flow) return;
+  // Step 2: project info → save project in DB → mode screen
+  if (cur === 2) {
+    console.log("Saving new project before going to mode...");
+
+    const saved = await saveCurrentProjectFromForm();
+
+    if (!saved) {
+      console.warn("Project was not saved. Staying on step 2.");
+      return;
+    }
+
+    const projectName =
+      document.getElementById("projectName")?.value || "Nova Obra";
+
+    document.getElementById("modeProjectLabel").textContent = projectName;
+
+    goToStepId("mode");
+    return;
+  }
+
+  if (!S.flow) {
+    console.warn("No flow selected yet.");
+    return;
+  }
+
   const idx = S.flow.indexOf(cur);
+
+  if (idx === -1) {
+    console.warn("Current step not found in flow:", cur, S.flow);
+    return;
+  }
+
   if (cur === 10) updateFinancialPreview();
+
   if (idx === S.flow.length - 2) buildReview();
-  if (idx < S.flow.length - 1) goToStepId(S.flow[idx + 1]);
+
+  if (idx < S.flow.length - 1) {
+    goToStepId(S.flow[idx + 1]);
+  }
 }
+
 
 function goBack() {
   const cur = S.currentStepId;
@@ -108,3 +141,13 @@ function goBack() {
   else goToStepId(S.flow[idx - 1]);
 }
 
+
+
+// ── EXPOSE NAVIGATION FUNCTIONS TO HTML ─────────────────────────────
+// Required because index.html uses inline onclick="..."
+window.getStepEl = getStepEl;
+window.goToStepId = goToStepId;
+window.updateTopBar = updateTopBar;
+window.selectMode = selectMode;
+window.goNext = goNext;
+window.goBack = goBack;

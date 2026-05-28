@@ -20,13 +20,13 @@ async function initAuth() {
     showLoggedOutUI();
   }
 
-  supabaseClient.auth.onAuthStateChange((event, session) => {
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
     console.log("Auth event:", event);
 
     CURRENT_USER = session?.user || null;
 
     if (CURRENT_USER) {
-      showLoggedInUI();
+      await showLoggedInUI();
     } else {
       showLoggedOutUI();
     }
@@ -123,7 +123,7 @@ function showAuthMessage(message, isError = false) {
   el.style.color = isError ? "#dc2626" : "#166534";
 }
 
-function showLoggedInUI() {
+async function showLoggedInUI() {
   const authScreen = document.getElementById("authScreen");
   const appScreen = document.getElementById("appScreen");
 
@@ -131,6 +131,10 @@ function showLoggedInUI() {
   if (appScreen) appScreen.style.display = "block";
 
   renderUserInfo();
+
+  if (typeof renderProjectList === "function") {
+    await renderProjectList();
+  }
 }
 
 function showLoggedOutUI() {

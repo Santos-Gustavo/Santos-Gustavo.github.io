@@ -12,7 +12,9 @@ async function initApp() {
   document.getElementById("p-periodStart").value = weekAgo.toISOString().split("T")[0];
   document.getElementById("p-reportNum").value = "1";
 
-  renderProjectList();
+  if (CURRENT_USER) {
+    await renderProjectList();
+  }
 }
 
 initApp();

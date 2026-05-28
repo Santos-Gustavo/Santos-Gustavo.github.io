@@ -5,10 +5,20 @@ const S = {
   phase: '',
   alertOn: false,
   incidentsOn: false,
-  works: [], photos: [], incidents: [], extras: [], nextSteps: [],
-  flow: null,          // current step sequence array
+  works: [],
+  photos: [],
+  incidents: [],
+  extras: [],
+  nextSteps: [],
+  flow: null,
+
   isNewProject: false,
+
+  currentCompanyId: null,
+  currentClientId: null,
   currentProjectId: null,
+
+  projectsCache: []
 };
 
 const SUPABASE_URL = "https://haiwrmwpltzhdnrqzxep.supabase.co";
