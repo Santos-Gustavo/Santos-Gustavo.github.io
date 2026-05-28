@@ -9,6 +9,33 @@
 </head>
 <body>
 <div class="app">
+  <section id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <h1>Entrar</h1>
+    <p>Entre para guardar relatórios, obras e fotografias.</p>
+
+    <div class="field">
+      <label>Email</label>
+      <input id="authEmail" type="email" placeholder="email@empresa.pt" autocomplete="email">
+    </div>
+
+    <div class="field">
+      <label>Password</label>
+      <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password">
+    </div>
+
+    <div class="auth-actions">
+      <button onclick="signIn()">Entrar</button>
+      <button onclick="signUp()" class="secondary">Criar conta</button>
+    </div>
+
+    <p id="authMessage" class="auth-message"></p>
+  </div>
+</section>
+
+<section id="appScreen" style="display:none;">
+  <!-- Put your existing app content here -->
+</section>
 
   <!-- TOP BAR -->
   <div class="topbar">
@@ -289,6 +316,7 @@
 
 </div>
   <script src="js/01-state-config.js"></script>
+  <script src="js/00-auth.js"></script>
   <script src="js/02-database.js"></script>
   <script src="js/03-local-storage.js"></script>
   <script src="js/04-projects.js"></script>

@@ -65,8 +65,9 @@ async function saveReportToSupabase() {
 
 
 // ── COMPANIES ───────────────────────────────────────────────────────
-
 async function findOrCreateCompany(v) {
+  const user = await requireUser();
+
   const name = cleanText(v.companyName);
   const nif = cleanText(v.companyNif);
 
@@ -77,6 +78,7 @@ async function findOrCreateCompany(v) {
   let query = supabaseClient
     .from("companies")
     .select("*")
+    .eq("owner_id", user.id)
     .limit(1);
 
   if (nif) {
@@ -110,6 +112,7 @@ async function findOrCreateCompany(v) {
   }
 
   const payload = {
+    owner_id: user.id,
     name,
     nif: nif || null,
     impic: cleanText(v.companyInci) || null,
@@ -128,6 +131,20 @@ async function findOrCreateCompany(v) {
   if (error) throw error;
 
   return data;
+}
+
+async function requireUser() {
+  const { data, error } = await supabaseClient.auth.getUser();
+
+  if (error) throw error;
+
+  const user = data.user;
+
+  if (!user) {
+    throw new Error("Precisa de entrar na conta antes de guardar.");
+  }
+
+  return user;
 }
 
 

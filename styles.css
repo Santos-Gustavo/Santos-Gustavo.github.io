@@ -70,3 +70,50 @@
     .project-card-sub { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
     .project-card-meta { font-size: 11px; color: #9ca3af; }
     .empty-hint { text-align: center; color: #9ca3af; font-size: 14px; padding: 40px 16px; line-height: 1.8; background: var(--input-bg); border: 1px dashed var(--border); border-radius: 10px; }
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f5f5f0;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+.auth-card h1 {
+  margin-bottom: 8px;
+}
+
+.auth-card p {
+  color: #6b7280;
+  margin-bottom: 18px;
+}
+
+.auth-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.auth-actions button {
+  flex: 1;
+}
+
+.auth-actions .secondary {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.auth-message {
+  margin-top: 12px;
+  font-size: 13px;
+}
