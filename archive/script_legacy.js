@@ -1,9 +1,14 @@
 // ── STATE ──────────────────────────────────────────────────────────
 const S = {
-  step: 0, mode: '',
+  currentStepId: 'projects',
+  mode: '',
   phase: '',
-  alertOn: false, incidentsOn: false,
-  works: [], photos: [], incidents: [], extras: [], nextSteps: []
+  alertOn: false,
+  incidentsOn: false,
+  works: [], photos: [], incidents: [], extras: [], nextSteps: [],
+  flow: null,          // current step sequence array
+  isNewProject: false,
+  currentProjectId: null,
 };
 
 const SUPABASE_URL = "https://haiwrmwpltzhdnrqzxep.supabase.co";
@@ -18,108 +23,343 @@ console.log("Supabase key starts with:", SUPABASE_ANON_KEY.slice(0, 12));
 console.log("Supabase client:", supabaseClient);
 
 const JOB_TYPES = [
-  'Alvenaria / Paredes',
-  'AVAC / Climatização',
-  'Canalização / Hidráulica',
-  'Carpintaria / Madeiras',
-  'Cerâmica / Azulejos',
-  'Cobertura / Telhado',
-  'Demolição',
-  'Fachada / Revestimento Exterior',
-  'Fundações / Betão Armado',
-  'Gesso Cartonado',
-  'Impermeabilização',
-  'Instalações Elétricas',
-  'Isolamento Acústico',
-  'Isolamento Térmico',
-  'Jardim / Arranjos Exteriores',
-  'Outro',
-  'Pavimento / Betonilha',
-  'Pintura Exterior',
-  'Pintura Interior',
-  'Reboco / Estuque',
-  'Serralharia / Estruturas Metálicas',
-  'Vãos / Portas / Janelas'
+  'Alvenaria / Paredes','AVAC / Climatização','Canalização / Hidráulica',
+  'Carpintaria / Madeiras','Cerâmica / Azulejos','Cobertura / Telhado',
+  'Demolição','Fachada / Revestimento Exterior','Fundações / Betão Armado',
+  'Gesso Cartonado','Impermeabilização','Instalações Elétricas',
+  'Isolamento Acústico','Isolamento Térmico','Jardim / Arranjos Exteriores',
+  'Outro','Pavimento / Betonilha','Pintura Exterior','Pintura Interior',
+  'Reboco / Estuque','Serralharia / Estruturas Metálicas','Vãos / Portas / Janelas'
 ];
 
 const AREAS = [
-  'Interior Geral',
-
-  'Cave',
-  'Rés-do-chão',
-  '1.º Piso',
-  '2.º Piso',
-  'Cobertura / Terraço',
-
-  'Hall / Corredor',
-  'Escadas',
-  'Sala',
-  'Cozinha',
-  'Suite',
-  'Quarto 1',
-  'Quarto 2',
-  'Quarto 3',
-  'Casa de Banho 1',
-  'Casa de Banho 2',
-  'Garagem',
-
-  'Exterior',
-  'Fachada Norte',
-  'Fachada Sul',
-  'Fachada Este',
-  'Fachada Oeste',
-  'Varanda',
-  'Jardim',
-
-  'Outro'
+  'Interior Geral','Cave','Rés-do-chão','1.º Piso','2.º Piso','Cobertura / Terraço',
+  'Hall / Corredor','Escadas','Sala','Cozinha','Suite','Quarto 1','Quarto 2','Quarto 3',
+  'Casa de Banho 1','Casa de Banho 2','Garagem',
+  'Exterior','Fachada Norte','Fachada Sul','Fachada Este','Fachada Oeste','Varanda','Jardim','Outro'
 ];
 
-const STEPS = {
-  weekly: [1, 2, 3, 4, 5, 6, 7, 8, 11, 12],
-  legal:  [1, 2, 9, 10, 12]
-};
 const STEP_NAMES = {
-  1:'Empresa', 2:'Obra', 3:'Progresso', 4:'Resumo', 5:'Trabalhos',
+  'period': 'Período', 3:'Progresso', 4:'Resumo', 5:'Trabalhos',
   6:'Fotos', 7:'Decisão', 8:'Incidentes', 9:'Extras',
   10:'Financeiro', 11:'Próximos Passos', 12:'Revisão'
 };
 
+// Content steps after mode selection (period step always first)
+const CONTENT_STEPS = {
+  weekly: ['period', 3, 4, 5, 6, 7, 8, 11, 12],
+  legal:  ['period', 9, 10, 12],
+};
+
+
+// ── DATABASE LINK ──────────────────────────────────────────────────
+async function saveAndGenerateReport() {
+  const savedReport = await saveReportToSupabase();
+
+  if (!savedReport) return;
+
+  generateReport();
+}
+
+async function saveReportToSupabase() {
+  const v = getV();
+
+  const payload = {
+    company_name: v.companyName,
+    company_nif: v.companyNif,
+    company_impic: v.companyInci, // rename the form field later to companyImpic
+    responsible: v.responsible,
+    company_phone: v.companyPhone,
+    company_email: v.companyEmail,
+
+    project_name: v.projectName,
+    client_name: v.clientName,
+    location: v.location,
+    contract_num: v.contractNum,
+    report_num: v.reportNum ? Number(v.reportNum) : null,
+
+    period_start: v.periodStart || null,
+    period_end: v.periodEnd || null,
+    report_date: v.reportDate || null,
+    distributed_to: v.distributedTo,
+    sent_via: v.sentVia,
+
+    phase: S.phase,
+    progress_pct: v.progressPct ? Number(v.progressPct) : 0,
+    week_summary: v.weekSummary,
+
+    alert_on: S.alertOn,
+    alert_title: v.alertTitle,
+    alert_desc: v.alertDesc,
+    alert_deadline: v.alertDeadline || null,
+    alert_consequence: v.alertConsequence,
+
+    incidents_on: S.incidentsOn,
+
+    contract_value: v.contractValue ? Number(v.contractValue) : null,
+    financial_note: v.financialNote,
+
+    works: S.works,
+    photos: S.photos.map(photo => ({
+      id: photo.id,
+      type: photo.type,
+      area: photo.area,
+      desc: photo.desc,
+      worker: photo.worker
+      // Do not store base64 images in the DB long-term.
+      // Use Supabase Storage instead.
+    })),
+    incidents: S.incidents,
+    extras: S.extras,
+    next_steps: S.nextSteps
+  };
+
+  const { data, error } = await supabaseClient
+    .from("reports")
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Supabase save error:", error);
+    alert("Erro ao guardar relatório: " + error.message);
+    return null;
+  }
+
+  console.log("Report saved:", data);
+  alert("Relatório guardado com sucesso.");
+  return data;
+}
+
+
+
+// ── LOCALSTORAGE ────────────────────────────────────────────────────
+function loadProjects() {
+  try { return JSON.parse(localStorage.getItem('obra_projects') || '[]'); }
+  catch(e) { return []; }
+}
+function saveProjects(ps) {
+  localStorage.setItem('obra_projects', JSON.stringify(ps));
+}
+function getProjectById(id) {
+  return loadProjects().find(p => p.id === id) || null;
+}
+
+// ── PROJECT LIST ────────────────────────────────────────────────────
+function renderProjectList() {
+  const projects = loadProjects();
+  const el = document.getElementById('projectList');
+  if (projects.length === 0) {
+    el.innerHTML = '<p class="empty-hint">Ainda sem obras guardadas.<br>Clique em "+ Nova Obra" para começar.</p>';
+    return;
+  }
+  el.innerHTML = projects.map(p => `
+    <div class="project-card" onclick="selectProject('${esc(p.id)}')">
+      <div class="project-card-name">${esc(p.name || '—')}</div>
+      <div class="project-card-sub">${esc(p.obra.clientName || '')}${p.obra.location ? ' · ' + esc(p.obra.location) : ''}</div>
+      <div class="project-card-meta">Relatório #${p.lastReportNum || 0}${p.obra.contractNum ? ' · ' + esc(p.obra.contractNum) : ''}</div>
+    </div>
+  `).join('');
+}
+
+// ── PROJECT ACTIONS ─────────────────────────────────────────────────
+function newProject() {
+  S.isNewProject = true;
+  S.currentProjectId = null;
+  S.flow = null;
+  clearProjectForm();
+  goToStepId(1);
+}
+
+function selectProject(id) {
+  const proj = getProjectById(id);
+  if (!proj) return;
+  S.isNewProject = false;
+  S.currentProjectId = id;
+  loadProjectIntoForm(proj);
+  document.getElementById('modeProjectLabel').textContent = proj.name || proj.obra.projectName || '';
+  goToStepId('mode');
+}
+
+function clearProjectForm() {
+  ['companyName','companyTagline','companyNif','companyInci','responsible','companyPhone','companyEmail',
+   'projectName','clientName','location','contractNum','distributedTo'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('sentVia').value = 'WhatsApp';
+}
+
+function loadProjectIntoForm(proj) {
+  const e = proj.empresa || {};
+  document.getElementById('companyName').value = e.companyName || '';
+  document.getElementById('companyTagline').value = e.companyTagline || '';
+  document.getElementById('companyNif').value = e.companyNif || '';
+  document.getElementById('companyInci').value = e.companyInci || '';
+  document.getElementById('responsible').value = e.responsible || '';
+  document.getElementById('companyPhone').value = e.companyPhone || '';
+  document.getElementById('companyEmail').value = e.companyEmail || '';
+
+  const o = proj.obra || {};
+  document.getElementById('projectName').value = o.projectName || '';
+  document.getElementById('clientName').value = o.clientName || '';
+  document.getElementById('location').value = o.location || '';
+  document.getElementById('contractNum').value = o.contractNum || '';
+  document.getElementById('distributedTo').value = o.distributedTo || '';
+  document.getElementById('sentVia').value = o.sentVia || 'WhatsApp';
+
+  // Pre-fill period step
+  const today = new Date().toISOString().split('T')[0];
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+  document.getElementById('p-reportNum').value = (proj.lastReportNum || 0) + 1;
+  document.getElementById('p-reportDate').value = today;
+  document.getElementById('p-periodStart').value = weekAgo.toISOString().split('T')[0];
+  document.getElementById('p-periodEnd').value = today;
+  document.getElementById('p-distributedTo').value = o.distributedTo || '';
+  document.getElementById('p-sentVia').value = o.sentVia || 'WhatsApp';
+}
+
+function saveCurrentProjectFromForm() {
+  const get = id => document.getElementById(id).value;
+  const proj = {
+    id: Date.now().toString(),
+    name: get('projectName'),
+    empresa: {
+      companyName: get('companyName'), companyTagline: get('companyTagline'),
+      companyNif: get('companyNif'), companyInci: get('companyInci'),
+      responsible: get('responsible'), companyPhone: get('companyPhone'),
+      companyEmail: get('companyEmail'),
+    },
+    obra: {
+      projectName: get('projectName'), clientName: get('clientName'),
+      location: get('location'), contractNum: get('contractNum'),
+      distributedTo: get('distributedTo'), sentVia: get('sentVia'),
+    },
+    lastReportNum: 0,
+  };
+  const projects = loadProjects();
+  projects.push(proj);
+  saveProjects(projects);
+  S.currentProjectId = proj.id;
+
+  // Pre-fill period step for the new project
+  const today = new Date().toISOString().split('T')[0];
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+  document.getElementById('p-reportNum').value = 1;
+  document.getElementById('p-reportDate').value = today;
+  document.getElementById('p-periodStart').value = weekAgo.toISOString().split('T')[0];
+  document.getElementById('p-periodEnd').value = today;
+  document.getElementById('p-distributedTo').value = proj.obra.distributedTo;
+  document.getElementById('p-sentVia').value = proj.obra.sentVia;
+}
+
 // ── NAVIGATION ──────────────────────────────────────────────────────
+function getStepEl(id) {
+  if (typeof id === 'string' && isNaN(id)) {
+    return document.getElementById('step-' + id);
+  }
+  return document.getElementById('step' + id);
+}
+
+function goToStepId(id) {
+  getStepEl(S.currentStepId).classList.remove('active');
+  S.currentStepId = id;
+  getStepEl(id).classList.add('active');
+  updateTopBar(id);
+  window.scrollTo(0, 0);
+}
+
+function updateTopBar(id) {
+  const fill = document.getElementById('progressFill');
+  const label = document.getElementById('stepLabel');
+
+  if (id === 'projects') {
+    fill.style.width = '0%';
+    label.textContent = 'Obras';
+    return;
+  }
+  if (id === 'mode') {
+    fill.style.width = '3%';
+    label.textContent = 'Tipo de Relatório';
+    return;
+  }
+
+  // Pre-mode new project steps (1, 2)
+  if (!S.flow) {
+    const pos = id === 1 ? 1 : 2;
+    fill.style.width = Math.round(pos / 2 * 100) + '%';
+    label.textContent = 'Configuração ' + pos + ' de 2 — ' + (id === 1 ? 'Empresa' : 'Obra');
+    return;
+  }
+
+  const idx = S.flow.indexOf(id);
+  const pos = idx + 1;
+  const total = S.flow.length;
+  fill.style.width = Math.round(pos / total * 100) + '%';
+  label.textContent = 'Passo ' + pos + ' de ' + total + ' — ' + (STEP_NAMES[id] || String(id));
+}
+
 function selectMode(mode) {
   S.mode = mode;
-  showStep(STEPS[mode][0]);
+  S.flow = [...CONTENT_STEPS[mode]];
+  // Reset report content state for a fresh report
+  S.phase = '';
+  S.alertOn = false;
+  S.incidentsOn = false;
+  S.works = [];
+  S.photos = [];
+  S.incidents = [];
+  S.extras = [];
+  S.nextSteps = [];
+  document.getElementById('alertToggle').classList.remove('on');
+  document.getElementById('alertFields').classList.add('hidden');
+  document.getElementById('incidentsToggle').classList.remove('on');
+  document.getElementById('incidentFields').classList.add('hidden');
+  document.querySelectorAll('.phase-option').forEach(o => o.classList.remove('selected'));
+  document.getElementById('progressSlider').value = 0;
+  document.getElementById('progressPct').textContent = '0%';
+  document.getElementById('weekSummary').value = '';
+  document.getElementById('contractValue').value = '';
+  document.getElementById('financialNote').value = '';
+  document.getElementById('financialPreview').innerHTML = '';
+  document.getElementById('workList').innerHTML = '';
+  document.getElementById('photoList').innerHTML = '';
+  document.getElementById('incidentList').innerHTML = '';
+  document.getElementById('extrasList').innerHTML = '';
+  document.getElementById('nextStepsList').innerHTML = '';
+  document.getElementById('reviewContent').innerHTML = '';
+  goToStepId(S.flow[0]);
 }
 
 function goNext() {
-  const seq = STEPS[S.mode];
-  const idx = seq.indexOf(S.step);
-  if (S.step === 10) updateFinancialPreview();
-  if (idx === seq.length - 2) buildReview();
-  if (idx < seq.length - 1) showStep(seq[idx + 1]);
-}
-function goBack() {
-  const seq = STEPS[S.mode];
-  const idx = seq.indexOf(S.step);
-  if (idx <= 0) showStep(0);
-  else showStep(seq[idx - 1]);
-}
+  const cur = S.currentStepId;
 
-function showStep(n) {
-  document.getElementById(S.step === 0 ? 'step0' : 'step' + S.step).classList.remove('active');
-  S.step = n;
-  document.getElementById('step' + n).classList.add('active');
-  if (n === 0) {
-    document.getElementById('progressFill').style.width = '0%';
-    document.getElementById('stepLabel').textContent = 'Escolha o tipo de relatório';
-    window.scrollTo(0, 0);
+  // New project setup steps
+  if (cur === 1) { goToStepId(2); return; }
+  if (cur === 2) {
+    saveCurrentProjectFromForm();
+    document.getElementById('modeProjectLabel').textContent =
+      document.getElementById('projectName').value || 'Nova Obra';
+    goToStepId('mode');
     return;
   }
-  const seq = STEPS[S.mode];
-  const pos = seq.indexOf(n) + 1;
-  const total = seq.length;
-  document.getElementById('progressFill').style.width = Math.round(pos / total * 100) + '%';
-  document.getElementById('stepLabel').textContent = 'Passo ' + pos + ' de ' + total + ' — ' + STEP_NAMES[n];
-  window.scrollTo(0, 0);
+
+  if (!S.flow) return;
+  const idx = S.flow.indexOf(cur);
+  if (cur === 10) updateFinancialPreview();
+  if (idx === S.flow.length - 2) buildReview();
+  if (idx < S.flow.length - 1) goToStepId(S.flow[idx + 1]);
+}
+
+function goBack() {
+  const cur = S.currentStepId;
+  if (cur === 1) { goToStepId('projects'); renderProjectList(); return; }
+  if (cur === 2) { goToStepId(1); return; }
+  if (cur === 'mode') { goToStepId('projects'); renderProjectList(); return; }
+
+  if (!S.flow) return;
+  const idx = S.flow.indexOf(cur);
+  if (idx <= 0) goToStepId('mode');
+  else goToStepId(S.flow[idx - 1]);
 }
 
 // ── PHASE PICKER ────────────────────────────────────────────────────
@@ -256,7 +496,7 @@ function addExtra() {
 }
 function removeExtra(id) { S.extras = S.extras.filter(e=>e.id!==id); renderExtras(); }
 function renderExtras() {
-  const rn = document.getElementById('reportNum').value || '000';
+  const rn = document.getElementById('p-reportNum').value || '000';
   document.getElementById('extrasList').innerHTML = S.extras.map((e, i) => {
     e.ref = 'EX-' + String(rn).padStart(3,'0') + '-' + String(i+1).padStart(3,'0');
     return `
@@ -344,6 +584,28 @@ function updateFinancialPreview() {
     </div>`;
 }
 
+// ── GETV ────────────────────────────────────────────────────────────
+function getV() {
+  const get = id => (document.getElementById(id) || {}).value || '';
+  return {
+    companyName: get('companyName'), companyTagline: get('companyTagline'),
+    companyNif: get('companyNif'), companyInci: get('companyInci'),
+    responsible: get('responsible'), companyPhone: get('companyPhone'),
+    companyEmail: get('companyEmail'),
+    projectName: get('projectName'), clientName: get('clientName'),
+    location: get('location'), contractNum: get('contractNum'),
+    reportNum: get('p-reportNum'),
+    periodStart: get('p-periodStart'), periodEnd: get('p-periodEnd'),
+    reportDate: get('p-reportDate'),
+    distributedTo: get('p-distributedTo'), sentVia: get('p-sentVia'),
+    progressPct: document.getElementById('progressSlider').value,
+    weekSummary: get('weekSummary'),
+    alertTitle: get('alertTitle'), alertDesc: get('alertDesc'),
+    alertDeadline: get('alertDeadline'), alertConsequence: get('alertConsequence'),
+    contractValue: get('contractValue'), financialNote: get('financialNote'),
+  };
+}
+
 // ── REVIEW ──────────────────────────────────────────────────────────
 function buildReview() {
   const v = getV();
@@ -398,37 +660,6 @@ function buildReview() {
     </div>`;
 }
 
-// ── GETV ────────────────────────────────────────────────────────────
-function getV() {
-  return {
-    companyName: document.getElementById('companyName').value,
-    companyTagline: document.getElementById('companyTagline').value,
-    companyNif: document.getElementById('companyNif').value,
-    companyInci: document.getElementById('companyInci').value,
-    responsible: document.getElementById('responsible').value,
-    companyPhone: document.getElementById('companyPhone').value,
-    companyEmail: document.getElementById('companyEmail').value,
-    projectName: document.getElementById('projectName').value,
-    clientName: document.getElementById('clientName').value,
-    location: document.getElementById('location').value,
-    contractNum: document.getElementById('contractNum').value,
-    reportNum: document.getElementById('reportNum').value,
-    periodStart: document.getElementById('periodStart').value,
-    periodEnd: document.getElementById('periodEnd').value,
-    reportDate: document.getElementById('reportDate').value,
-    distributedTo: document.getElementById('distributedTo').value,
-    sentVia: document.getElementById('sentVia').value,
-    progressPct: document.getElementById('progressSlider').value,
-    weekSummary: document.getElementById('weekSummary').value,
-    alertTitle: document.getElementById('alertTitle').value,
-    alertDesc: document.getElementById('alertDesc').value,
-    alertDeadline: document.getElementById('alertDeadline').value,
-    alertConsequence: document.getElementById('alertConsequence').value,
-    contractValue: document.getElementById('contractValue').value,
-    financialNote: document.getElementById('financialNote').value,
-  };
-}
-
 // ── DATE HELPERS ────────────────────────────────────────────────────
 function fmtDate(d) {
   if (!d) return '';
@@ -447,85 +678,6 @@ function fmtRange(s, e) {
   if (sa && ea) return parseInt(sa[2])+'–'+parseInt(ea[2])+' '+ms[parseInt(ea[1])-1]+' '+ea[0];
   if (sa) return parseInt(sa[2])+' '+ms[parseInt(sa[1])-1]+' '+sa[0];
   return '';
-}
-
-// ── DATABASE LINK ──────────────────────────────────────────────────
-async function saveAndGenerateReport() {
-  const savedReport = await saveReportToSupabase();
-
-  if (!savedReport) return;
-
-  generateReport();
-}
-
-async function saveReportToSupabase() {
-  const v = getV();
-
-  const payload = {
-    company_name: v.companyName,
-    company_nif: v.companyNif,
-    company_impic: v.companyInci, // rename the form field later to companyImpic
-    responsible: v.responsible,
-    company_phone: v.companyPhone,
-    company_email: v.companyEmail,
-
-    project_name: v.projectName,
-    client_name: v.clientName,
-    location: v.location,
-    contract_num: v.contractNum,
-    report_num: v.reportNum ? Number(v.reportNum) : null,
-
-    period_start: v.periodStart || null,
-    period_end: v.periodEnd || null,
-    report_date: v.reportDate || null,
-    distributed_to: v.distributedTo,
-    sent_via: v.sentVia,
-
-    phase: S.phase,
-    progress_pct: v.progressPct ? Number(v.progressPct) : 0,
-    week_summary: v.weekSummary,
-
-    alert_on: S.alertOn,
-    alert_title: v.alertTitle,
-    alert_desc: v.alertDesc,
-    alert_deadline: v.alertDeadline || null,
-    alert_consequence: v.alertConsequence,
-
-    incidents_on: S.incidentsOn,
-
-    contract_value: v.contractValue ? Number(v.contractValue) : null,
-    financial_note: v.financialNote,
-
-    works: S.works,
-    photos: S.photos.map(photo => ({
-      id: photo.id,
-      type: photo.type,
-      area: photo.area,
-      desc: photo.desc,
-      worker: photo.worker
-      // Do not store base64 images in the DB long-term.
-      // Use Supabase Storage instead.
-    })),
-    incidents: S.incidents,
-    extras: S.extras,
-    next_steps: S.nextSteps
-  };
-
-  const { data, error } = await supabaseClient
-    .from("reports")
-    .insert(payload)
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Supabase save error:", error);
-    alert("Erro ao guardar relatório: " + error.message);
-    return null;
-  }
-
-  console.log("Report saved:", data);
-  alert("Relatório guardado com sucesso.");
-  return data;
 }
 
 // ── GENERATE REPORT ──────────────────────────────────────────────────
@@ -749,7 +901,6 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
 .ft-positive{color:#d97706}
 .ft-pending{color:#9ca3af;font-style:italic}
 .ft-total-value{color:#1c2b3a}
-.financial-note{font-size:10px;color:#9ca3af;margin-top:8px;line-height:1.5}
 .incidents-empty{background:#f9fafb;border:1px dashed #e5e7eb;border-radius:8px;padding:14px 16px;font-size:11px;color:#9ca3af;text-align:center}
 .incidents-check{font-size:14px;font-weight:700;color:#16a34a;margin-bottom:4px}
 .next-steps-list{list-style:none}
@@ -787,7 +938,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
 .print-btn{position:fixed;bottom:24px;right:24px;background:#1c2b3a;color:white;border:none;border-radius:8px;padding:14px 20px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:999}
 .legal-strip{background:#f9fafb;border-top:1px solid #e5e7eb;padding:12px 36px;font-size:9.5px;color:#9ca3af;line-height:1.7;text-align:justify}
 </style></head><body>
-<button class="print-btn no-print" onclick="window.print()">🖨 Imprimir / PDF</button>
+<button class="print-btn no-print" onclick="window.print()">Imprimir / PDF</button>
 <div class="page">
   <div class="header">
     <div class="header-top">
@@ -832,6 +983,16 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
 </div>
 </body></html>`;
 
+  // Update lastReportNum in localStorage
+  if (S.currentProjectId) {
+    const projects = loadProjects();
+    const proj = projects.find(p => p.id === S.currentProjectId);
+    if (proj) {
+      proj.lastReportNum = parseInt(v.reportNum) || proj.lastReportNum + 1;
+      saveProjects(projects);
+    }
+  }
+
   const blob = new Blob([html], {type:'text/html'});
   window.open(URL.createObjectURL(blob), '_blank');
 }
@@ -840,8 +1001,9 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
 (function init() {
   const today = new Date().toISOString().split('T')[0];
   const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
-  document.getElementById('reportDate').value = today;
-  document.getElementById('periodEnd').value = today;
-  document.getElementById('periodStart').value = weekAgo.toISOString().split('T')[0];
-  document.getElementById('reportNum').value = '1';
+  document.getElementById('p-reportDate').value = today;
+  document.getElementById('p-periodEnd').value = today;
+  document.getElementById('p-periodStart').value = weekAgo.toISOString().split('T')[0];
+  document.getElementById('p-reportNum').value = '1';
+  renderProjectList();
 })();

@@ -4,7 +4,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Relatório de Obra — Formulário</title>
+  <title>Relatório de Obra</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,14 +13,29 @@
   <!-- TOP BAR -->
   <div class="topbar">
     <div class="topbar-title">Relatório de Obra</div>
-    <div class="topbar-step" id="stepLabel">Escolha o tipo de relatório</div>
-    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:8%"></div></div>
+    <div class="topbar-step" id="stepLabel">Obras</div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
   </div>
 
-  <!-- STEP 0: TIPO DE RELATÓRIO -->
-  <div class="step active" id="step0">
+  <!-- LAYER 0: PROJECT LIST -->
+  <div class="step active" id="step-projects">
     <div class="step-content">
-      <div class="step-header"><h2>Tipo de Relatório</h2><p>Escolha o tipo de relatório que pretende criar</p></div>
+      <div class="step-header">
+        <h2>Obras</h2>
+        <p>Selecione uma obra ou crie uma nova</p>
+      </div>
+      <div id="projectList"></div>
+      <button class="btn-add" onclick="newProject()" style="margin-top:12px">+ Nova Obra</button>
+    </div>
+  </div>
+
+  <!-- LAYER 1: MODE PICKER -->
+  <div class="step" id="step-mode">
+    <div class="step-content">
+      <div class="step-header">
+        <h2>Tipo de Relatório</h2>
+        <p id="modeProjectLabel"></p>
+      </div>
       <div class="mode-picker">
         <div class="mode-card" onclick="selectMode('weekly')">
           <div class="mode-icon">📋</div>
@@ -30,16 +45,19 @@
         <div class="mode-card" onclick="selectMode('legal')">
           <div class="mode-icon">⚖️</div>
           <div class="mode-title">Legal / Financeiro</div>
-          <div class="mode-desc">Inclui trabalhos extra, alterações ao contrato, resumo financeiro acumulado e acuse de recibo com assinatura do cliente.</div>
+          <div class="mode-desc">Trabalhos extra, alterações ao contrato, resumo financeiro acumulado e acuse de recibo com assinatura do cliente.</div>
         </div>
       </div>
     </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" onclick="goBack()">← Obras</button>
+    </div>
   </div>
 
-  <!-- STEP 1: EMPRESA -->
+  <!-- STEP 1: EMPRESA (new project only) -->
   <div class="step" id="step1">
     <div class="step-content">
-      <div class="step-header"><h2>Empresa</h2><p>Dados da empresa responsável pela obra</p></div>
+      <div class="step-header"><h2>Empresa</h2><p>Dados da empresa responsável pela obra — guardados para uso futuro</p></div>
       <div class="field"><label>Nome da Empresa *</label><input type="text" id="companyName" placeholder="Ex: Construções Santos &amp; Filhos" /></div>
       <div class="field"><label>Slogan / Especialidade</label><input type="text" id="companyTagline" placeholder="Ex: Construção · Renovação · Remodelação" /></div>
       <div class="field-row">
@@ -52,28 +70,51 @@
         <div class="field"><label>Email</label><input type="email" id="companyEmail" placeholder="joao@empresa.pt" /></div>
       </div>
     </div>
-    <div class="nav-bar"><button class="btn btn-next" onclick="goNext()">Seguinte →</button></div>
+    <div class="nav-bar">
+      <button class="btn btn-back" onclick="goBack()">←</button>
+      <button class="btn btn-next" onclick="goNext()">Seguinte →</button>
+    </div>
   </div>
 
-  <!-- STEP 2: OBRA -->
+  <!-- STEP 2: OBRA (new project only — static fields, saved to localStorage) -->
   <div class="step" id="step2">
     <div class="step-content">
-      <div class="step-header"><h2>Dados da Obra</h2><p>Identificação do projeto e do cliente</p></div>
+      <div class="step-header"><h2>Dados da Obra</h2><p>Identificação do projeto — guardados para uso futuro</p></div>
       <div class="field"><label>Nome da Obra *</label><input type="text" id="projectName" placeholder="Ex: Moradia dos Pinheiros" /></div>
       <div class="field"><label>Cliente *</label><input type="text" id="clientName" placeholder="Ex: Sr. e Sra. Monteiro" /></div>
       <div class="field"><label>Localização / Morada *</label><input type="text" id="location" placeholder="Ex: Rua das Acácias 14, Sintra" /></div>
-      <div class="field-row">
-        <div class="field"><label>N.º Contrato</label><input type="text" id="contractNum" placeholder="CONT-2026-0014" /></div>
-        <div class="field"><label>N.º Relatório *</label><input type="number" id="reportNum" placeholder="1" min="1" /></div>
-      </div>
-      <div class="field-row">
-        <div class="field"><label>Período — Início</label><input type="date" id="periodStart" /></div>
-        <div class="field"><label>Período — Fim</label><input type="date" id="periodEnd" /></div>
-      </div>
-      <div class="field"><label>Data do Relatório</label><input type="date" id="reportDate" /></div>
+      <div class="field"><label>N.º Contrato</label><input type="text" id="contractNum" placeholder="CONT-2026-0014" /></div>
       <div class="field"><label>Distribuído a</label><input type="text" id="distributedTo" placeholder="Ex: Cliente · Arquiteto · Arquivo" /></div>
       <div class="field"><label>Enviado via</label>
         <select id="sentVia">
+          <option value="Email">Email</option>
+          <option value="WhatsApp" selected>WhatsApp</option>
+          <option value="Portal">Portal</option>
+          <option value="Impresso">Impresso</option>
+        </select>
+      </div>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" onclick="goBack()">←</button>
+      <button class="btn btn-next" onclick="goNext()">Seguinte →</button>
+    </div>
+  </div>
+
+  <!-- STEP: PERIOD (per-report dates — always shown before content) -->
+  <div class="step" id="step-period">
+    <div class="step-content">
+      <div class="step-header"><h2>Período do Relatório</h2><p>Datas e identificação deste relatório</p></div>
+      <div class="field-row">
+        <div class="field"><label>N.º Relatório *</label><input type="number" id="p-reportNum" placeholder="1" min="1" /></div>
+        <div class="field"><label>Data do Relatório</label><input type="date" id="p-reportDate" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Período — Início</label><input type="date" id="p-periodStart" /></div>
+        <div class="field"><label>Período — Fim</label><input type="date" id="p-periodEnd" /></div>
+      </div>
+      <div class="field"><label>Distribuído a</label><input type="text" id="p-distributedTo" placeholder="Ex: Cliente · Arquiteto · Arquivo" /></div>
+      <div class="field"><label>Enviado via</label>
+        <select id="p-sentVia">
           <option value="Email">Email</option>
           <option value="WhatsApp" selected>WhatsApp</option>
           <option value="Portal">Portal</option>
@@ -242,11 +283,28 @@
     </div>
     <div class="nav-bar">
       <button class="btn btn-back" onclick="goBack()">←</button>
-      <button class="btn btn-generate" onclick="saveAndGenerateReport()">Guardar e Gerar</button>
+      <button class="btn btn-generate" onclick="saveAndGenerateReport()">Gerar Relatório</button>
     </div>
   </div>
 
 </div>
-<script src="script.js"></script>
+  <script src="js/01-state-config.js"></script>
+  <script src="js/02-database.js"></script>
+  <script src="js/03-local-storage.js"></script>
+  <script src="js/04-projects.js"></script>
+  <script src="js/05-navigation.js"></script>
+  <script src="js/06-ui-controls.js"></script>
+  <script src="js/07-helpers.js"></script>
+  <script src="js/08-works.js"></script>
+  <script src="js/09-photos.js"></script>
+  <script src="js/10-incidents.js"></script>
+  <script src="js/11-extras.js"></script>
+  <script src="js/12-next-steps.js"></script>
+  <script src="js/13-financial.js"></script>
+  <script src="js/14-form-values.js"></script>
+  <script src="js/15-review.js"></script>
+  <script src="js/16-date-helpers.js"></script>
+  <script src="js/17-report-generator.js"></script>
+  <script src="js/18-init.js"></script>
 </body>
 </html>
