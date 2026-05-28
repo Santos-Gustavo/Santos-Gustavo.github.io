@@ -77,7 +77,6 @@ function selectMode(mode) {
 }
 
 async function goNext() {
-  console.log("goNext clicked. Current step:", S.currentStepId);
 
   const cur = S.currentStepId;
 
