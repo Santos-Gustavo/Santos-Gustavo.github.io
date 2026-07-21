@@ -176,7 +176,7 @@ async function resetPassword() {
   const email = document.getElementById("authEmail").value.trim();
 
   const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-    redirectTo: "https://santos-gustavo.github.io/reset_password.html"
+    redirectTo: "https://santos-gustavo.github.io/reset-password.html"
   });
 
   if (error) {
