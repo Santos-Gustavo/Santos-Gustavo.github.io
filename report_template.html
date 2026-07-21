@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatório de Obra — Moradia dos Pinheiros</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13px;
+      color: #1a1a1a;
+      background: #f5f5f0;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: white;
+    }
+
+    @media print {
+      body { background: white; }
+      .page { margin: 0; box-shadow: none; }
+      @page {
+        margin: 0;
+        @bottom-center {
+          content: "Página " counter(page) " de " counter(pages);
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 10px;
+          color: #9ca3af;
+        }
+      }
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: #1c2b3a;
+      color: white;
+      padding: 28px 36px 24px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-placeholder {
+      width: 44px;
+      height: 44px;
+      border: 2px solid #2e4158;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #4d6a85;
+      text-align: center;
+      line-height: 1.2;
+      flex-shrink: 0;
+    }
+
+    .company-name {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .company-tagline {
+      font-size: 11px;
+      color: #8faabe;
+      margin-top: 2px;
+    }
+
+    .report-badge {
+      text-align: right;
+    }
+
+    .report-badge .label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #8faabe;
+    }
+
+    .report-badge .number {
+      font-size: 22px;
+      font-weight: 700;
+      color: #b88a3a;
+      line-height: 1;
+    }
+
+    .report-badge .report-id {
+      font-size: 10px;
+      color: #6a8aab;
+      font-family: 'Courier New', monospace;
+      margin-top: 2px;
+    }
+
+    .header-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      border-top: 1px solid #2e4158;
+      padding-top: 16px;
+    }
+
+    .info-item .info-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #8faabe;
+      margin-bottom: 3px;
+    }
+
+    .info-item .info-value {
+      font-size: 12px;
+      font-weight: 500;
+      color: white;
+    }
+
+    .info-item .info-value.mono {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: #c8d8e8;
+    }
+
+    /* ── SUMMARY BANNER ── */
+    .summary-banner {
+      background: #f0f4f0;
+      border-left: 4px solid #3d8b5e;
+      padding: 16px 36px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #2d4a3a;
+    }
+
+    .summary-banner strong {
+      display: block;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #3d8b5e;
+      margin-bottom: 6px;
+    }
+
+    /* ── CONTENT ── */
+    .content {
+      padding: 28px 36px;
+    }
+
+    .section {
+      margin-bottom: 28px;
+    }
+
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #6b7280;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 6px;
+      margin-bottom: 14px;
+    }
+
+    /* ── STATUS CHIPS ── */
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .status-card {
+      border-radius: 8px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+
+    .status-card.done     { background: #f0faf4; border: 1px solid #b7e4c7; }
+    .status-card.progress { background: #fff8f0; border: 1px solid #fcd9a8; }
+    .status-card.blocked  { background: #fff5f5; border: 1px solid #fecaca; }
+
+    .status-card .status-icon {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      line-height: 1.2;
+    }
+
+    .status-card.done .status-icon     { color: #16a34a; }
+    .status-card.progress .status-icon { color: #d97706; }
+    .status-card.blocked .status-icon  { color: #dc2626; }
+
+    .status-card .status-number {
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .status-card.done .status-number     { color: #16a34a; }
+    .status-card.progress .status-number { color: #d97706; }
+    .status-card.blocked .status-number  { color: #dc2626; }
+
+    .status-card .status-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+
+    .status-card.done .status-label     { color: #16a34a; }
+    .status-card.progress .status-label { color: #d97706; }
+    .status-card.blocked .status-label  { color: #dc2626; }
+
+    /* ── PHOTO GRID ── */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .photo-card {
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+    }
+
+    .photo-placeholder {
+      height: 130px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .photo-placeholder.before    { background: #fef9f0; }
+    .photo-placeholder.during    { background: #f0f4ff; }
+    .photo-placeholder.done-photo{ background: #f0faf4; }
+    .photo-placeholder.detail    { background: #faf0f8; }
+
+    .photo-placeholder .photo-icon {
+      font-size: 18px;
+      font-weight: 700;
+      color: #d1d5db;
+      letter-spacing: 2px;
+    }
+
+    .photo-caption {
+      padding: 8px 12px;
+      background: white;
+    }
+
+    .photo-caption .caption-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+    }
+
+    .caption-badge.before  { background: #fef3c7; color: #92400e; }
+    .caption-badge.during  { background: #dbeafe; color: #1e40af; }
+    .caption-badge.after   { background: #dcfce7; color: #166534; }
+    .caption-badge.detalhe { background: #f3e8ff; color: #6b21a8; }
+
+    .photo-caption .caption-text {
+      font-size: 11px;
+      color: #374151;
+      line-height: 1.4;
+    }
+
+    .photo-caption .caption-meta {
+      font-size: 10px;
+      color: #9ca3af;
+      margin-top: 4px;
+      line-height: 1.6;
+    }
+
+    .caption-meta .meta-timestamp {
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      color: #6b7280;
+    }
+
+    /* ── WORK LIST ── */
+    .work-list { list-style: none; }
+
+    .work-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .work-item:last-child { border-bottom: none; }
+
+    .work-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .work-dot.done     { background: #16a34a; }
+    .work-dot.progress { background: #d97706; }
+    .work-dot.blocked  { background: #dc2626; }
+
+    .work-text {
+      flex: 1;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .work-area {
+      font-size: 10px;
+      color: #9ca3af;
+      font-weight: 500;
+    }
+
+    .work-tag {
+      font-size: 10px;
+      padding: 1px 7px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .work-tag.done     { background: #dcfce7; color: #166534; }
+    .work-tag.progress { background: #fef9c3; color: #854d0e; }
+    .work-tag.blocked  { background: #fee2e2; color: #991b1b; }
+
+    /* ── EXTRAS / CHANGE REQUESTS ── */
+    .extras-card {
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+    }
+
+    .extras-card.approved-card {
+      background: #f8fdf9;
+      border: 1px solid #b7e4c7;
+    }
+
+    .extras-card.pending-card {
+      background: #fffbf0;
+      border: 1px solid #fcd9a8;
+    }
+
+    .extras-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+      gap: 12px;
+    }
+
+    .extras-title-area { flex: 1; }
+
+    .extras-ref {
+      font-size: 10px;
+      color: #9ca3af;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 2px;
+    }
+
+    .extras-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .extras-status {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .extras-status.pending  { background: #fef3c7; color: #92400e; }
+    .extras-status.approved { background: #dcfce7; color: #166534; }
+
+    .extras-desc {
+      font-size: 11px;
+      color: #374151;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+
+    .extras-approval {
+      background: #f0faf4;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      font-size: 10px;
+      color: #374151;
+      line-height: 1.7;
+    }
+
+    .extras-approval.waiting { background: #fffbf0; }
+
+    .extras-approval .approval-label {
+      font-weight: 700;
+      color: #166534;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 10px;
+    }
+
+    .extras-approval.waiting .approval-label { color: #92400e; }
+
+    .extras-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      color: #9ca3af;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 8px;
+    }
+
+    .extras-cost {
+      font-weight: 700;
+      font-size: 13px;
+      color: #1a1a1a;
+    }
+
+    /* ── FINANCIAL SUMMARY ── */
+    .financial-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .financial-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .financial-table tr:last-child td { border-bottom: none; }
+
+    .financial-table .ft-label { color: #374151; }
+    .financial-table .ft-value {
+      text-align: right;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+
+    .financial-table .ft-total td {
+      background: #f9fafb;
+      font-weight: 700;
+      font-size: 13px;
+      border-top: 2px solid #e5e7eb;
+    }
+
+    .ft-positive    { color: #d97706; }
+    .ft-pending     { color: #9ca3af; font-style: italic; }
+    .ft-total-value { color: #1c2b3a; }
+
+    .financial-note {
+      font-size: 10px;
+      color: #9ca3af;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    /* ── INCIDENTS ── */
+    .incidents-empty {
+      background: #f9fafb;
+      border: 1px dashed #e5e7eb;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 11px;
+      color: #9ca3af;
+      text-align: center;
+    }
+
+    .incidents-check {
+      font-size: 14px;
+      font-weight: 700;
+      color: #16a34a;
+      margin-bottom: 4px;
+    }
+
+    /* ── NEXT STEPS ── */
+    .next-steps-list {
+      list-style: none;
+      counter-reset: steps;
+    }
+
+    .next-step-item {
+      counter-increment: steps;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .next-step-item:last-child { border-bottom: none; }
+
+    .step-number {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #1c2b3a;
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-text {
+      font-size: 12px;
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .step-date {
+      font-size: 10px;
+      color: #9ca3af;
+    }
+
+    /* ── PROGRESS BAR ── */
+    .progress-section {
+      background: #f9fafb;
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .progress-bar-track {
+      background: #e5e7eb;
+      border-radius: 99px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #3d8b5e, #5cb884);
+    }
+
+    .progress-phases {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+    }
+
+    .phase-item {
+      font-size: 10px;
+      color: #9ca3af;
+      text-align: center;
+    }
+
+    .phase-item.active    { color: #3d8b5e; font-weight: 700; }
+    .phase-item.done-phase{ color: #6b7280; }
+
+    /* ── ALERT BOX ── */
+    .alert {
+      background: #fff8f0;
+      border: 1px solid #fcd9a8;
+      border-left: 4px solid #d97706;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 11px;
+      color: #78350f;
+      line-height: 1.5;
+    }
+
+    .alert strong { color: #92400e; font-size: 12px; }
+
+    .alert-deadline {
+      margin-top: 8px;
+      font-size: 10px;
+      color: #a16207;
+      font-weight: 600;
+    }
+
+    /* ── CLIENT ACKNOWLEDGMENT ── */
+    .ack-section {
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .ack-header {
+      background: #1c2b3a;
+      color: white;
+      padding: 10px 16px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .ack-body { padding: 16px; }
+
+    .ack-notice {
+      font-size: 11px;
+      color: #374151;
+      line-height: 1.6;
+      margin-bottom: 14px;
+      background: #f9fafb;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border-left: 3px solid #9ca3af;
+    }
+
+    .ack-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .ack-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .ack-field label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #6b7280;
+      font-weight: 700;
+    }
+
+    .ack-line {
+      border-bottom: 1px solid #374151;
+      height: 24px;
+      width: 100%;
+    }
+
+    .ack-digital {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #f0f4ff;
+      border: 1px solid #c7d7f4;
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+
+    .ack-qr {
+      width: 52px;
+      height: 52px;
+      border: 2px dashed #9ca3af;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #9ca3af;
+      text-align: center;
+      line-height: 1.3;
+      flex-shrink: 0;
+    }
+
+    .ack-digital-text {
+      font-size: 11px;
+      color: #374151;
+      line-height: 1.5;
+    }
+
+    .ack-digital-text strong {
+      color: #1c2b3a;
+      font-size: 12px;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .ack-clause {
+      font-size: 10px;
+      color: #9ca3af;
+      margin-top: 12px;
+      line-height: 1.5;
+      font-style: italic;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      background: #f9fafb;
+      border-top: 1px solid #e5e7eb;
+      padding: 16px 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-company {
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .footer-company strong {
+      display: block;
+      color: #374151;
+      font-size: 12px;
+    }
+
+    .footer-center {
+      text-align: center;
+      font-size: 10px;
+      color: #d1d5db;
+    }
+
+    .footer-contact {
+      text-align: right;
+      font-size: 10px;
+      color: #9ca3af;
+      line-height: 1.6;
+    }
+
+    .footer-link {
+      color: #b88a3a;
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <div class="logo-area">
+        <div class="logo-placeholder">LOGO</div>
+        <div>
+          <div class="company-name">Construções Santos &amp; Filhos</div>
+          <div class="company-tagline">Construção · Renovação · Remodelação</div>
+        </div>
+      </div>
+      <div class="report-badge">
+        <div class="label">Relatório de Obra</div>
+        <div class="number">#007</div>
+        <div class="report-id">PROJ-MONTEIRO-007</div>
+      </div>
+    </div>
+    <div class="header-info">
+      <div class="info-item">
+        <div class="info-label">Obra</div>
+        <div class="info-value">Moradia dos Pinheiros</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Localização</div>
+        <div class="info-value">Rua das Acácias 14, Sintra</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Data do Relatório</div>
+        <div class="info-value">26 de maio de 2026</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Cliente</div>
+        <div class="info-value">Sr. e Sra. Monteiro</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Responsável de Obra</div>
+        <div class="info-value">João Santos</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Período</div>
+        <div class="info-value">19–26 mai 2026</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">N.º Contrato</div>
+        <div class="info-value mono">CONT-2026-0014</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Distribuído a</div>
+        <div class="info-value" style="font-size:11px;">Sr. Monteiro · Arq. Silva · Arquivo</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Enviado via</div>
+        <div class="info-value" style="font-size:11px;">Email + Portal · 26/05 09:00</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMMARY BANNER -->
+  <div class="summary-banner">
+    <strong>Resumo da Semana</strong>
+    Esta semana registámos avanços significativos na construção das paredes da cave e do piso 0. A alvenaria da fachada Norte foi concluída na íntegra, incluindo o enchimento com blocos de betão e a aplicação da primeira camada de reboco. Na fachada Sul iniciámos o levantamento das fiadas superiores, prevendo conclusão até quarta-feira. Não há imprevistos que afectem o prazo global da obra.
+  </div>
+
+  <div class="content">
+
+    <!-- STATUS OVERVIEW -->
+    <div class="section">
+      <div class="section-title">Estado Geral da Obra</div>
+      <div class="status-grid">
+        <div class="status-card done">
+          <div class="status-icon">&#10003;</div>
+          <div class="status-number">8</div>
+          <div class="status-label">Concluídas</div>
+        </div>
+        <div class="status-card progress">
+          <div class="status-icon">&#9679;</div>
+          <div class="status-number">3</div>
+          <div class="status-label">Em Curso</div>
+        </div>
+        <div class="status-card blocked">
+          <div class="status-icon">&#9650;</div>
+          <div class="status-number">1</div>
+          <div class="status-label">Pendente</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROGRESS BAR -->
+    <div class="section">
+      <div class="section-title">Progresso Global da Obra</div>
+      <div class="progress-section">
+        <div class="progress-label">
+          <span>Fase 2 — Estrutura e Alvenaria</span>
+          <span style="color: #3d8b5e;">38%</span>
+        </div>
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" style="width: 38%;"></div>
+        </div>
+        <div class="progress-phases">
+          <div class="phase-item done-phase">Fundações &#10003;</div>
+          <div class="phase-item active">&#9679; Estrutura</div>
+          <div class="phase-item">Impermeab.</div>
+          <div class="phase-item">Cobertura</div>
+          <div class="phase-item">Acabamentos</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHOTO GALLERY -->
+    <div class="section">
+      <div class="section-title">Registo Fotográfico — Alvenaria das Paredes</div>
+      <div class="photo-grid">
+
+        <div class="photo-card">
+          <div class="photo-placeholder before">
+            <div class="photo-icon">[ ]</div>
+            <div>Parede Norte — estado inicial</div>
+          </div>
+          <div class="photo-caption">
+            <span class="caption-badge before">Antes</span>
+            <div class="caption-text">Fundação da fachada Norte exposta, pronta para iniciar alvenaria. Armaduras verificadas.</div>
+            <div class="caption-meta">
+              <span class="meta-timestamp">19/05/2026 08:14</span> · João F.<br>
+              Fachada Norte · GPS: 38.8012, -9.3895
+            </div>
+          </div>
+        </div>
+
+        <div class="photo-card">
+          <div class="photo-placeholder during">
+            <div class="photo-icon">[ ]</div>
+            <div>Levantamento em progresso</div>
+          </div>
+          <div class="photo-caption">
+            <span class="caption-badge during">Durante</span>
+            <div class="caption-text">Levantamento de blocos de betão 20×20×40 cm, fiadas 1 a 8. Argamassa M10 aplicada.</div>
+            <div class="caption-meta">
+              <span class="meta-timestamp">21/05/2026 10:37</span> · Miguel S.<br>
+              Fachada Norte · GPS: 38.8012, -9.3895
+            </div>
+          </div>
+        </div>
+
+        <div class="photo-card">
+          <div class="photo-placeholder done-photo">
+            <div class="photo-icon">[ ]</div>
+            <div>Parede Norte concluída</div>
+          </div>
+          <div class="photo-caption">
+            <span class="caption-badge after">Concluído</span>
+            <div class="caption-text">Fachada Norte completa até cota +2,80 m. Total de 12 fiadas. Primeira demão de reboco aplicada.</div>
+            <div class="caption-meta">
+              <span class="meta-timestamp">24/05/2026 15:52</span> · João F.<br>
+              Fachada Norte · GPS: 38.8012, -9.3895
+            </div>
+          </div>
+        </div>
+
+        <div class="photo-card">
+          <div class="photo-placeholder detail">
+            <div class="photo-icon">[ ]</div>
+            <div>Detalhe — padieira janela</div>
+          </div>
+          <div class="photo-caption">
+            <span class="caption-badge detalhe">Detalhe</span>
+            <div class="caption-text">Padieira pré-fabricada instalada sobre vão de janela (1,20 m). Apoios de 20 cm cada lado verificados. Conf. proj. pág. 14.</div>
+            <div class="caption-meta">
+              <span class="meta-timestamp">24/05/2026 16:05</span> · João F.<br>
+              Fachada Norte · GPS: 38.8012, -9.3895
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- WORK DONE / IN PROGRESS -->
+    <div class="two-col">
+      <div class="section">
+        <div class="section-title">Trabalhos Concluídos esta Semana</div>
+        <ul class="work-list">
+          <li class="work-item">
+            <div class="work-dot done"></div>
+            <div class="work-text">
+              <span class="work-tag done">Concluído</span><br>
+              Alvenaria completa — Fachada Norte (12 fiadas, cota +2,80 m)
+              <div class="work-area">Fachada Norte</div>
+            </div>
+          </li>
+          <li class="work-item">
+            <div class="work-dot done"></div>
+            <div class="work-text">
+              <span class="work-tag done">Concluído</span><br>
+              1.ª demão de reboco projetado — Fachada Norte (interior)
+              <div class="work-area">Fachada Norte</div>
+            </div>
+          </li>
+          <li class="work-item">
+            <div class="work-dot done"></div>
+            <div class="work-text">
+              <span class="work-tag done">Concluído</span><br>
+              Instalação de 3 padieiras pré-fabricadas (vãos J1, J2, P1)
+              <div class="work-area">Fachada Norte · Sul</div>
+            </div>
+          </li>
+          <li class="work-item">
+            <div class="work-dot done"></div>
+            <div class="work-text">
+              <span class="work-tag done">Concluído</span><br>
+              Travamento de paredes interiores — piso 0, zona sala
+              <div class="work-area">Interior Piso 0</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Em Curso</div>
+        <ul class="work-list">
+          <li class="work-item">
+            <div class="work-dot progress"></div>
+            <div class="work-text">
+              <span class="work-tag progress">Em Curso</span><br>
+              Alvenaria Fachada Sul — fiadas 7 a 12 (50% concluído)
+              <div class="work-area">Fachada Sul</div>
+            </div>
+          </li>
+          <li class="work-item">
+            <div class="work-dot progress"></div>
+            <div class="work-text">
+              <span class="work-tag progress">Em Curso</span><br>
+              Paredes divisórias interiores — quartos piso 1
+              <div class="work-area">Interior Piso 1</div>
+            </div>
+          </li>
+          <li class="work-item">
+            <div class="work-dot blocked"></div>
+            <div class="work-text">
+              <span class="work-tag blocked">Pendente</span><br>
+              Vão de porta P2 (fachada Sul) — aguarda decisão do cliente
+              <div class="work-area">Fachada Sul</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- PENDING DECISION ALERT -->
+    <div class="section">
+      <div class="alert">
+        <strong>&#9650; Decisão necessária — Vão P2 (Fachada Sul)</strong><br>
+        Durante o levantamento da Fachada Sul verificámos que a planta indica uma porta com 90 cm de largura, mas o espaço disponível permite ampliar para 100 cm sem custo adicional relevante. Pedimos que confirme a dimensão pretendida até <strong>28 de maio</strong> para não atrasar a execução desta parede (prevista para 29–30 mai).
+        <div class="alert-deadline">Prazo de resposta: 28/05/2026 — sem resposta nesta data, a execução avança conforme planta original (90 cm).</div>
+      </div>
+    </div>
+
+    <!-- INCIDENTS / NON-CONFORMANCES -->
+    <div class="section">
+      <div class="section-title">Incidentes e Não-Conformidades</div>
+      <div class="incidents-empty">
+        <div class="incidents-check">&#10003;</div>
+        Sem incidentes, não-conformidades ou ocorrências a registar neste período.
+      </div>
+    </div>
+
+    <!-- EXTRAS -->
+    <div class="section">
+      <div class="section-title">Trabalhos Extra / Alterações ao Contrato</div>
+
+      <div class="extras-card approved-card">
+        <div class="extras-header">
+          <div class="extras-title-area">
+            <div class="extras-ref">EX-007-001 · Ref. contrato CONT-2026-0014</div>
+            <div class="extras-title">Reforço de fundação — Pilar P3</div>
+          </div>
+          <span class="extras-status approved">Aprovado</span>
+        </div>
+        <div class="extras-desc">
+          Após escavação identificámos solo com menor capacidade de carga na zona do Pilar P3. Foi necessário alargar a sapata de 60×60 para 80×80 cm e aprofundar 20 cm. Trabalho documentado com registo fotográfico (fotos F-007-012 a F-007-019).
+        </div>
+        <div class="extras-approval">
+          <div class="approval-label">&#10003; Aprovação registada</div>
+          Aprovado por: Sr. Monteiro (titular do contrato)<br>
+          Método: Confirmação escrita por email · Ref. mensagem 20/05/2026 14:32<br>
+          Documento de aprovação arquivado: APR-EX-007-001.pdf
+        </div>
+        <div class="extras-footer">
+          <span>Proposto: 20/05/2026 · Aprovado: 20/05/2026</span>
+          <span class="extras-cost">+ 320,00 €</span>
+        </div>
+      </div>
+
+      <div class="extras-card pending-card">
+        <div class="extras-header">
+          <div class="extras-title-area">
+            <div class="extras-ref">EX-007-002 · Ref. contrato CONT-2026-0014</div>
+            <div class="extras-title">Reboco adicional — Parede empena Norte</div>
+          </div>
+          <span class="extras-status pending">Aguarda aprovação</span>
+        </div>
+        <div class="extras-desc">
+          A parede empena Norte apresenta irregularidades de planimetria superiores ao previsto (desvio máx. 3 cm). Para garantir o acabamento final é recomendável aplicar uma segunda demão de reboco de regularização.
+        </div>
+        <div class="extras-approval waiting">
+          <div class="approval-label">&#9650; Aguarda aprovação formal</div>
+          Proposta enviada a: Sr. Monteiro · em 25/05/2026 via email<br>
+          Prazo de resposta solicitado: 28/05/2026<br>
+          Este trabalho <strong>não será executado</strong> sem aprovação prévia por escrito.
+        </div>
+        <div class="extras-footer">
+          <span>Proposta enviada: 25/05/2026</span>
+          <span class="extras-cost">+ 180,00 €</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- FINANCIAL SUMMARY -->
+    <div class="section">
+      <div class="section-title">Resumo Financeiro Acumulado</div>
+      <table class="financial-table">
+        <tr>
+          <td class="ft-label">Valor do contrato base</td>
+          <td class="ft-value">48.500,00 €</td>
+        </tr>
+        <tr>
+          <td class="ft-label ft-positive">Extras aprovados acumulados</td>
+          <td class="ft-value ft-positive">+ 320,00 €</td>
+        </tr>
+        <tr>
+          <td class="ft-label ft-pending">Extras pendentes de aprovação</td>
+          <td class="ft-value ft-pending">+ 180,00 € (pendente)</td>
+        </tr>
+        <tr class="ft-total">
+          <td class="ft-label ft-total-value">Total projetado (s/ pendentes)</td>
+          <td class="ft-value ft-total-value">48.820,00 €</td>
+        </tr>
+      </table>
+      <div class="financial-note">Valores s/ IVA. Extras pendentes não incluídos no total até aprovação formal. Ref. contrato CONT-2026-0014.</div>
+    </div>
+
+    <!-- NEXT STEPS -->
+    <div class="section">
+      <div class="section-title">Próximos Passos</div>
+      <ol class="next-steps-list">
+        <li class="next-step-item">
+          <div class="step-number">1</div>
+          <div class="step-text">
+            Concluir alvenaria Fachada Sul (fiadas 7–12) e instalar padieiras J3 e J4
+            <div class="step-date">Previsto: 27–29 mai</div>
+          </div>
+        </li>
+        <li class="next-step-item">
+          <div class="step-number">2</div>
+          <div class="step-text">
+            Confirmar dimensão do vão P2 e aprovar extra EX-007-002 (reboco Norte)
+            <div class="step-date">Prazo decisão cliente: 28 mai</div>
+          </div>
+        </li>
+        <li class="next-step-item">
+          <div class="step-number">3</div>
+          <div class="step-text">
+            Iniciar paredes interiores piso 1 — divisórias da suite e hall
+            <div class="step-date">Previsto: 29–31 mai</div>
+          </div>
+        </li>
+        <li class="next-step-item">
+          <div class="step-number">4</div>
+          <div class="step-text">
+            Reunião de ponto de situação em obra com o cliente
+            <div class="step-date">Proposta: 30 mai, manhã</div>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    <!-- CLIENT ACKNOWLEDGMENT -->
+    <div class="section">
+      <div class="ack-section">
+        <div class="ack-header">Acuse de Recibo e Declaração do Cliente</div>
+        <div class="ack-body">
+          <div class="ack-notice">
+            Este relatório documenta o estado da obra e os trabalhos executados no período indicado. A receção sem objecção no prazo de 48 horas constitui aceitação tácita do estado descrito. Eventuais discordâncias devem ser comunicadas por escrito ao responsável de obra no prazo de 48h após receção.
+          </div>
+          <div class="ack-grid">
+            <div class="ack-field">
+              <label>Nome do cliente</label>
+              <div class="ack-line"></div>
+            </div>
+            <div class="ack-field">
+              <label>Data de receção</label>
+              <div class="ack-line"></div>
+            </div>
+            <div class="ack-field">
+              <label>Assinatura</label>
+              <div class="ack-line"></div>
+            </div>
+            <div class="ack-field">
+              <label>Observações</label>
+              <div class="ack-line"></div>
+            </div>
+          </div>
+          <div class="ack-digital">
+            <div class="ack-qr">QR<br>CODE</div>
+            <div class="ack-digital-text">
+              <strong>Confirmação digital</strong>
+              Aceda ao portal para confirmar receção, colocar questões ou aprovar extras pendentes:<br>
+              obra.santosfilhos.pt/monteiro-pinheiros/rel-007
+            </div>
+          </div>
+          <div class="ack-clause">
+            Relatório PROJ-MONTEIRO-007 gerado em 26/05/2026 09:00 · Construções Santos &amp; Filhos, Lda. · NIF 509 123 456 · INCI n.º 12345 · Este documento tem validade legal nos termos do art. 362.º e ss. do Código Civil Português.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-company">
+      <strong>Construções Santos &amp; Filhos, Lda.</strong>
+      NIF 509 123 456 · INCI n.º 12345<br>
+      Relatório PROJ-MONTEIRO-007 · gerado 26/05/2026 09:00
+    </div>
+    <div class="footer-center">Página 1 de 1</div>
+    <div class="footer-contact">
+      joao@santosfilhos.pt · (+351) 912 345 678<br>
+      <span class="footer-link">obra.santosfilhos.pt/monteiro-pinheiros</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

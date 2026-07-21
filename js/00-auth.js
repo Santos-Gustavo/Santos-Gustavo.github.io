@@ -172,8 +172,24 @@ function renderUserInfo() {
   `;
 }
 
+async function resetPassword() {
+  const email = document.getElementById("authEmail").value.trim();
+
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: "https://santos-gustavo.github.io/reset-password.html"
+  });
+
+  if (error) {
+    alert("Erro ao enviar email: " + error.message);
+    return;
+  }
+
+  alert("Email de recuperação enviado.");
+}
+
 // Expose functions because your app currently uses inline onclick handlers.
 window.signUp = signUp;
 window.signIn = signIn;
 window.signOut = signOut;
+window.resetPassword = resetPassword;
 window.initAuth = initAuth;
