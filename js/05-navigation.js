@@ -7,12 +7,33 @@ function getStepEl(id) {
 }
 
 function goToStepId(id) {
-  getStepEl(S.currentStepId).classList.remove('active');
+  const currentStep = getStepEl(S.currentStepId);
+
+  if (currentStep) {
+    currentStep.classList.remove("active");
+    currentStep.style.display = "";
+  }
+
   S.currentStepId = id;
-  getStepEl(id).classList.add('active');
+
+  const nextStep = getStepEl(id);
+
+  if (!nextStep) {
+    console.error("Step not found:", id);
+    return;
+  }
+
+  // Clear old forced display values from the previous goHome fix
+  document.querySelectorAll(".step").forEach(step => {
+    step.style.display = "";
+  });
+
+  nextStep.classList.add("active");
+
   updateTopBar(id);
   window.scrollTo(0, 0);
 }
+
 
 function updateTopBar(id) {
   const fill = document.getElementById('progressFill');
@@ -44,35 +65,25 @@ function updateTopBar(id) {
   label.textContent = 'Passo ' + pos + ' de ' + total + ' — ' + (STEP_NAMES[id] || String(id));
 }
 
-function selectMode(mode) {
+async function selectMode(mode) {
   S.mode = mode;
-  S.flow = [...CONTENT_STEPS[mode]];
-  // Reset report content state for a fresh report
-  S.phase = '';
-  S.alertOn = false;
-  S.incidentsOn = false;
-  S.works = [];
-  S.photos = [];
-  S.incidents = [];
-  S.extras = [];
-  S.nextSteps = [];
-  document.getElementById('alertToggle').classList.remove('on');
-  document.getElementById('alertFields').classList.add('hidden');
-  document.getElementById('incidentsToggle').classList.remove('on');
-  document.getElementById('incidentFields').classList.add('hidden');
-  document.querySelectorAll('.phase-option').forEach(o => o.classList.remove('selected'));
-  document.getElementById('progressSlider').value = 0;
-  document.getElementById('progressPct').textContent = '0%';
-  document.getElementById('weekSummary').value = '';
-  document.getElementById('contractValue').value = '';
-  document.getElementById('financialNote').value = '';
-  document.getElementById('financialPreview').innerHTML = '';
-  document.getElementById('workList').innerHTML = '';
-  document.getElementById('photoList').innerHTML = '';
-  document.getElementById('incidentList').innerHTML = '';
-  document.getElementById('extrasList').innerHTML = '';
-  document.getElementById('nextStepsList').innerHTML = '';
-  document.getElementById('reviewContent').innerHTML = '';
+
+  if (mode === "weekly") {
+    await prepareWeeklyReportFromPrevious();
+  }
+
+  if (mode === "weekly") {
+    S.flow = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  }
+
+  if (mode === "final") {
+    S.flow = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  }
+
+  if (mode === "financial") {
+    S.flow = [10, 11, 12];
+  }
+
   goToStepId(S.flow[0]);
 }
 
@@ -140,13 +151,113 @@ function goBack() {
   else goToStepId(S.flow[idx - 1]);
 }
 
+function goHome() {
+  S.currentStepId = "projects";
+  S.mode = "";
+  S.flow = null;
+
+  // IMPORTANT:
+  // Do not use style.display here.
+  // The app navigation is controlled by the "active" class.
+  document.querySelectorAll(".step").forEach(step => {
+    step.classList.remove("active");
+    step.style.display = "";
+  });
+
+  const projectsStep = document.getElementById("step-projects");
+
+  if (projectsStep) {
+    projectsStep.classList.add("active");
+  }
+
+  const stepLabel = document.getElementById("stepLabel");
+  if (stepLabel) {
+    stepLabel.textContent = "Obras";
+  }
+
+  const progressFill = document.getElementById("progressFill");
+  if (progressFill) {
+    progressFill.style.width = "0%";
+  }
+
+  const modeProjectLabel = document.getElementById("modeProjectLabel");
+  if (modeProjectLabel) {
+    modeProjectLabel.textContent = "";
+  }
+
+  if (typeof renderProjectList === "function") {
+    renderProjectList();
+  }
+
+  window.scrollTo(0, 0);
+}
+
+function showPrefillNotice() {
+  alert("Último relatório encontrado. Os dados foram pré-preenchidos. Atualize apenas o que mudou esta semana.");
+}
+
+
+async function prepareWeeklyReportFromPrevious() {
+  if (!S.currentProjectId) {
+    console.warn("No current project selected. Cannot load previous report.");
+    return;
+  }
+
+  try {
+    const previousReport = await getLatestReportForProject(S.currentProjectId);
+
+    if (!previousReport) {
+      console.log("No previous report found. Starting blank weekly report.");
+      prepareBlankWeeklyReport();
+      return;
+    }
+
+    console.log("Previous report loaded:", previousReport);
+
+    applyPreviousReportToForm(previousReport);
+    showPrefillNotice();
+
+  } catch (error) {
+    console.error("Error preparing weekly report:", error);
+    alert("Não foi possível carregar o relatório anterior: " + error.message);
+
+    prepareBlankWeeklyReport();
+  }
+}
+
+function prepareBlankWeeklyReport() {
+  const today = new Date().toISOString().split("T")[0];
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+
+  setValue("p-reportNum", "1");
+  setValue("p-reportDate", today);
+  setValue("p-periodStart", weekAgo.toISOString().split("T")[0]);
+  setValue("p-periodEnd", today);
+
+  S.works = [];
+  S.photos = [];
+  S.incidents = [];
+  S.extras = [];
+  S.nextSteps = [];
+
+  if (typeof renderWorks === "function") renderWorks();
+  if (typeof renderPhotos === "function") renderPhotos();
+  if (typeof renderIncidents === "function") renderIncidents();
+  if (typeof renderExtras === "function") renderExtras();
+  if (typeof renderNextSteps === "function") renderNextSteps();
+}
 
 
 // ── EXPOSE NAVIGATION FUNCTIONS TO HTML ─────────────────────────────
 // Required because index.html uses inline onclick="..."
+
 window.getStepEl = getStepEl;
 window.goToStepId = goToStepId;
 window.updateTopBar = updateTopBar;
 window.selectMode = selectMode;
 window.goNext = goNext;
 window.goBack = goBack;
+window.goHome = goHome;
+window.selectMode = selectMode;
+window.prepareWeeklyReportFromPrevious = prepareWeeklyReportFromPrevious;
