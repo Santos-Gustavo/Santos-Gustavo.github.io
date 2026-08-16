@@ -20,25 +20,31 @@ async function renderProjectList() {
   }
 
   el.innerHTML = projects.map(p => `
-    <div class="project-card" onclick="selectProject('${esc(p.id)}')">
-      <div class="project-card-name">${esc(p.name || "—")}</div>
-      <div class="project-card-sub">
-        ${esc(p.obra.clientName || "")}
-        ${p.obra.location ? " · " + esc(p.obra.location) : ""}
+    <div class="project-card">
+      <div onclick="selectProject('${esc(p.id)}')" style="cursor:pointer;">
+        <div class="project-card-name">${esc(p.name || "—")}</div>
+        <div class="project-card-sub">
+          ${esc(p.obra.clientName || "")}
+          ${p.obra.location ? " · " + esc(p.obra.location) : ""}
+        </div>
+        <div class="project-card-meta">
+          Relatório #${p.lastReportNum || 0}
+          ${p.obra.contractNum ? " · " + esc(p.obra.contractNum) : ""}
+        </div>
       </div>
-      <div class="project-card-meta">
-        Relatório #${p.lastReportNum || 0}
-        ${p.obra.contractNum ? " · " + esc(p.obra.contractNum) : ""}
-      </div>
+
+      <button class="btn-project-edit" onclick="event.stopPropagation(); editProject('${esc(p.id)}')">
+        Editar Obra
+      </button>
     </div>
   `).join("");
 }
-
 
 // ── PROJECT ACTIONS ─────────────────────────────────────────────────
 
 function newProject() {
   S.isNewProject = true;
+  S.isEditingProject = false;
 
   S.currentCompanyId = null;
   S.currentClientId = null;
@@ -47,6 +53,26 @@ function newProject() {
   S.flow = null;
 
   clearProjectForm();
+  goToStepId(1);
+}
+
+function editProject(id) {
+  const proj = getProjectById(id);
+
+  if (!proj) {
+    alert("Obra não encontrada.");
+    return;
+  }
+
+  S.isNewProject = false;
+  S.isEditingProject = true;
+
+  S.currentCompanyId = proj.companyId;
+  S.currentClientId = proj.clientId;
+  S.currentProjectId = proj.id;
+
+  loadProjectIntoForm(proj);
+
   goToStepId(1);
 }
 
@@ -127,20 +153,50 @@ function loadProjectIntoForm(proj) {
   document.getElementById("p-sentVia").value = o.sentVia || "WhatsApp";
 }
 
-window.newProject = newProject;
-window.selectProject = selectProject;
 
 async function saveCurrentProjectFromForm() {
   const v = getV();
 
+  console.log("saveCurrentProjectFromForm values:", v);
+  console.log("Editing mode:", S.isEditingProject);
+
   try {
-    const company = await findOrCreateCompany(v);
-    const client = await findOrCreateClient(company.id, v);
-    const project = await findOrCreateProject(company.id, client.id, v);
+    let company;
+    let client;
+    let project;
+
+    if (
+      S.isEditingProject &&
+      S.currentCompanyId &&
+      S.currentClientId &&
+      S.currentProjectId
+    ) {
+      // EDIT MODE: update existing rows by ID
+      company = await updateCompanyById(S.currentCompanyId, v);
+      console.log("Company updated:", company);
+
+      client = await updateClientById(S.currentClientId, company.id, v);
+      console.log("Client updated:", client);
+
+      project = await updateProjectById(S.currentProjectId, company.id, client.id, v);
+      console.log("Project updated:", project);
+
+    } else {
+      // NEW PROJECT MODE: find or create rows
+      company = await findOrCreateCompany(v);
+      console.log("Company saved:", company);
+
+      client = await findOrCreateClient(company.id, v);
+      console.log("Client saved:", client);
+
+      project = await findOrCreateProject(company.id, client.id, v);
+      console.log("Project saved:", project);
+    }
 
     S.currentCompanyId = company.id;
     S.currentClientId = client.id;
     S.currentProjectId = project.id;
+    S.isNewProject = false;
 
     const today = new Date().toISOString().split("T")[0];
     const weekAgo = new Date();
@@ -153,7 +209,9 @@ async function saveCurrentProjectFromForm() {
     document.getElementById("p-distributedTo").value = v.distributedTo || "";
     document.getElementById("p-sentVia").value = v.sentVia || "WhatsApp";
 
-    await renderProjectList();
+    if (typeof renderProjectList === "function") {
+      await renderProjectList();
+    }
 
     return {
       company,
@@ -167,6 +225,7 @@ async function saveCurrentProjectFromForm() {
     return null;
   }
 }
+
 
 function applyPreviousReportToForm(previousReport) {
   if (!previousReport) return;
@@ -260,4 +319,10 @@ function denormalizeSentVia(value) {
   return "WhatsApp";
 }
 
+
+window.renderProjectList = renderProjectList;
+window.newProject = newProject;
+window.editProject = editProject;
+window.selectProject = selectProject;
 window.applyPreviousReportToForm = applyPreviousReportToForm;
+window.saveCurrentProjectFromForm = saveCurrentProjectFromForm;

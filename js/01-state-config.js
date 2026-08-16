@@ -13,6 +13,7 @@ const S = {
   flow: null,
 
   isNewProject: false,
+  isEditingProject: false,
 
   currentCompanyId: null,
   currentClientId: null,

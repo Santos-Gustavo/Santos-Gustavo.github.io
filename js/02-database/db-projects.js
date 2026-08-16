@@ -60,3 +60,40 @@ async function findOrCreateProject(companyId, clientId, v) {
 
   return data;
 }
+
+
+async function updateProjectById(projectId, companyId, clientId, v) {
+  if (!projectId) {
+    throw new Error("ID da obra em falta.");
+  }
+
+  const name = cleanText(v.projectName);
+
+  if (!name) {
+    throw new Error("Nome da obra é obrigatório.");
+  }
+
+  const payload = {
+    company_id: companyId,
+    client_id: clientId,
+    name,
+    site_address: cleanText(v.location),
+    contract_num: cleanText(v.contractNum),
+    contract_value: toNumberOrNull(v.contractValue),
+    updated_at: new Date().toISOString()
+  };
+
+  const { data, error } = await supabaseClient
+    .from("projects")
+    .update(payload)
+    .eq("id", projectId)
+    .eq("company_id", companyId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+window.updateProjectById = updateProjectById;

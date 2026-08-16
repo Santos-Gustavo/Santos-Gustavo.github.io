@@ -79,3 +79,42 @@ async function findOrCreateCompany(v) {
 
   return data;
 }
+
+
+async function updateCompanyById(companyId, v) {
+  const user = await requireUser();
+
+  if (!companyId) {
+    throw new Error("ID da empresa em falta.");
+  }
+
+  const name = cleanText(v.companyName);
+
+  if (!name) {
+    throw new Error("Nome da empresa é obrigatório.");
+  }
+
+  const payload = {
+    name,
+    nif: cleanText(v.companyNif),
+    impic: cleanText(v.companyInci),
+    responsible: cleanText(v.responsible),
+    phone: cleanText(v.companyPhone),
+    email: cleanText(v.companyEmail),
+    updated_at: new Date().toISOString()
+  };
+
+  const { data, error } = await supabaseClient
+    .from("companies")
+    .update(payload)
+    .eq("id", companyId)
+    .eq("owner_id", user.id)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+window.updateCompanyById = updateCompanyById;

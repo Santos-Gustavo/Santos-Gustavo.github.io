@@ -80,7 +80,7 @@ async function selectMode(mode) {
     S.flow = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
   }
 
-  if (mode === "financial") {
+  if (mode === "legal") {
     S.flow = [10, 11, 12];
   }
 
@@ -99,12 +99,23 @@ async function goNext() {
 
   // Step 2: project info → save project in DB → mode screen
   if (cur === 2) {
-    console.log("Saving new project before going to mode...");
+    console.log("Saving project data...");
 
     const saved = await saveCurrentProjectFromForm();
 
     if (!saved) {
       console.warn("Project was not saved. Staying on step 2.");
+      return;
+    }
+
+    if (S.isEditingProject) {
+      S.isEditingProject = false;
+
+      alert("Dados da obra atualizados com sucesso.");
+
+      await renderProjectList();
+
+      goHome();
       return;
     }
 
