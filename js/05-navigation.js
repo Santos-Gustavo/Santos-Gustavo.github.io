@@ -93,6 +93,14 @@ async function goNext() {
 
   // Step 1: company info → project info
   if (cur === 1) {
+    const companyName = document.getElementById("companyName")?.value.trim();
+
+    if (!companyName) {
+    alert("Preencha o nome da empresa antes de continuar.");
+    document.getElementById("companyName")?.focus();
+    return;
+  }
+
     goToStepId(2);
     return;
   }
