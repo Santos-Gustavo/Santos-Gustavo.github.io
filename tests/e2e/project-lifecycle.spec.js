@@ -42,9 +42,9 @@ test("project lifecycle: create, edit, and delete/archive project", async ({ pag
   // EDIT
   const createdCard = page.locator(".project-card", { hasText: projectName });
   await expect(createdCard).toBeVisible();
-
-  await createdCard.getByRole("button", { name: /editar obra/i }).click();
-
+  
+  await createdCard.getByRole("button", { name: /editar/i }).click();
+  
   await expect(page.locator("#companyName")).toBeVisible();
 
   await page.getByRole("button", { name: /seguinte/i }).click();

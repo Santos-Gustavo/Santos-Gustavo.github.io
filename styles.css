@@ -120,60 +120,49 @@
   font-size: 13px;
 }
 
-
-.btn-project-edit {
-  margin-top: 10px;
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--input-bg);
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.btn-project-edit:active {
-  background: #f0faf4;
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
 .project-card-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  align-items: stretch;
+}
+
+.btn-project-edit,
+.btn-project-delete {
+  min-height: 2.4rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  line-height: 1.1;
+  white-space: nowrap;
 }
 
 .btn-project-edit {
   flex: 1;
-  padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 8px;
   background: var(--input-bg);
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
+}
+
+.btn-project-delete {
+  flex: 0 0 auto;
+  min-width: 4.4rem;
+  border: 1px solid #fecaca;
+  background: #fee2e2;
+  color: var(--danger);
 }
 
 .btn-project-edit:active {
   background: #f0faf4;
   border-color: var(--accent);
   color: var(--accent);
-}
-
-.btn-project-delete {
-  flex: 0 0 90px;
-  padding: 10px 12px;
-  border: none;
-  border-radius: 8px;
-  background: #fee2e2;
-  color: var(--danger);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
 }
 
 .btn-project-delete:active {
