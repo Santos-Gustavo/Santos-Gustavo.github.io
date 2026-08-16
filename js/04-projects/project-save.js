@@ -5,18 +5,22 @@ async function saveCurrentProjectFromForm() {
 
   console.log("saveCurrentProjectFromForm values:", v);
   console.log("Editing mode:", S.isEditingProject);
+  console.log("Current IDs:", {
+    companyId: S.currentCompanyId,
+    clientId: S.currentClientId,
+    projectId: S.currentProjectId
+  });
 
   try {
     let company;
     let client;
     let project;
 
-    if (
-      S.isEditingProject &&
-      S.currentCompanyId &&
-      S.currentClientId &&
-      S.currentProjectId
-    ) {
+    if (S.isEditingProject) {
+      if (!S.currentCompanyId || !S.currentClientId || !S.currentProjectId) {
+        throw new Error("Modo edição ativo, mas faltam IDs da empresa, cliente ou obra.");
+      }
+
       company = await updateCompanyById(S.currentCompanyId, v);
       console.log("Company updated:", company);
 

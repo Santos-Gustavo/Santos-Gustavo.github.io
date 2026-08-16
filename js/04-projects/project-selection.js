@@ -54,6 +54,12 @@ function editProject(id) {
   S.currentClientId = proj.clientId;
   S.currentProjectId = proj.id;
 
+  console.log("Editing project:", {
+    projectId: S.currentProjectId,
+    companyId: S.currentCompanyId,
+    clientId: S.currentClientId
+  });
+
   loadProjectIntoForm(proj);
 
   goToStepId(1);

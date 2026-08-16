@@ -139,3 +139,43 @@
   border-color: var(--accent);
   color: var(--accent);
 }
+
+.project-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.btn-project-edit {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-project-edit:active {
+  background: #f0faf4;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-project-delete {
+  flex: 0 0 90px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-project-delete:active {
+  background: #fecaca;
+}

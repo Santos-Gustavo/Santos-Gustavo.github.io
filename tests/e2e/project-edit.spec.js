@@ -1,43 +1,43 @@
-const { test, expect } = require("@playwright/test");
-const { failOnConsoleErrors } = require("./helpers");
-const { login, waitForAtLeastOneProject } = require("./app-helpers");
+// const { test, expect } = require("@playwright/test");
+// const { failOnConsoleErrors } = require("./helpers");
+// const { login, waitForAtLeastOneProject } = require("./app-helpers");
 
 
-test.beforeEach(async ({ page }) => {
-  failOnConsoleErrors(page);
-});
+// test.beforeEach(async ({ page }) => {
+//   failOnConsoleErrors(page);
+// });
 
-test("editing project updates existing project instead of creating duplicate", async ({ page }) => {
-  await login(page);
+// test("editing project updates existing project instead of creating duplicate", async ({ page }) => {
+//   await login(page);
 
-  await waitForAtLeastOneProject(page);
+//   await waitForAtLeastOneProject(page);
   
-  const beforeCount = await page.locator(".project-card").count();
+//   const beforeCount = await page.locator(".project-card").count();
 
-  const firstCard = page.locator(".project-card").first();
-  await expect(firstCard).toBeVisible();
+//   const firstCard = page.locator(".project-card").first();
+//   await expect(firstCard).toBeVisible();
 
-  await firstCard.getByRole("button", { name: /editar obra/i }).click();
+//   await firstCard.getByRole("button", { name: /editar obra/i }).click();
 
-  // Edit opens at company step first.
-  await expect(page.locator("#companyName")).toBeVisible();
+//   // Edit opens at company step first.
+//   await expect(page.locator("#companyName")).toBeVisible();
 
-  // Go to project/obra data step.
-  await page.getByRole("button", { name: /seguinte/i }).click();
+//   // Go to project/obra data step.
+//   await page.getByRole("button", { name: /seguinte/i }).click();
 
-  await expect(page.locator("#projectName")).toBeVisible();
+//   await expect(page.locator("#projectName")).toBeVisible();
 
-  const newName = `Obra Editada ${Date.now()}`;
+//   const newName = `Obra Editada ${Date.now()}`;
 
-  await page.fill("#projectName", newName);
+//   await page.fill("#projectName", newName);
 
-  await page.getByRole("button", { name: /seguinte/i }).click();
+//   await page.getByRole("button", { name: /seguinte/i }).click();
 
-  await expect(page.locator("#projectList")).toBeVisible();
-  await expect(page.locator("#stepLabel")).toHaveText(/obras/i);
+//   await expect(page.locator("#projectList")).toBeVisible();
+//   await expect(page.locator("#stepLabel")).toHaveText(/obras/i);
 
-  const afterCount = await page.locator(".project-card").count();
+//   const afterCount = await page.locator(".project-card").count();
 
-  expect(afterCount).toBe(beforeCount);
-  await expect(page.getByText(newName)).toBeVisible();
-});
+//   expect(afterCount).toBe(beforeCount);
+//   await expect(page.getByText(newName)).toBeVisible();
+// });

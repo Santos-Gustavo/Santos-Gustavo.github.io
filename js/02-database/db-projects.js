@@ -96,4 +96,23 @@ async function updateProjectById(projectId, companyId, clientId, v) {
   return data;
 }
 
+async function deleteProjectById(projectId) {
+  if (!projectId) {
+    throw new Error("ID da obra em falta.");
+  }
+
+  const { data, error } = await supabaseClient
+    .from("projects")
+    .delete()
+    .eq("id", projectId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+window.deleteProjectById = deleteProjectById;
+
 window.updateProjectById = updateProjectById;
