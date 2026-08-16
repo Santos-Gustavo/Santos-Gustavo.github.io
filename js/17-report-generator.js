@@ -279,7 +279,6 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
       <div class="info-item"><div class="info-label">Data do Relatório</div><div class="info-value">${fmtDate(v.reportDate)||'—'}</div></div>
       <div class="info-item"><div class="info-label">Cliente</div><div class="info-value">${esc(v.clientName||'—')}</div></div>
       <div class="info-item"><div class="info-label">Responsável de Obra</div><div class="info-value">${esc(v.responsible||'—')}</div></div>
-      <div class="info-item"><div class="info-label">Período</div><div class="info-value">${fmtRange(v.periodStart,v.periodEnd)||'—'}</div></div>
       <div class="info-item"><div class="info-label">N.º Contrato</div><div class="info-value mono">${esc(v.contractNum||'—')}</div></div>
       <div class="info-item"><div class="info-label">Distribuído a</div><div class="info-value" style="font-size:11px">${esc(v.distributedTo||'—')}</div></div>
       <div class="info-item"><div class="info-label">Enviado via</div><div class="info-value" style="font-size:11px">${esc(v.sentVia||'—')} · ${fmtShort(v.reportDate)||'—'}</div></div>
