@@ -33,13 +33,18 @@ function generateReport() {
 
   const typeLabel = {before:'Antes',during:'Durante',after:'Concluído',detail:'Detalhe'};
   const badgeCls = {before:'before',during:'during',after:'after',detail:'detalhe'};
-  const photosHtml = S.photos.map(p =>
-    '<div class="photo-card">'+(p.dataUrl?'<img src="'+p.dataUrl+'" style="width:100%;height:130px;object-fit:cover;" />':'<div class="photo-placeholder '+(p.type==='after'?'done-photo':p.type)+'"><div class="photo-icon">[ ]</div><div>'+esc(p.area)+'</div></div>')+'<div class="photo-caption"><span class="caption-badge '+(badgeCls[p.type]||'')+'">'+esc(typeLabel[p.type]||p.type)+'</span><div class="caption-text">'+esc(p.desc||'—')+'</div><div class="caption-meta">'+esc(p.worker)+(p.area?' · '+esc(p.area):'')+'</div></div></div>'
-  ).join('');
+  const photosHtml = S.photos.map(photo => `
+  <div class="photo-card"> <div class="photo-frame"> <img src="${photo.dataUrl || photo.fileUrl || ""}"> </div> <div class="photo-caption"> <strong>${esc(photo.area || "Fotografia da obra")}</strong> ${esc(photo.desc || "")} ${photo.worker ? `<br>Responsável: ${esc(photo.worker)}` : ""} </div> </div>
+  `).join("");
 
   const extrasHtml = S.extras.map(e =>
-    '<div class="extras-card '+(e.status==='approved'?'approved-card':'pending-card')+'"><div class="extras-header"><div class="extras-title-area"><div class="extras-ref">'+esc(e.ref)+' · Ref. contrato '+esc(v.contractNum||'—')+'</div><div class="extras-title">'+esc(e.title||'—')+'</div></div><span class="extras-status '+(e.status==='approved'?'approved':'pending')+'">'+(e.status==='approved'?'Aprovado':'Aguarda aprovação')+'</span></div><div class="extras-desc">'+esc(e.desc||'—')+'</div><div class="extras-approval'+(e.status==='approved'?'':' waiting')+'">'+(e.status==='approved'?'<div class="approval-label">✓ Aprovação registada</div>Aprovado por: '+esc(e.approvedBy||'—')+'<br>Método: '+esc(e.approvalMethod||'—')+' · '+fmtShort(e.approvalDate):'<div class="approval-label">▲ Aguarda aprovação formal</div>'+(e.deadline?'Prazo de resposta: '+fmtShort(e.deadline)+'<br>':'')+'Este trabalho <strong>não será executado</strong> sem aprovação prévia por escrito.')+'</div><div class="extras-footer"><span>'+(e.status==='approved'?'Aprovado: '+fmtShort(e.approvalDate):'Pendente de aprovação')+'</span><span class="extras-cost">+ '+fmt(parseFloat(e.cost)||0)+'</span></div></div>'
-  ).join('');
+    `<div class="extras-card '+(e.status==='approved'?'approved-card':'pending-card')+'">
+    <div class="extras-header"><div class="extras-title-area"><div class="extras-ref">'+esc(e.ref)+' · Ref. contrato '+esc(v.contractNum||'—')+'</div>
+    <div class="extras-title">'+esc(e.title||'—')+'</div></div><span class="extras-status '+(e.status==='approved'?'approved':'pending')+'">'+(e.status==='approved'?'Aprovado':'Aguarda aprovação')+'</span></div><div class="extras-desc">'+esc(e.desc||'—')+'</div>
+    <div class="extras-approval'+(e.status==='approved'?'':' waiting')+'">'+(e.status==='approved'?'<div class="approval-label">✓ Aprovação registada</div>Aprovado por: '+esc(e.approvedBy||'—')+'<br>Método: '+esc(e.approvalMethod||'—')+' · '+fmtShort(e.approvalDate):
+    '<div class="approval-label">▲ Aguarda aprovação formal</div>'+(e.deadline?'Prazo de resposta: '+fmtShort(e.deadline)+'<br>':'')+'Este trabalho <strong>não será executado</strong> sem aprovação prévia por escrito.')+'</div><div class="extras-footer">
+    <span>'+(e.status==='approved'?'Aprovado: '+fmtShort(e.approvalDate):'Pendente de aprovação')+'</span><span class="extras-cost">+ '+fmt(parseFloat(e.cost)||0)+'</span></div></div>'
+  `).join('');
 
   const nextHtml = S.nextSteps.map((s,i) =>
     '<li class="next-step-item"><div class="step-number">'+(i+1)+'</div><div class="step-text">'+esc(s.desc||'—')+(s.date?'<div class="step-date">Previsto: '+fmtShort(s.date)+'</div>':'')+'</div></li>'
@@ -134,19 +139,26 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
 .logo-placeholder{width:44px;height:44px;border:2px solid #2e4158;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#4d6a85;text-align:center;line-height:1.2;flex-shrink:0}
 .company-name{font-size:20px;font-weight:700;letter-spacing:-0.3px}
 .company-tagline{font-size:11px;color:#8faabe;margin-top:2px}
+
 .report-badge{text-align:right}
 .report-badge .label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#8faabe}
 .report-badge .number{font-size:22px;font-weight:700;color:#b88a3a;line-height:1}
 .report-badge .report-id{font-size:10px;color:#6a8aab;font-family:'Courier New',monospace;margin-top:2px}
+
 .header-info{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;border-top:1px solid #2e4158;padding-top:16px}
+
 .info-item .info-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#8faabe;margin-bottom:3px}
 .info-item .info-value{font-size:12px;font-weight:500;color:white}
 .info-item .info-value.mono{font-family:'Courier New',monospace;font-size:11px;color:#c8d8e8}
+
 .summary-banner{background:#f0f4f0;border-left:4px solid #3d8b5e;padding:16px 36px;font-size:13px;line-height:1.6;color:#2d4a3a}
 .summary-banner strong{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#3d8b5e;margin-bottom:6px}
+
 .content{padding:28px 36px}
+
 .section{margin-bottom:28px}
 .section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:14px}
+
 .status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .status-card{border-radius:8px;padding:14px 16px;text-align:center}
 .status-card.done{background:#f0faf4;border:1px solid #b7e4c7}
@@ -164,8 +176,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
 .status-card.done .status-label{color:#16a34a}
 .status-card.progress .status-label{color:#d97706}
 .status-card.blocked .status-label{color:#dc2626}
-.photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.photo-card{border-radius:8px;overflow:hidden;border:1px solid #e5e7eb}
+
 .photo-placeholder{height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:11px;color:#9ca3af}
 .photo-placeholder.before{background:#fef9f0}
 .photo-placeholder.during{background:#f0f4ff}
@@ -178,8 +189,22 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
 .caption-badge.during{background:#dbeafe;color:#1e40af}
 .caption-badge.after{background:#dcfce7;color:#166534}
 .caption-badge.detalhe{background:#f3e8ff;color:#6b21a8}
-.photo-caption .caption-text{font-size:11px;color:#374151;line-height:1.4}
-.photo-caption .caption-meta{font-size:10px;color:#9ca3af;margin-top:4px}
+
+// .photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+// .photo-card{border-radius:8px;overflow:hidden;border:1px solid #e5e7eb}
+
+.photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px; }
+.photo-card { border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; background: #ffffff; break-inside: avoid; page-break-inside: avoid; }
+.photo-frame { width: 100%; height: 220px; background: #f3f4f6; overflow: hidden; }
+.photo-frame img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: center; }
+.photo-caption { padding: 10px 12px; font-size: 12px; color: #374151; line-height: 1.4; }
+.photo-caption strong { display: block; color: #111827; margin-bottom: 4px; }
+
+// .photo-caption .caption-text{font-size:11px;color:#374151;line-height:1.4}
+// .photo-caption .caption-meta{font-size:10px;color:#9ca3af;margin-top:4px}
+
+
+
 .work-list{list-style:none}
 .work-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #f3f4f6}
 .work-item:last-child{border-bottom:none}
@@ -193,6 +218,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
 .work-tag.done{background:#dcfce7;color:#166534}
 .work-tag.progress{background:#fef9c3;color:#854d0e}
 .work-tag.blocked{background:#fee2e2;color:#991b1b}
+
 .extras-card{border-radius:8px;padding:14px 16px;margin-bottom:10px}
 .extras-card.approved-card{background:#f8fdf9;border:1px solid #b7e4c7}
 .extras-card.pending-card{background:#fffbf0;border:1px solid #fcd9a8}
@@ -210,34 +236,43 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
 .extras-approval.waiting .approval-label{color:#92400e}
 .extras-footer{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:8px}
 .extras-cost{font-weight:700;font-size:13px;color:#1a1a1a}
+
 .financial-table{width:100%;border-collapse:collapse;font-size:12px}
 .financial-table td{padding:7px 10px;border-bottom:1px solid #f3f4f6}
 .financial-table tr:last-child td{border-bottom:none}
+
 .ft-label{color:#374151}
 .ft-value{text-align:right;font-family:'Courier New',monospace;font-size:12px}
 .ft-total td{background:#f9fafb;font-weight:700;font-size:13px;border-top:2px solid #e5e7eb}
 .ft-positive{color:#d97706}
 .ft-pending{color:#9ca3af;font-style:italic}
 .ft-total-value{color:#1c2b3a}
+
 .incidents-empty{background:#f9fafb;border:1px dashed #e5e7eb;border-radius:8px;padding:14px 16px;font-size:11px;color:#9ca3af;text-align:center}
 .incidents-check{font-size:14px;font-weight:700;color:#16a34a;margin-bottom:4px}
+
 .next-steps-list{list-style:none}
 .next-step-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f3f4f6}
 .next-step-item:last-child{border-bottom:none}
+
 .step-number{width:20px;height:20px;border-radius:50%;background:#1c2b3a;color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
 .step-text{font-size:12px;line-height:1.5;flex:1}
 .step-date{font-size:10px;color:#9ca3af}
+
 .progress-section{background:#f9fafb;border-radius:8px;padding:14px 16px}
 .progress-label{display:flex;justify-content:space-between;font-size:11px;font-weight:600;margin-bottom:6px}
 .progress-bar-track{background:#e5e7eb;border-radius:99px;height:8px;overflow:hidden}
 .progress-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#3d8b5e,#5cb884)}
 .progress-phases{display:flex;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:4px}
+
 .phase-item{font-size:10px;color:#9ca3af;text-align:center}
 .phase-item.active{color:#3d8b5e;font-weight:700}
 .phase-item.done-phase{color:#6b7280}
+
 .alert{background:#fff8f0;border:1px solid #fcd9a8;border-left:4px solid #d97706;border-radius:8px;padding:12px 14px;font-size:11px;color:#78350f;line-height:1.5}
 .alert strong{color:#92400e;font-size:12px}
 .alert-deadline{margin-top:8px;font-size:10px;color:#a16207;font-weight:600}
+
 .ack-section{border:1px solid #d1d5db;border-radius:8px;overflow:hidden}
 .ack-header{background:#1c2b3a;color:white;padding:10px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
 .ack-body{padding:16px}
@@ -248,10 +283,12 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
 .ack-line{border-bottom:1px solid #374151;height:24px;width:100%}
 .ack-clause{font-size:10px;color:#9ca3af;margin-top:12px;line-height:1.5;font-style:italic}
 .footer{background:#f9fafb;border-top:1px solid #e5e7eb;padding:16px 36px;display:flex;justify-content:space-between;align-items:center}
+
 .footer-company{font-size:11px;color:#6b7280}
 .footer-company strong{display:block;color:#374151;font-size:12px}
 .footer-center{text-align:center;font-size:10px;color:#d1d5db}
 .footer-contact{text-align:right;font-size:10px;color:#9ca3af;line-height:1.6}
+
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .print-btn{position:fixed;bottom:24px;right:24px;background:#1c2b3a;color:white;border:none;border-radius:8px;padding:14px 20px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:999}
 .legal-strip{background:#f9fafb;border-top:1px solid #e5e7eb;padding:12px 36px;font-size:9.5px;color:#9ca3af;line-height:1.7;text-align:justify}
@@ -280,8 +317,6 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
       <div class="info-item"><div class="info-label">Cliente</div><div class="info-value">${esc(v.clientName||'—')}</div></div>
       <div class="info-item"><div class="info-label">Responsável de Obra</div><div class="info-value">${esc(v.responsible||'—')}</div></div>
       <div class="info-item"><div class="info-label">N.º Contrato</div><div class="info-value mono">${esc(v.contractNum||'—')}</div></div>
-      <div class="info-item"><div class="info-label">Distribuído a</div><div class="info-value" style="font-size:11px">${esc(v.distributedTo||'—')}</div></div>
-      <div class="info-item"><div class="info-label">Enviado via</div><div class="info-value" style="font-size:11px">${esc(v.sentVia||'—')} · ${fmtShort(v.reportDate)||'—'}</div></div>
     </div>
   </div>
   ${summaryBanner}
@@ -291,7 +326,9 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;backgro
     ${financialSection}
     ${ackSection}
   </div>
-  <div class="legal-strip">Este relatório é emitido para efeitos de acompanhamento, comunicação e arquivo documental da obra. Não substitui o contrato de empreitada, o Livro de Obra, autos de medição, faturas, licenças, projetos aprovados, termos de responsabilidade ou aprovações formais exigidas por lei ou contrato. Trabalhos extra, alterações de preço, prazo ou projeto carecem de aprovação expressa por escrito, salvo disposição contratual em contrário.</div>
+  <div class="legal-strip">Este relatório é emitido para efeitos de acompanhamento, comunicação e arquivo documental da obra. 
+  Não substitui o contrato de empreitada, o Livro de Obra, autos de medição, faturas, licenças, projetos aprovados, termos de responsabilidade ou aprovações formais exigidas por lei ou contrato. 
+  Trabalhos extra, alterações de preço, prazo ou projeto carecem de aprovação expressa por escrito, salvo disposição contratual em contrário.</div>
   <div class="footer">
     <div class="footer-company"><strong>${esc(v.companyName||'—')}</strong>${v.companyNif?'NIF '+esc(v.companyNif):''}${v.companyInci?' · INCI n.º '+esc(v.companyInci):''}<br>Relatório ${reportId} · gerado ${fmtShort(v.reportDate)||'—'}</div>
     <div class="footer-center">Página 1 de 1</div>
