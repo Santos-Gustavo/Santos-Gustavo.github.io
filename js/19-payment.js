@@ -1,4 +1,6 @@
 async function createEupagoPayment(method) {
+  console.log("createEupagoPayment clicked:", method);
+
   try {
     let phone = null;
 
@@ -11,16 +13,29 @@ async function createEupagoPayment(method) {
       }
     }
 
-    const { data, error } = await supabaseClient.functions.invoke("create-eupago-payment", {
-      body: {
-        method,
-        phone
+    const { data, error } = await supabaseClient.functions.invoke(
+      "create-eupago-payment",
+      {
+        body: {
+          method,
+          phone
+        }
       }
-    });
+    );
 
-    if (error) throw error;
+    console.log("EuPago Edge Function response:", { data, error });
 
-    if (data.error) {
+    if (error) {
+      console.error("Edge Function invoke error full object:", error);
+      throw new Error(
+        error.message ||
+        error.context?.error ||
+        JSON.stringify(error)
+      );
+    }
+
+    if (data?.error) {
+      console.error("Edge Function returned data error:", data);
       throw new Error(data.error);
     }
 
@@ -31,7 +46,7 @@ async function createEupagoPayment(method) {
           "",
           `Entidade: ${data.entity || "—"}`,
           `Referência: ${data.reference || "—"}`,
-          `Valor: ${data.amount}€`,
+          `Valor: ${data.amount || "—"}€`,
           `Expira: ${data.expiresAt || "—"}`
         ].join("\n")
       );
@@ -42,7 +57,7 @@ async function createEupagoPayment(method) {
     }
   } catch (error) {
     console.error("Erro ao criar pagamento EuPago:", error);
-    alert("Erro ao criar pagamento: " + error.message);
+    alert("Erro ao criar pagamento: " + (error.message || JSON.stringify(error)));
   }
 }
 
