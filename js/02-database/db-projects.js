@@ -32,7 +32,7 @@ async function findOrCreateProject(companyId, clientId, v) {
     type_of_work: null,
     start_date: v.periodStart || null,
     expected_end_date: v.periodEnd || null,
-    status: "active",
+    status: 1, // ACTIVE
     contract_num: contractNum || null,
     contract_value: toNumberOrNull(v.contractValue),
     updated_at: new Date().toISOString()

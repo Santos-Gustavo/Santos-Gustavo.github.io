@@ -63,8 +63,24 @@ async function saveCurrentProjectFromForm() {
     };
 
   } catch (error) {
-    console.error("Error saving project:", error);
-    alert("Erro ao guardar obra: " + error.message);
-    return null;
-  }
+  console.error("Error saving project:", {
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+    code: error.code,
+    full: error
+  });
+
+  alert(
+    "Erro ao guardar obra: " +
+    [
+      error.message,
+      error.details,
+      error.hint,
+      error.code
+    ].filter(Boolean).join(" | ")
+  );
+
+  return null;
+}
 }
