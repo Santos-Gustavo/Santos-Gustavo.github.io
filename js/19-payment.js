@@ -25,14 +25,27 @@ async function createEupagoPayment(method) {
 
     console.log("EuPago Edge Function response:", { data, error });
 
-    if (error) {
-      console.error("Edge Function invoke error full object:", error);
-      throw new Error(
-        error.message ||
-        error.context?.error ||
-        JSON.stringify(error)
-      );
+  if (error) {
+    console.error("Edge Function invoke error full object:", error);
+
+    let realMessage = error.message || "Erro desconhecido na Edge Function.";
+
+    try {
+      if (error.context instanceof Response) {
+        const errorBody = await error.context.json();
+        console.error("Edge Function error body:", errorBody);
+
+        realMessage =
+          errorBody.error ||
+          errorBody.details ||
+          JSON.stringify(errorBody);
+      }
+    } catch (parseError) {
+      console.error("Could not parse Edge Function error body:", parseError);
     }
+
+    throw new Error(realMessage);
+  }
 
     if (data?.error) {
       console.error("Edge Function returned data error:", data);
