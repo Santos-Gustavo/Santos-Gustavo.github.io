@@ -42,6 +42,15 @@ function selectProject(id) {
 function editProject(id) {
   const proj = getProjectById(id);
 
+  console.log("EDIT PROJECT CLICKED:", id);
+  console.log("PROJECT FOR EDIT:", proj);
+  console.log("EDIT IDS:", {
+    companyId: proj?.companyId,
+    clientId: proj?.clientId,
+    projectId: proj?.id
+  });
+  console.log("EDIT FORM DATA:", proj?.obra);
+
   if (!proj) {
     alert("Obra não encontrada.");
     return;
@@ -54,13 +63,10 @@ function editProject(id) {
   S.currentClientId = proj.clientId;
   S.currentProjectId = proj.id;
 
-  console.log("Editing project:", {
-    projectId: S.currentProjectId,
-    companyId: S.currentCompanyId,
-    clientId: S.currentClientId
-  });
-
   loadProjectIntoForm(proj);
+
+  console.log("COMPANY INPUT AFTER LOAD:", document.getElementById("companyName")?.value);
+  console.log("PROJECT INPUT AFTER LOAD:", document.getElementById("projectName")?.value);
 
   goToStepId(1);
 }

@@ -24,29 +24,19 @@ function clearProjectForm() {
 }
 
 function loadProjectIntoForm(proj) {
-  const e = proj.empresa || {};
   const o = proj.obra || {};
 
-  setInputValue("companyName", e.companyName);
-  setInputValue("companyTagline", e.companyTagline);
-  setInputValue("companyNif", e.companyNif);
-  setInputValue("companyInci", e.companyInci);
-  setInputValue("responsible", e.responsible);
-  setInputValue("companyPhone", e.companyPhone);
-  setInputValue("companyEmail", e.companyEmail);
+  setValue("companyName", o.companyName || "");
+  setValue("companyNif", o.companyNif || "");
+  setValue("responsible", o.responsible || "");
+  setValue("companyPhone", o.companyPhone || "");
+  setValue("companyEmail", o.companyEmail || "");
 
-  setInputValue("projectName", o.projectName);
-  setInputValue("clientName", o.clientName);
-  setInputValue("location", o.location);
-  setInputValue("contractNum", o.contractNum);
-  setInputValue("distributedTo", o.distributedTo);
-  setInputValue("sentVia", o.sentVia || "WhatsApp");
-
-  applyDefaultReportFields({
-    reportNum: (proj.lastReportNum || 0) + 1,
-    distributedTo: o.distributedTo || "",
-    sentVia: o.sentVia || "WhatsApp"
-  });
+  setValue("projectName", proj.name || "");
+  setValue("clientName", o.clientName || "");
+  setValue("location", o.location || "");
+  setValue("contractNum", o.contractNum || "");
+  setValue("contractValue", o.contractValue || "");
 }
 
 function applyDefaultReportFields(options = {}) {

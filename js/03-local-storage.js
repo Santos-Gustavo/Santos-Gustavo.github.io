@@ -9,7 +9,6 @@ async function loadProjects() {
     .from("projects")
     .select(`
       id,
-      company_id,
       client_id,
       name,
       site_address,
@@ -25,24 +24,26 @@ async function loadProjects() {
       updated_at,
       clients (
         id,
+        company_id,
         name,
         phone,
         email,
         nif,
         address,
-        notes
-      ),
-      companies (
-        id,
-        name,
-        nif,
-        impic,
-        responsible,
-        phone,
-        email,
-        address,
-        logo_url,
-        default_vat_rate
+        notes,
+        companies (
+          id,
+          owner_id,
+          name,
+          nif,
+          impic,
+          responsible,
+          phone,
+          email,
+          address,
+          logo_url,
+          default_vat_rate
+        )
       ),
       reports (
         id,
@@ -67,44 +68,34 @@ async function loadProjects() {
 }
 
 function mapDbProjectToAppProject(row) {
-  const company = row.companies || {};
   const client = row.clients || {};
-
-  const lastReportNum = getLastReportNum(row.reports || []);
+  const company = row.clients?.companies || {};
 
   return {
     id: row.id,
-    companyId: row.company_id,
+    projectId: row.id,
+
     clientId: row.client_id,
+    companyId: company.id,
 
-    name: row.name,
+    name: row.name || "",
+    status: row.status,
 
-    empresa: {
+    obra: {
       companyName: company.name || "",
-      companyTagline: "",
       companyNif: company.nif || "",
       companyInci: company.impic || "",
       responsible: company.responsible || "",
       companyPhone: company.phone || "",
-      companyEmail: company.email || ""
-    },
+      companyEmail: company.email || "",
 
-    obra: {
-      projectName: row.name || "",
       clientName: client.name || "",
       location: row.site_address || "",
       contractNum: row.contract_num || "",
-      distributedTo: client.email || client.phone || "",
-      sentVia: "WhatsApp"
+      contractValue: row.contract_value || ""
     },
 
-    db: {
-      company,
-      client,
-      project: row
-    },
-
-    lastReportNum
+    lastReportNum: getLastReportNum(row.reports || [])
   };
 }
 

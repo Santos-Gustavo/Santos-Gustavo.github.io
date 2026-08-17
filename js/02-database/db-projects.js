@@ -10,7 +10,6 @@ async function findOrCreateProject(companyId, clientId, v) {
   let query = supabaseClient
     .from("projects")
     .select("*")
-    .eq("company_id", companyId)
     .eq("client_id", clientId)
     .limit(1);
 
@@ -25,7 +24,6 @@ async function findOrCreateProject(companyId, clientId, v) {
   if (findError) throw findError;
 
   const payload = {
-    company_id: companyId,
     client_id: clientId,
     name,
     site_address: cleanText(v.location) || null,
@@ -74,7 +72,6 @@ async function updateProjectById(projectId, companyId, clientId, v) {
   }
 
   const payload = {
-    company_id: companyId,
     client_id: clientId,
     name,
     site_address: cleanText(v.location),
@@ -87,7 +84,6 @@ async function updateProjectById(projectId, companyId, clientId, v) {
     .from("projects")
     .update(payload)
     .eq("id", projectId)
-    .eq("company_id", companyId)
     .select()
     .single();
 
