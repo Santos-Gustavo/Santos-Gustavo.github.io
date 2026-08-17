@@ -48,6 +48,13 @@
   <!-- LAYER 0: PROJECT LIST -->
   <div class="step active" id="step-projects">
     <div class="step-content">
+      <button type="button" onclick="createEupagoPayment('multibanco')">
+        Pagar Pro por Multibanco
+      </button>
+
+      <button type="button" onclick="createEupagoPayment('mbway')">
+        Pagar Pro por MB WAY
+      </button>
       <div class="step-header">
         <h2>Obras</h2>
         <p>Selecione uma obra ou crie uma nova</p>
@@ -365,5 +372,6 @@
   <script src="js/17-report-generator.js"></script>
   
   <script src="js/18-init.js"></script>
+  <script src="js/19-payment.js"></script>
 </body>
 </html>
