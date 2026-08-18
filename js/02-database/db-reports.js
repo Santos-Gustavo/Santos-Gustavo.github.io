@@ -4,7 +4,7 @@ async function createReport(projectId, v) {
   const payload = {
     project_id: projectId,
 
-    report_num: v.reportNum ? Number(v.reportNum) : null,
+    report_num: reportNum,
     report_date: v.reportDate || new Date().toISOString().slice(0, 10),
 
     period_start: v.periodStart || null,
