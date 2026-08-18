@@ -246,12 +246,15 @@ async function prepareWeeklyReportFromPrevious() {
 
 function prepareBlankWeeklyReport() {
   const today = new Date().toISOString().split("T")[0];
-  const weekAgo = new Date();
-  weekAgo.setDate(weekAgo.getDate() - 7);
 
   setValue("p-reportNum", "1");
   setValue("p-reportDate", today);
 
+  // Clear period inputs if they still exist in the HTML.
+  setValue("p-periodStart", "");
+  setValue("p-periodEnd", "");
+
+  // Optional state cleanup, harmless if unused.
   S.periodStart = null;
   S.periodEnd = null;
 
