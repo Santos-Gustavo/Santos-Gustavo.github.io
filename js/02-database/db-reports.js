@@ -31,10 +31,10 @@ async function createReport(projectId, v) {
     extras: Array.isArray(S.extras) ? S.extras : [],
     next_steps: Array.isArray(S.nextSteps) ? S.nextSteps : [],
 
-    // reports.status is smallint:
-    // 0=draft, 1=ready, 2=sent, 3=approved, 4=archived
     status: 0
   };
+
+  console.log("REPORT PAYLOAD BEING SENT:", payload);
 
   const { data, error } = await supabaseClient
     .from("reports")
@@ -47,24 +47,4 @@ async function createReport(projectId, v) {
   return data;
 }
 
-async function getLatestReportForProject(projectId) {
-  if (!projectId) return null;
-
-  const { data, error } = await supabaseClient
-    .from("reports")
-    .select("*")
-    .eq("project_id", projectId)
-    .order("report_date", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error("Error loading latest report:", error);
-    throw error;
-  }
-
-  return data;
-}
-
-window.getLatestReportForProject = getLatestReportForProject;
+window.createReport = createReport;
