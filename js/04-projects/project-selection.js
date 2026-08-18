@@ -90,15 +90,18 @@ function setValue(id, value) {
   if (el) el.value = value ?? "";
 }
 
-function denormalizeSentVia(value) {
-  const text = String(value || "").toLowerCase();
+function normalizeSentVia(value) {
+  const text = String(value || "")
+    .trim()
+    .toLowerCase();
 
-  if (text === "whatsapp") return "WhatsApp";
-  if (text === "email") return "Email";
-  if (text === "pdf_download") return "PDF";
-  if (text === "manual") return "Manual";
+  if (text === "whatsapp") return 1;
+  if (text === "email") return 2;
+  if (text === "pdf_download") return 3;
+  if (text === "pdf") return 3;
+  if (text === "manual") return 0;
 
-  return "WhatsApp";
+  return 1; // default WhatsApp
 }
 
 
@@ -118,7 +121,7 @@ function applyPreviousReportToForm(previousReport) {
   setValue("p-periodEnd", nextPeriodEnd);
 
   setValue("p-distributedTo", previousReport.distributed_to || "");
-  setValue("p-sentVia", denormalizeSentVia(previousReport.sent_via));
+  setValue("p-sentVia", normalizeSentVia(previousReport.sent_via));
 
   setValue("progressPct", previousReport.progress_pct || 0);
   setValue("weekSummary", previousReport.week_summary || "");
