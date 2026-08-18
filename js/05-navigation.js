@@ -251,8 +251,9 @@ function prepareBlankWeeklyReport() {
 
   setValue("p-reportNum", "1");
   setValue("p-reportDate", today);
-  setValue("p-periodStart", weekAgo.toISOString().split("T")[0]);
-  setValue("p-periodEnd", today);
+
+  S.periodStart = null;
+  S.periodEnd = null;
 
   S.works = [];
   S.photos = [];
