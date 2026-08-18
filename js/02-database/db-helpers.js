@@ -12,14 +12,17 @@ function toNumberOrNull(value) {
 }
 
 function normalizeSentVia(value) {
-  const text = String(value || "").toLowerCase().trim();
+  const text = String(value || "")
+    .trim()
+    .toLowerCase();
 
-  if (text.includes("whatsapp")) return "whatsapp";
-  if (text.includes("email")) return "email";
-  if (text.includes("pdf")) return "pdf_download";
-  if (text.includes("manual")) return "manual";
+  if (text === "whatsapp") return 1;
+  if (text === "email") return 2;
+  if (text === "pdf_download") return 3;
+  if (text === "pdf") return 3;
+  if (text === "manual") return 0;
 
-  return "other";
+  return 1; // default WhatsApp
 }
 
 function dataUrlToBlob(dataUrl) {
