@@ -117,8 +117,9 @@ function applyPreviousReportToForm(previousReport) {
 
   setValue("p-reportNum", nextReportNum);
   setValue("p-reportDate", today);
-  setValue("p-periodStart", nextPeriodStart);
-  setValue("p-periodEnd", nextPeriodEnd);
+  
+  setValue("p-periodStart", "");
+  setValue("p-periodEnd", "");
 
   setValue("p-distributedTo", previousReport.distributed_to || "");
   setValue("p-sentVia", normalizeSentVia(previousReport.sent_via));

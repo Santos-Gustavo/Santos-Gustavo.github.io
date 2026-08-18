@@ -47,8 +47,8 @@ function applyDefaultReportFields(options = {}) {
 
   setInputValue("p-reportNum", options.reportNum || "1");
   setInputValue("p-reportDate", today);
-  setInputValue("p-periodStart", weekAgo.toISOString().split("T")[0]);
-  setInputValue("p-periodEnd", today);
+  setInputValue("p-periodStart", "");
+  setInputValue("p-periodEnd", "");
   setInputValue("p-distributedTo", options.distributedTo || "");
   setInputValue("p-sentVia", options.sentVia || "WhatsApp");
 }
