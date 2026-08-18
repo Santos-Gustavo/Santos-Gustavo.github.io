@@ -49,4 +49,25 @@ async function createReport(projectId, v) {
   return data;
 }
 
+async function getLatestReportForProject(projectId) {
+  if (!projectId) return null;
+
+  const { data, error } = await supabaseClient
+    .from("reports")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("report_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error loading latest report:", error);
+    throw error;
+  }
+
+  return data;
+}
+
+window.getLatestReportForProject = getLatestReportForProject;
 window.createReport = createReport;
