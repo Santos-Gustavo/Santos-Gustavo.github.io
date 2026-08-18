@@ -1,29 +1,5 @@
 const PHOTO_BUCKET = "project-photos";
 
-function mapPhotoTag(type) {
-  const map = {
-    before: "before",
-    during: "other",
-    after: "after",
-    detail: "other",
-
-    demolition: "demolition",
-    plumbing: "plumbing",
-    electrical: "electrical",
-    flooring: "flooring",
-    painting: "painting",
-    carpentry: "carpentry",
-    insulation: "insulation",
-    issue: "issue",
-    extra: "extra_work",
-    extra_work: "extra_work",
-    completed: "completed_work",
-    completed_work: "completed_work"
-  };
-
-  return map[type] || "other";
-}
-
 async function savePhotosForReport({ reportId }) {
   if (!Array.isArray(S.photos) || S.photos.length === 0) {
     return [];
@@ -48,7 +24,6 @@ async function savePhotosForReport({ reportId }) {
       storage_path: uploaded.storagePath,
       thumbnail_url: null,
 
-      tag: mapPhotoTag(photo.type),
       area: cleanText(photo.area) || null,
       description: cleanText(photo.desc) || null,
       worker: cleanText(photo.worker) || null,
