@@ -1,7 +1,5 @@
-async function createReport(companyId, clientId, projectId, v) {
+async function createReport(projectId, v) {
   const payload = {
-    company_id: companyId,
-    client_id: clientId,
     project_id: projectId,
 
     report_num: v.reportNum ? Number(v.reportNum) : null,
@@ -33,7 +31,9 @@ async function createReport(companyId, clientId, projectId, v) {
     extras: Array.isArray(S.extras) ? S.extras : [],
     next_steps: Array.isArray(S.nextSteps) ? S.nextSteps : [],
 
-    status: "draft"
+    // reports.status is smallint:
+    // 0=draft, 1=ready, 2=sent, 3=approved, 4=archived
+    status: 0
   };
 
   const { data, error } = await supabaseClient

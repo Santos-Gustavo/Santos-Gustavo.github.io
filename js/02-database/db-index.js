@@ -28,12 +28,9 @@ async function saveReportToSupabase() {
       S.currentProjectId = project.id;
     }
 
-    const report = await createReport(company.id, client.id, project.id, v);
+    const report = await createReport(project.id, v);
 
     const photos = await savePhotosForReport({
-      companyId: company.id,
-      clientId: client.id,
-      projectId: project.id,
       reportId: report.id
     });
 
