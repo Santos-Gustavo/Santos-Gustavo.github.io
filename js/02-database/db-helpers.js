@@ -49,3 +49,22 @@ function guessExtensionFromDataUrl(dataUrl) {
   if (dataUrl.startsWith("data:image/gif")) return "gif";
   return "jpg";
 }
+
+
+async function getNextReportNum(projectId) {
+  const { data, error } = await supabaseClient
+    .from("reports")
+    .select("report_num")
+    .eq("project_id", projectId)
+    .order("report_num", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  const lastNum = Number(data?.report_num || 0);
+
+  return lastNum + 1;
+}
+
+window.getNextReportNum = getNextReportNum;

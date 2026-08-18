@@ -1,4 +1,6 @@
 async function createReport(projectId, v) {
+  const reportNum = await getNextReportNum(projectId);
+
   const payload = {
     project_id: projectId,
 
