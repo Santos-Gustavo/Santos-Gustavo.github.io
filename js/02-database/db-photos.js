@@ -24,9 +24,13 @@ function mapPhotoTag(type) {
   return map[type] || "other";
 }
 
-async function savePhotosForReport({ companyId, clientId, projectId, reportId }) {
+async function savePhotosForReport({ reportId }) {
   if (!Array.isArray(S.photos) || S.photos.length === 0) {
     return [];
+  }
+
+  if (!reportId) {
+    throw new Error("reportId is required to save photos.");
   }
 
   const insertedPhotos = [];
@@ -34,15 +38,10 @@ async function savePhotosForReport({ companyId, clientId, projectId, reportId })
   for (const photo of S.photos) {
     const uploaded = await uploadPhotoIfNeeded({
       photo,
-      companyId,
-      projectId,
       reportId
     });
 
     const photoPayload = {
-      company_id: companyId,
-      client_id: clientId,
-      project_id: projectId,
       report_id: reportId,
 
       file_url: uploaded.fileUrl,
@@ -62,6 +61,8 @@ async function savePhotosForReport({ companyId, clientId, projectId, reportId })
       source: "manual"
     };
 
+    console.log("PHOTO PAYLOAD BEING SENT:", photoPayload);
+
     const { data, error } = await supabaseClient
       .from("photos")
       .insert(photoPayload)
@@ -76,7 +77,7 @@ async function savePhotosForReport({ companyId, clientId, projectId, reportId })
   return insertedPhotos;
 }
 
-async function uploadPhotoIfNeeded({ photo, companyId, projectId, reportId }) {
+async function uploadPhotoIfNeeded({ photo, reportId }) {
   if (photo.storagePath && photo.fileUrl) {
     return {
       storagePath: photo.storagePath,
@@ -96,10 +97,6 @@ async function uploadPhotoIfNeeded({ photo, companyId, projectId, reportId }) {
   const fileName = `${crypto.randomUUID()}.${extension}`;
 
   const storagePath = [
-    "companies",
-    companyId,
-    "projects",
-    projectId,
     "reports",
     reportId,
     fileName
@@ -124,3 +121,5 @@ async function uploadPhotoIfNeeded({ photo, companyId, projectId, reportId }) {
     fileUrl: publicUrlData.publicUrl
   };
 }
+
+window.savePhotosForReport = savePhotosForReport;
