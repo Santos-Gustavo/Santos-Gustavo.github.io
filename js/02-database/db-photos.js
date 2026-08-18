@@ -53,12 +53,11 @@ async function savePhotosForReport({ reportId }) {
       description: cleanText(photo.desc) || null,
       worker: cleanText(photo.worker) || null,
 
-      is_before: photo.type === "before",
-      is_after: photo.type === "after",
-
+      source: 1,
+      
       is_client_visible: true,
 
-      source: "manual"
+      source: 1
     };
 
     console.log("PHOTO PAYLOAD BEING SENT:", photoPayload);
