@@ -1,12 +1,21 @@
 const { test } = require("@playwright/test");
-const { login } = require("../helpers/app-helpers");
-
 const {
-  deleteOrArchiveE2EProjectThroughUi,
-} = require("./e2e-project");
+  deleteProjectsByTestPrefixes,
+  countProjectsByTestPrefixes,
+} = require("../helpers/db-cleanup");
 
-test("teardown: delete or archive shared E2E project", async ({ page }) => {
-  await login(page);
+test("teardown: delete all E2E test projects from database", async () => {
+  await deleteProjectsByTestPrefixes();
 
-  await deleteOrArchiveE2EProjectThroughUi(page);
+  const remaining = await countProjectsByTestPrefixes();
+
+  if (remaining.length > 0) {
+    throw new Error(
+      `E2E cleanup failed. Remaining projects: ${JSON.stringify(
+        remaining,
+        null,
+        2
+      )}`
+    );
+  }
 });
