@@ -1,26 +1,48 @@
 require("dotenv").config();
 
-const { defineConfig } = require("@playwright/test");
+const { defineConfig, devices } = require("@playwright/test");
 
 module.exports = defineConfig({
   testDir: "./tests/e2e",
-  workers: 1,
-  
-  timeout: 30_000,
-  expect: {
-    timeout: 10_000
-  },
+
+  fullyParallel: false,
+
   use: {
-    baseURL: "http://127.0.0.1:5500",
-    headless: true,
-    screenshot: "only-on-failure",
+    baseURL: "http://localhost:3000",
+    trace: "on-first-retry",
     video: "retain-on-failure",
-    trace: "retain-on-failure"
+    screenshot: "only-on-failure",
   },
+
   webServer: {
-    command: "npx http-server . -p 5500",
-    url: "http://127.0.0.1:5500",
+    command: "npx serve . -l 3000",
+    url: "http://localhost:3000",
     reuseExistingServer: true,
-    timeout: 10_000
-  }
+    timeout: 120000,
+  },
+
+  projects: [
+    {
+      name: "setup",
+      testMatch: /shared\/e2e-project\.setup\.js/,
+    },
+
+    {
+      name: "chromium",
+      dependencies: ["setup"],
+      teardown: "teardown",
+      use: {
+        ...devices["Desktop Chrome"],
+      },
+      testIgnore: [
+        /shared\/e2e-project\.setup\.js/,
+        /shared\/e2e-project\.teardown\.js/,
+      ],
+    },
+
+    {
+      name: "teardown",
+      testMatch: /shared\/e2e-project\.teardown\.js/,
+    },
+  ],
 });

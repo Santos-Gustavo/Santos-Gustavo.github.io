@@ -1,6 +1,6 @@
 const { test, expect } = require("@playwright/test");
-const { failOnConsoleErrors } = require("./helpers");
-const { login } = require("./app-helpers");
+const { failOnConsoleErrors } = require("../helpers");
+const { login } = require("../helpers/app-helpers");
 
 test.beforeEach(async ({ page }) => {
   failOnConsoleErrors(page);

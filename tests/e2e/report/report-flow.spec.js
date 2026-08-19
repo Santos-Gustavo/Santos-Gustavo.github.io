@@ -1,6 +1,6 @@
 const { test, expect } = require("@playwright/test");
-const { failOnConsoleErrors } = require("./helpers");
-const { login, waitForAtLeastOneProject } = require("./app-helpers");
+const { failOnConsoleErrors } = require("../helpers");
+const { login, waitForAtLeastOneProject } = require("../helpers/app-helpers");
 
 async function expectStep(page, labelRegex) {
   await expect(page.locator("#stepLabel")).toHaveText(labelRegex);
