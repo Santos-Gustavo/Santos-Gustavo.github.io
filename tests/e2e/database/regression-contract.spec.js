@@ -2,7 +2,7 @@ const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 const path = require("path");
 
-const ROOT = path.resolve(__dirname, "../..");
+const ROOT = path.resolve(__dirname, "../../..");
 const JS_DIR = path.join(ROOT, "js");
 const FUNCTIONS_DIR = path.join(ROOT, "supabase", "functions");
 

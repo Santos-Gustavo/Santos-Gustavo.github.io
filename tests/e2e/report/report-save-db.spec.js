@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { login } = require("../app-helpers");
+const { login } = require("../helpers/app-helpers");
 
 const {
   uniqueSuffix,
