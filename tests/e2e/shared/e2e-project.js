@@ -6,7 +6,7 @@ const STATE_DIR = path.resolve(__dirname, "../.state");
 const STATE_FILE = path.join(STATE_DIR, "e2e-project.json");
 
 function uniqueSuffix() {
-  return Date.now().toString();
+  return "1787131662951";
 }
 
 function ensureStateDir() {
@@ -33,7 +33,7 @@ function buildE2EProjectState() {
     contractNum: `E2E-${unique}`,
     contractValue: "1000",
 
-    createdAt: new Date().toISOString(),
+    createdAt: "2026-08-19T09:27:42.951Z",
   };
 }
 
