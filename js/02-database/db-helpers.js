@@ -68,3 +68,4 @@ async function getNextReportNum(projectId) {
 }
 
 window.getNextReportNum = getNextReportNum;
+window.normalizeSentVia = normalizeSentVia;
