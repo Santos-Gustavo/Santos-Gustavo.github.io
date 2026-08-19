@@ -51,6 +51,7 @@ async function loadProjects() {
       report_num,
       report_date,
       created_at
+    )
     `)
     .order("created_at", { ascending: false });
 
