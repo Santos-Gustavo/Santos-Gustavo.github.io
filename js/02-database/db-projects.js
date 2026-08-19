@@ -1,52 +1,34 @@
 async function findOrCreateProject(companyId, clientId, v) {
-  const name = cleanText(v.projectName);
+  const projectName = cleanText(v.projectName);
 
-  if (!name) {
+  if (!projectName) {
     throw new Error("Nome da obra é obrigatório.");
   }
 
-  const contractNum = cleanText(v.contractNum);
-
-  let query = supabaseClient
-    .from("projects")
-    .select("*")
-    .eq("client_id", clientId)
-    .limit(1);
-
-  if (contractNum) {
-    query = query.eq("contract_num", contractNum);
-  } else {
-    query = query.eq("name", name);
+  if (!companyId) {
+    throw new Error("Empresa é obrigatória para criar obra.");
   }
 
-  const { data: existing, error: findError } = await query.maybeSingle();
-
-  if (findError) throw findError;
+  if (!clientId) {
+    throw new Error("Cliente é obrigatório para criar obra.");
+  }
 
   const payload = {
+    company_id: companyId,
     client_id: clientId,
-    name,
+
+    name: projectName,
     site_address: cleanText(v.location) || null,
-    type_of_work: null,
-    start_date: v.periodStart || null,
-    expected_end_date: v.periodEnd || null,
-    status: 1, // ACTIVE
-    contract_num: contractNum || null,
-    contract_value: toNumberOrNull(v.contractValue),
-    updated_at: new Date().toISOString()
+    type_of_work: cleanText(v.typeOfWork) || null,
+    start_date: v.startDate || null,
+    expected_end_date: v.expectedEndDate || null,
+    actual_end_date: v.actualEndDate || null,
+    contract_num: cleanText(v.contractNum) || null,
+    contract_value: v.contractValue ? Number(v.contractValue) : null,
+    internal_notes: cleanText(v.internalNotes) || null,
+
+    status: 1
   };
-
-  if (existing) {
-    const { data: updated, error: updateError } = await supabaseClient
-      .from("projects")
-      .update(payload)
-      .eq("id", existing.id)
-      .select()
-      .single();
-
-    if (updateError) throw updateError;
-    return updated;
-  }
 
   const { data, error } = await supabaseClient
     .from("projects")

@@ -8,49 +8,50 @@ async function loadProjects() {
   const { data, error } = await supabaseClient
     .from("projects")
     .select(`
+    id,
+    company_id,
+    client_id,
+    name,
+    site_address,
+    type_of_work,
+    start_date,
+    expected_end_date,
+    actual_end_date,
+    status,
+    contract_num,
+    contract_value,
+    internal_notes,
+    created_at,
+    updated_at,
+    companies (
       id,
-      client_id,
+      owner_id,
       name,
-      site_address,
-      type_of_work,
-      start_date,
-      expected_end_date,
-      actual_end_date,
-      status,
-      contract_num,
-      contract_value,
-      internal_notes,
-      created_at,
-      updated_at,
-      clients (
-        id,
-        company_id,
-        name,
-        phone,
-        email,
-        nif,
-        address,
-        notes,
-        companies (
-          id,
-          owner_id,
-          name,
-          nif,
-          impic,
-          responsible,
-          phone,
-          email,
-          address,
-          logo_url,
-          default_vat_rate
-        )
-      ),
-      reports (
-        id,
-        report_num,
-        report_date,
-        created_at
-      )
+      nif,
+      impic,
+      responsible,
+      phone,
+      email,
+      address,
+      logo_url,
+      default_vat_rate
+    ),
+    clients (
+      id,
+      company_id,
+      name,
+      phone,
+      email,
+      nif,
+      address,
+      notes
+    ),
+    reports (
+      id,
+      report_num,
+      report_date,
+      created_at
+    )
     `)
     .order("created_at", { ascending: false });
 
@@ -68,15 +69,14 @@ async function loadProjects() {
 }
 
 function mapDbProjectToAppProject(row) {
+  const company = row.companies || {};
   const client = row.clients || {};
-  const company = row.clients?.companies || {};
 
   return {
     id: row.id,
     projectId: row.id,
-
+    companyId: row.company_id,
     clientId: row.client_id,
-    companyId: company.id,
 
     name: row.name || "",
     status: row.status,
