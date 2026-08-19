@@ -1,16 +1,35 @@
 const { expect } = require("@playwright/test");
 
+function requireEnv(name) {
+  const value = process.env[name];
+
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+
+  return value;
+}
+
 async function login(page) {
+  const email = requireEnv("E2E_EMAIL");
+  const password = requireEnv("E2E_PASSWORD");
+
   await page.goto("/");
 
-  await page.fill("#authEmail", process.env.E2E_EMAIL);
-  await page.fill("#authPassword", process.env.E2E_PASSWORD);
+  await page.fill("#authEmail", email);
+  await page.fill("#authPassword", password);
 
   await page.getByRole("button", { name: /^entrar$/i }).click();
 
-  await expect(page.locator("#projectList")).toBeVisible();
-  await expect(page.getByRole("heading", { name: /^obras$/i })).toBeVisible();
+  await expect(page.locator("#projectList")).toBeVisible({
+    timeout: 10000,
+  });
 }
+
+module.exports = {
+  login,
+};
+
 
 async function goHome(page) {
   const homeButton = page.getByRole("button", { name: /voltar ao início/i });

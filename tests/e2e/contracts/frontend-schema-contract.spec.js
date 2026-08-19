@@ -218,15 +218,6 @@ test.describe("EuPago Edge Function contract", () => {
     "index.ts"
   );
 
-//   test("create-eupago-payment uses separate user and admin clients", () => {
-//     const content = read(functionFile);
-
-//     expect(content).toContain("const supabaseUser");
-//     expect(content).toContain("const supabaseAdmin");
-//     expect(content).toContain("supabaseUser.auth.getUser()");
-//     expect(content).toContain('Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")');
-//   });
-
   test("admin client is not overridden with the user Authorization header", () => {
     const content = read(functionFile);
 
@@ -239,16 +230,5 @@ test.describe("EuPago Edge Function contract", () => {
     ).toBe(false);
   });
 
-//   test("EuPago business failure is handled even when HTTP status is 200", () => {
-//     const content = read(functionFile);
 
-//     expect(content).toContain("isEuPagoSuccess");
-//     expect(content).toContain("STATUS_FAILED");
-//     expect(content).toContain("raw_create_response");
-
-//     expect(
-//       content.includes("!eupagoResponse.ok || !isEuPagoSuccess"),
-//       "EuPago can return HTTP 200 with sucesso:false, so body success must be checked"
-//     ).toBe(true);
-//   });
 });

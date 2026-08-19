@@ -47,13 +47,9 @@ test("weekly report flow shows success message after generating report", async (
     timeout: 10000,
   });
 
-  const firstProjectCard = page.locator(".project-card").first();
+  const { openE2EProject } = require("../shared/e2e-project");
 
-  await expect(firstProjectCard).toBeVisible({
-    timeout: 10000,
-  });
-
-  await firstProjectCard.click();
+  await openE2EProject(page);
 
   await selectWeeklyReport(page);
 
