@@ -223,8 +223,6 @@ function handleExtraInput(event) {
 }
 
 function getExtrasState() {
-  if (window.S && Array.isArray(window.S.extras)) return window.S.extras;
-
   if (!Array.isArray(appState.extras)) appState.extras = [];
   return appState.extras;
 }
@@ -232,9 +230,6 @@ function getExtrasState() {
 function syncExtrasState(extras) {
   appState.extras = extras;
 
-  if (window.S) {
-    window.S.extras = extras;
-  }
 }
 
 function installTemporaryExtrasBridge() {

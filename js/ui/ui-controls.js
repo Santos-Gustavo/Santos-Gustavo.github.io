@@ -24,9 +24,6 @@ export function selectPhase(el, phase) {
 
   appState.phase = phase;
 
-  if (window.S) {
-    window.S.phase = phase;
-  }
 }
 
 export function toggleAlert() {
@@ -116,7 +113,7 @@ function handleUiControlClick(event) {
 }
 
 function getRuntimeState() {
-  return window.S || appState;
+  return appState;
 }
 
 function installTemporaryUiBridge() {

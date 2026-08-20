@@ -46,8 +46,6 @@ export async function saveCurrentProjectFromForm() {
     appState.currentProjectId = project.id;
     appState.isNewProject = false;
 
-    syncLegacyState();
-
     applyDefaultReportFields({
       reportNum: "1",
       distributedTo: values.distributedTo || "",
@@ -66,14 +64,4 @@ export async function saveCurrentProjectFromForm() {
     alert("Erro ao guardar obra: " + error.message);
     return null;
   }
-}
-
-function syncLegacyState() {
-  if (!window.S) return;
-
-  window.S.currentCompanyId = appState.currentCompanyId;
-  window.S.currentClientId = appState.currentClientId;
-  window.S.currentProjectId = appState.currentProjectId;
-  window.S.isNewProject = appState.isNewProject;
-  window.S.isEditingProject = appState.isEditingProject;
 }

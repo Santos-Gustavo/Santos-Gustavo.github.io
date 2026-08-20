@@ -25,14 +25,6 @@ export async function saveReportToSupabase() {
       company = { id: appState.currentCompanyId };
       client = { id: appState.currentClientId };
       project = { id: appState.currentProjectId };
-    } else if (window.S?.currentCompanyId && window.S?.currentClientId && window.S?.currentProjectId) {
-      company = { id: window.S.currentCompanyId };
-      client = { id: window.S.currentClientId };
-      project = { id: window.S.currentProjectId };
-
-      appState.currentCompanyId = company.id;
-      appState.currentClientId = client.id;
-      appState.currentProjectId = project.id;
     } else {
       company = await findOrCreateCompany(values);
       client = await findOrCreateClient(company.id, values);
@@ -47,7 +39,6 @@ export async function saveReportToSupabase() {
       appState.currentClientId = client.id;
       appState.currentProjectId = project.id;
 
-      syncLegacySelection();
     }
 
     const report = await createReport({
@@ -105,19 +96,7 @@ export async function saveReportToSupabase() {
 }
 
 function getCurrentReportState() {
-  if (window.S) {
-    return window.S;
-  }
-
   return appState;
-}
-
-function syncLegacySelection() {
-  if (!window.S) return;
-
-  window.S.currentCompanyId = appState.currentCompanyId;
-  window.S.currentClientId = appState.currentClientId;
-  window.S.currentProjectId = appState.currentProjectId;
 }
 
 function applySavedPhotosToRuntimeState(savedPhotos) {
@@ -143,7 +122,4 @@ function applySavedPhotosToRuntimeState(savedPhotos) {
 
   appState.photos = state.photos;
 
-  if (window.S) {
-    window.S.photos = state.photos;
-  }
 }

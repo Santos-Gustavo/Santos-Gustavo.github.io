@@ -96,7 +96,7 @@ function formatEuro(value) {
 }
 
 function getRuntimeState() {
-  return window.S || appState;
+  return appState;
 }
 
 function installTemporaryFinancialBridge() {

@@ -17,14 +17,10 @@ export async function savePhotosForReport({
   projectId,
   photos,
 }) {
-  const photosToSave = Array.isArray(photos)
-    ? photos
-    : Array.isArray(window.S?.photos)
-      ? window.S.photos
-      : [];
+  const photosToSave = Array.isArray(photos) ? photos : [];
 
-  const resolvedCompanyId = companyId || window.S?.currentCompanyId;
-  const resolvedProjectId = projectId || window.S?.currentProjectId;
+  const resolvedCompanyId = companyId;
+  const resolvedProjectId = projectId;
 
   if (!reportId) {
     throw new Error("reportId é obrigatório para guardar fotografias.");

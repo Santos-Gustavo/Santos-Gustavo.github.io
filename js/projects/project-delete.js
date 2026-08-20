@@ -26,14 +26,14 @@ export async function deleteProject(projectId) {
       clearSelectedProjectState();
     }
 
-    if (window.S?.currentProjectId === projectId) {
-      window.S.currentProjectId = null;
-      window.S.currentClientId = null;
-      window.S.currentCompanyId = null;
-      window.S.mode = "";
-      window.S.flow = null;
-      window.S.isEditingProject = false;
-      window.S.isNewProject = false;
+    if (appState.currentProjectId === projectId) {
+      appState.currentProjectId = null;
+      appState.currentClientId = null;
+      appState.currentCompanyId = null;
+      appState.mode = ""; 
+      appState.flow = null;
+      appState.isEditingProject = false;
+      appState.isNewProject = false;
     }
 
     await renderProjectList();

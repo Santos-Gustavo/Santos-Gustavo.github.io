@@ -11,10 +11,6 @@ export async function renderProjectList() {
     const projects = await loadProjectsFromDb();
     appState.projectsCache = projects;
 
-    if (window.S) {
-      window.S.projectsCache = projects;
-    }
-
     if (projects.length === 0) {
       el.innerHTML = `
         <p class="empty-hint">

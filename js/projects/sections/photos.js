@@ -276,9 +276,6 @@ function renderAreaOptions(selectedArea) {
 }
 
 function getPhotosState() {
-  if (window.S && Array.isArray(window.S.photos)) {
-    return window.S.photos;
-  }
 
   if (!Array.isArray(appState.photos)) {
     appState.photos = [];
@@ -290,9 +287,6 @@ function getPhotosState() {
 function syncPhotosState(photos) {
   appState.photos = photos;
 
-  if (window.S) {
-    window.S.photos = photos;
-  }
 }
 
 function fileToDataUrl(file) {

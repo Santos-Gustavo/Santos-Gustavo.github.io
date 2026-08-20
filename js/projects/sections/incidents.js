@@ -122,7 +122,6 @@ function handleIncidentInput(event) {
 }
 
 function getIncidentsState() {
-  if (window.S && Array.isArray(window.S.incidents)) return window.S.incidents;
 
   if (!Array.isArray(appState.incidents)) appState.incidents = [];
   return appState.incidents;
@@ -131,9 +130,6 @@ function getIncidentsState() {
 function syncIncidentsState(incidents) {
   appState.incidents = incidents;
 
-  if (window.S) {
-    window.S.incidents = incidents;
-  }
 }
 
 function installTemporaryIncidentsBridge() {

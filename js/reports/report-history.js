@@ -30,7 +30,6 @@ export async function renderReportHistory(projectId = null) {
   const resolvedProjectId =
     projectId ||
     appState.currentProjectId ||
-    window.S?.currentProjectId ||
     null;
 
   if (!resolvedProjectId) {

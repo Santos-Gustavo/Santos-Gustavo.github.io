@@ -111,9 +111,7 @@ export function buildCurrentReportDocument(options = {}) {
 }
 
 function getRuntimeState() {
-  // Dirty migration seam isolated here only.
-  // Renderer must never read window.S or appState directly.
-  return window.S || appState;
+  return appState;
 }
 
 function normalizeArray(value) {

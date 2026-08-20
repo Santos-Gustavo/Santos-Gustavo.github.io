@@ -14,8 +14,6 @@ export function newProject() {
   appState.currentProjectId = null;
   appState.flow = null;
 
-  syncLegacyState();
-
   clearProjectForm();
   window.goToStepId?.(1);
 }
@@ -38,8 +36,6 @@ export function selectProject(projectId) {
   if (typeof window.renderReportHistory === "function") {
     window.renderReportHistory(appState.currentProjectId).catch(console.error);
   }
-
-  syncLegacyState();
 
   loadProjectIntoForm(project);
 
@@ -66,19 +62,6 @@ export function editProject(projectId) {
   appState.currentClientId = project.clientId;
   appState.currentProjectId = project.id;
 
-  syncLegacyState();
-
   loadProjectIntoForm(project);
   window.goToStepId?.(1);
-}
-
-function syncLegacyState() {
-  if (!window.S) return;
-
-  window.S.isNewProject = appState.isNewProject;
-  window.S.isEditingProject = appState.isEditingProject;
-  window.S.currentCompanyId = appState.currentCompanyId;
-  window.S.currentClientId = appState.currentClientId;
-  window.S.currentProjectId = appState.currentProjectId;
-  window.S.flow = appState.flow;
 }

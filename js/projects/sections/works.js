@@ -156,7 +156,6 @@ function handleWorksInput(event) {
 }
 
 function getWorksState() {
-  if (window.S && Array.isArray(window.S.works)) return window.S.works;
 
   if (!Array.isArray(appState.works)) appState.works = [];
   return appState.works;
@@ -165,9 +164,6 @@ function getWorksState() {
 function syncWorksState(works) {
   appState.works = works;
 
-  if (window.S) {
-    window.S.works = works;
-  }
 }
 
 function renderOptions(options, selectedValue) {

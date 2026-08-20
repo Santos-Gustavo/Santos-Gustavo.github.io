@@ -134,7 +134,6 @@ function handleNextStepInput(event) {
 }
 
 function getNextStepsState() {
-  if (window.S && Array.isArray(window.S.nextSteps)) return window.S.nextSteps;
 
   if (!Array.isArray(appState.nextSteps)) appState.nextSteps = [];
   return appState.nextSteps;
@@ -142,10 +141,6 @@ function getNextStepsState() {
 
 function syncNextStepsState(nextSteps) {
   appState.nextSteps = nextSteps;
-
-  if (window.S) {
-    window.S.nextSteps = nextSteps;
-  }
 }
 
 function installTemporaryNextStepsBridge() {

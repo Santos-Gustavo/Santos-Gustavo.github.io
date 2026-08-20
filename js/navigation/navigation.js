@@ -373,7 +373,7 @@ function rerenderLegacySections() {
 }
 
 function getRuntimeState() {
-  return window.S || appState;
+  return appState;
 }
 
 function installTemporaryNavigationBridge() {
