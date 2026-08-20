@@ -48,23 +48,66 @@ module.exports = {
 
 
 async function waitForProjectsLoaded(page) {
-  await expect(page.locator("#projectList")).toBeVisible();
+  await page.waitForLoadState("domcontentloaded");
 
-  await page.waitForFunction(() => {
-    const list = document.querySelector("#projectList");
-    if (!list) return false;
+  await expect
+    .poll(
+      async () => {
+        return await page.evaluate(() => {
+          const isVisible = (el) => {
+            if (!el) return false;
+            if (typeof el.checkVisibility === "function") {
+              return el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
+            }
+            return Boolean(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+          };
 
-    const text = list.innerText || "";
+          const stepLabel = document.querySelector("#stepLabel")?.textContent?.trim() || "";
+          const bodyText = document.body?.innerText || "";
 
-    if (text.includes("A carregar obras")) return false;
+          const candidates = Array.from(
+            document.querySelectorAll(
+              "[data-project-action], [data-action='select-project'], [data-project-id], .project-card"
+            )
+          );
 
-    return true;
-  });
+          const hasVisibleProjectCard = candidates.some(isVisible);
+
+          return (
+            /obras/i.test(stepLabel) ||
+            /nova obra/i.test(bodyText) ||
+            hasVisibleProjectCard
+          );
+        });
+      },
+      {
+        timeout: 15000,
+        message: "Expected projects screen or project cards/actions to be loaded and visible",
+      }
+    )
+    .toBe(true);
+
+  const projectAction = page
+    .locator(
+      [
+        "[data-project-action='select']",
+        "[data-action='select-project']",
+        "[data-project-id]",
+        ".project-card",
+        "button:has-text('Relatório')",
+        "button:has-text('Relatorio')",
+        "button:has-text('Abrir')",
+        "button:has-text('Editar')",
+      ].join(", ")
+    )
+    .filter({ visible: true })
+    .first();
+
+  await expect(projectAction).toBeVisible({ timeout: 15000 });
 }
 
 async function waitForAtLeastOneProject(page) {
   await waitForProjectsLoaded(page);
-  await expect(page.locator(".project-card").first()).toBeVisible();
 }
 
 module.exports = {

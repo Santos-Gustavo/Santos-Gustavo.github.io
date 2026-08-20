@@ -100,3 +100,11 @@ function cleanText(value) {
   const text = String(value ?? "").trim();
   return text || "";
 }
+
+export function normalizeSentVia(value) {
+  if (value === 1 || value === "whatsapp") return 1;
+  if (value === 2 || value === "email") return 2;
+  if (value === 3 || value === "pdf_download") return 3;
+  if (value === 4 || value === "other") return 4;
+  return 0;
+}

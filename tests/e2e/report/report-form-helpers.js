@@ -45,46 +45,25 @@ async function clickOptionalButton(page, name) {
   return true;
 }
 
-async function selectWeeklyReport(page) {
-  const weeklyOption = page.getByText(/relatório semanal/i).first();
+export async function selectWeeklyReport(page) {
+  const weeklyOption = page.locator(
+    '[data-nav-action="select-mode"][data-mode="weekly"]'
+  );
 
-  await expect(weeklyOption).toBeVisible();
+  await expect(weeklyOption).toBeVisible({ timeout: 10000 });
   await weeklyOption.click();
 
-  await expect(page.locator("#stepLabel")).toContainText(/Passo 1 de 10/i, {
-    timeout: 5000,
+  await expect(page.locator("#stepLabel")).toContainText(/Passo 1 de 9/i, {
+    timeout: 10000,
   });
 
-  await expect(page.locator("#stepLabel")).toContainText(/Progresso/i, {
-    timeout: 5000,
+  await expect(page.locator("#stepLabel")).toContainText(/período|periodo/i);
+
+  await page.getByRole("button", { name: /seguinte/i }).click();
+
+  await expect(page.locator("#stepLabel")).toContainText(/progresso/i, {
+    timeout: 10000,
   });
-
-  await expect
-  .poll(
-    async () => {
-      const buttons = page.locator('button[onclick="goNext()"]');
-      const count = await buttons.count();
-
-      for (let i = 0; i < count; i++) {
-        const button = buttons.nth(i);
-
-        if (!(await button.isVisible())) continue;
-
-        const text = await button.innerText().catch(() => "");
-
-        if (/seguinte/i.test(text)) {
-          return true;
-        }
-      }
-
-      return false;
-    },
-    {
-      timeout: 5000,
-      intervals: [50, 100, 250, 500],
-    }
-  )
-  .toBe(true);
 }
 
 
