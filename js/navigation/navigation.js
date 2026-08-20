@@ -6,6 +6,14 @@ import { saveCurrentProjectFromForm } from "#projects/project-save.js";
 import { renderProjectList } from "#projects/project-list.js";
 import { getLatestReportForProject } from "#database/db-reports.js";
 import { setValue } from "#forms/form-values.js";
+import { applyPreviousReportToForm } from "#reports/report-prefill.js";
+import { updateFinancialPreview } from "#projects/sections/financial.js";
+import { buildReview } from "#projects/sections/review.js";
+import { renderWorks } from "#projects/sections/works.js";
+import { renderPhotos } from "#projects/sections/photos.js";
+import { renderIncidents } from "#projects/sections/incidents.js";
+import { renderExtras } from "#projects/sections/extras.js";
+import { renderNextSteps } from "#projects/sections/next-steps.js";
 
 let initialized = false;
 
@@ -180,14 +188,13 @@ export async function goNext() {
     return;
   }
 
-  if (cur === 10 && typeof window.updateFinancialPreview === "function") {
-    window.updateFinancialPreview();
+  if (cur === 10) {
+    updateFinancialPreview();
   }
 
-  if (idx === state.flow.length - 2 && typeof window.buildReview === "function") {
-    window.buildReview();
+  if (idx === state.flow.length - 2) {
+    buildReview();
   }
-
   if (idx < state.flow.length - 1) {
     goToStepId(state.flow[idx + 1]);
   }
@@ -287,13 +294,7 @@ export async function prepareWeeklyReportFromPrevious() {
 
     console.log("Previous report loaded:", previousReport);
 
-    if (typeof window.applyPreviousReportToForm === "function") {
-      window.applyPreviousReportToForm(previousReport);
-    } else {
-      console.warn("applyPreviousReportToForm() is not available. Starting blank report.");
-      prepareBlankWeeklyReport();
-      return;
-    }
+    applyPreviousReportToForm(previousReport);
 
     showPrefillNotice();
   } catch (error) {
@@ -381,11 +382,11 @@ function handleNavigationClick(event) {
 }
 
 function rerenderLegacySections() {
-  if (typeof window.renderWorks === "function") window.renderWorks();
-  if (typeof window.renderPhotos === "function") window.renderPhotos();
-  if (typeof window.renderIncidents === "function") window.renderIncidents();
-  if (typeof window.renderExtras === "function") window.renderExtras();
-  if (typeof window.renderNextSteps === "function") window.renderNextSteps();
+  renderWorks();
+  renderPhotos();
+  renderIncidents();
+  renderExtras();
+  renderNextSteps();
 }
 
 function getRuntimeState() {

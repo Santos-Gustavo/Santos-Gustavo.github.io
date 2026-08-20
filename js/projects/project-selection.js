@@ -4,6 +4,9 @@ import {
   loadProjectIntoForm,
 } from "#projects/project-form.js";
 import { getProjectById } from "#projects/project-list.js";
+import { goToStepId } from "#navigation/navigation.js";
+import { renderReportHistory } from "#reports/report-history.js";
+
 
 export function newProject() {
   appState.isNewProject = true;
@@ -15,7 +18,7 @@ export function newProject() {
   appState.flow = null;
 
   clearProjectForm();
-  window.goToStepId?.(1);
+  goToStepId(1);
 }
 
 export function selectProject(projectId) {
@@ -33,9 +36,7 @@ export function selectProject(projectId) {
   appState.currentClientId = project.clientId;
   appState.currentProjectId = project.id;
 
-  if (typeof window.renderReportHistory === "function") {
-    window.renderReportHistory(appState.currentProjectId).catch(console.error);
-  }
+  renderReportHistory(appState.currentProjectId).catch(console.error);
 
   loadProjectIntoForm(project);
 
@@ -44,7 +45,7 @@ export function selectProject(projectId) {
     modeProjectLabel.textContent = project.name || "";
   }
 
-  window.goToStepId?.("mode");
+  goToStepId("mode");
 }
 
 export function editProject(projectId) {
@@ -63,5 +64,5 @@ export function editProject(projectId) {
   appState.currentProjectId = project.id;
 
   loadProjectIntoForm(project);
-  window.goToStepId?.(1);
+  goToStepId(1);
 }

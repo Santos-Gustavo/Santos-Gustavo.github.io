@@ -2,6 +2,8 @@
 
 import { appState } from "#state/app-state.js";
 import { deletePhotoViaFunction } from "#database/db-photos.js";
+import { AREAS } from "#config/app-options.js";
+
 
 let initialized = false;
 
@@ -263,9 +265,7 @@ function renderPhotoCard(photo, index) {
 }
 
 function renderAreaOptions(selectedArea) {
-  const areas = Array.isArray(window.AREAS)
-    ? window.AREAS
-    : [];
+  const areas = AREAS;
 
   return areas
     .map((area) => {

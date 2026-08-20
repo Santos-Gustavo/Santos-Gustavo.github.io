@@ -1,4 +1,6 @@
 import { supabaseClient } from "#database/supabase-client.js";
+import { renderProjectList } from "#projects/project-list.js";
+
 
 let currentUser = null;
 
@@ -186,9 +188,7 @@ async function showLoggedInUI() {
   renderUserInfo();
 
   // Temporary bridge until project list is migrated to ESM.
-  if (typeof window.renderProjectList === "function") {
-    await window.renderProjectList();
-  }
+  await renderProjectList();
 }
 
 function showLoggedOutUI() {
