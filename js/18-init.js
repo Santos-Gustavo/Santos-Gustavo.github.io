@@ -3,6 +3,10 @@
 async function initApp() {
   await initAuth();
 
+  if (typeof window.renderProjectList === "function") {
+    await window.renderProjectList();
+  }
+
   const today = new Date().toISOString().split("T")[0];
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
