@@ -1,24 +1,20 @@
-// ── INIT ────────────────────────────────────────────────────────────
-
 async function initApp() {
-  await initAuth();
-
-  if (typeof window.renderProjectList === "function") {
-    await window.renderProjectList();
-  }
+  // Auth is now initialized by js/main.js.
+  // Project rendering is triggered after login by the temporary ESM bridge.
 
   const today = new Date().toISOString().split("T")[0];
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
 
-  document.getElementById("p-reportDate").value = today;
-  document.getElementById("p-periodEnd").value = today;
-  document.getElementById("p-periodStart").value = weekAgo.toISOString().split("T")[0];
-  document.getElementById("p-reportNum").value = "1";
+  const reportDate = document.getElementById("p-reportDate");
+  const periodEnd = document.getElementById("p-periodEnd");
+  const periodStart = document.getElementById("p-periodStart");
+  const reportNum = document.getElementById("p-reportNum");
 
-  if (CURRENT_USER) {
-    await renderProjectList();
-  }
+  if (reportDate) reportDate.value = today;
+  if (periodEnd) periodEnd.value = today;
+  if (periodStart) periodStart.value = weekAgo.toISOString().split("T")[0];
+  if (reportNum) reportNum.value = "1";
 }
 
 initApp();

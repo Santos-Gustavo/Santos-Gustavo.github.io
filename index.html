@@ -68,19 +68,19 @@
   <!-- LAYER 0: PROJECT LIST -->
   <div class="step active" id="step-projects">
     <div class="step-content">
-      <button type="button" onclick="createEupagoPayment('multibanco')">
-        Pagar Pro por Multibanco
+      <button type="button" data-payment-action="create-eupago-payment" data-payment-method="multibanco">
+        Multibanco
       </button>
 
-      <button type="button" onclick="createEupagoPayment('mbway')">
-        Pagar Pro por MB WAY
+      <button type="button" data-payment-action="create-eupago-payment" data-payment-method="mbway">
+        MB WAY
       </button>
       <div class="step-header">
         <h2>Obras</h2>
         <p>Selecione uma obra ou crie uma nova</p>
       </div>
       <div id="projectList"></div>
-      <button class="btn-add" onclick="newProject()" style="margin-top:12px">+ Nova Obra</button>
+      <button class="btn-add" type="button" data-project-action="new-project" style="margin-top:12px">+ Nova Obra</button>
     </div>
   </div>
 
@@ -229,7 +229,7 @@
     <div class="step-content">
       <div class="step-header"><h2>Trabalhos</h2><p>Adicione os trabalhos do período — concluídos, em curso e pendentes</p></div>
       <div id="workList"></div>
-      <button class="btn-add" onclick="addWorkItem()">+ Adicionar trabalho</button>
+      <button type="button" class="btn-add" data-work-action="add">+ Adicionar trabalho</button>
     </div>
     <div class="nav-bar">
       <button class="btn btn-back" onclick="goBack()">←</button>
@@ -242,7 +242,7 @@
     <div class="step-content">
       <div class="step-header"><h2>Registo Fotográfico</h2><p>Adicione as fotos do período (opcional)</p></div>
       <div id="photoList"></div>
-      <button class="btn-add" onclick="addPhotoItem()">+ Adicionar foto</button>
+      <button type="button" data-photo-action="add">Adicionar Foto</button>
     </div>
     <div class="nav-bar">
       <button class="btn btn-back" onclick="goBack()">←</button>
@@ -281,7 +281,7 @@
       </div>
       <div id="incidentFields" class="hidden">
         <div id="incidentList"></div>
-        <button class="btn-add" onclick="addIncident()">+ Adicionar incidente</button>
+        <button type="button" class="btn-add" data-incident-action="add">+ Adicionar incidente</button>
       </div>
     </div>
     <div class="nav-bar">
@@ -295,7 +295,7 @@
     <div class="step-content">
       <div class="step-header"><h2>Trabalhos Extra</h2><p>Alterações ao contrato, trabalhos adicionais e aprovações</p></div>
       <div id="extrasList"></div>
-      <button class="btn-add" onclick="addExtra()">+ Adicionar trabalho extra</button>
+      <button type="button" class="btn-add" data-extra-action="add">+ Adicionar trabalho extra</button>
     </div>
     <div class="nav-bar">
       <button class="btn btn-back" onclick="goBack()">←</button>
@@ -322,7 +322,7 @@
     <div class="step-content">
       <div class="step-header"><h2>Próximos Passos</h2><p>O que está previsto para o próximo período</p></div>
       <div id="nextStepsList"></div>
-      <button class="btn-add" onclick="addNextStep()">+ Adicionar próximo passo</button>
+      <button type="button" class="btn-add" data-next-step-action="add">+ Adicionar próximo passo</button>
     </div>
     <div class="nav-bar">
       <button class="btn btn-back" onclick="goBack()">←</button>
@@ -344,53 +344,24 @@
   </div>
 
 </div>
-  <script type="module" src="./js/main.js"></script>
+  
   <script src="js/01-state-config.js"></script>
 
   <script src="js/07-helpers.js"></script>
 
   <script src="js/14-form-values.js"></script>
 
-  <script src="js/02-database/db-helpers.js"></script>
+  <!-- <script src="js/02-database/db-helpers.js"></script>
   <script src="js/02-database/db-companies.js"></script>
   <script src="js/02-database/db-clients.js"></script>
-  <script src="js/02-database/db-projects.js"></script>
-  <script src="js/02-database/db-reports.js"></script>
-  <script src="js/02-database/db-photos.js"></script>
-  <script src="js/02-database/db-index.js"></script>
+  <script src="js/02-database/db-projects.js"></script> -->
 
-  <script src="js/03-local-storage.js"></script>
-
-  <script src="js/04-projects/project-list.js"></script>
-  <script src="js/04-projects/project-form.js"></script>
-  <script src="js/04-projects/project-selection.js"></script>
-  <script src="js/04-projects/project-save.js"></script>
-  <script src="js/04-projects/project-delete.js"></script>
-  <script src="js/04-projects/project-index.js"></script>
-
-  <script src="js/05-navigation.js"></script>
-
-  <script src="js/06-ui-controls.js"></script>
-
-  <script src="js/08-works.js"></script>
-
-  <script src="js/09-photos.js"></script>
-
-  <script src="js/10-incidents.js"></script>
-
-  <script src="js/11-extras.js"></script>
-
-  <script src="js/12-next-steps.js"></script>
-
-  <script src="js/13-financial.js"></script>
-
-  <script src="js/15-review.js"></script>
 
   <script src="js/16-date-helpers.js"></script>
 
   <script src="js/17-report-generator.js"></script>
   
   <script src="js/18-init.js"></script>
-  <script src="js/19-payment.js"></script>
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>

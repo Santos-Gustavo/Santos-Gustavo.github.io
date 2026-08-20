@@ -60,3 +60,4 @@ const CONTENT_STEPS = {
 };
 
 
+window.S = S;
