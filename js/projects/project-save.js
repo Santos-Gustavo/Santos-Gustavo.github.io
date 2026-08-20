@@ -19,24 +19,6 @@ export async function saveCurrentProjectFromForm() {
 
   const values = getProjectFormValues();
 
-  console.log("appState before save:", JSON.parse(JSON.stringify(appState)));
-
-  console.log("form values before save:", {
-    companyName: values.companyName || "",
-    companyTagline: values.companyTagline || "",
-    companyNif: values.companyNif || "",
-    companyInci: values.companyInci || "",
-    responsible: values.responsible || "",
-    companyPhone: values.companyPhone || "",
-    companyEmail: values.companyEmail || "",
-    projectName: values.projectName || "",
-    clientName: values.clientName || "",
-    location: values.location || "",
-    contractNum: values.contractNum || "",
-    distributedTo: values.distributedTo || "",
-    sentVia: values.sentVia || "",
-  });
-
   try {
     let company;
     let client;
