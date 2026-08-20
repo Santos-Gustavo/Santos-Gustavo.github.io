@@ -45,9 +45,9 @@
     </div>
 
     <div class="auth-actions">
-      <button onclick="signIn()">Entrar</button>
-      <button onclick="signUp()" class="secondary">Criar conta</button>
-      <button onclick="resetPassword()" class="secondary">Esqueci password</button>
+      <button type="button" data-auth-action="sign-in">Entrar</button>
+      <button type="button" data-auth-action="sign-up" class="secondary">Criar conta</button>
+      <button type="button" data-auth-action="reset-password" class="secondary">Esqueci password</button>
     </div>
 
     <p id="authMessage" class="auth-message"></p>
@@ -346,8 +346,6 @@
 </div>
   <script type="module" src="./js/main.js"></script>
   <script src="js/01-state-config.js"></script>
-
-  <script src="js/00-auth.js"></script>
 
   <script src="js/07-helpers.js"></script>
 
