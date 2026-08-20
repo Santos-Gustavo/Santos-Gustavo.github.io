@@ -10,7 +10,6 @@ export function initPayments() {
 
   document.addEventListener("click", handlePaymentClick);
 
-  installTemporaryPaymentBridge();
 }
 
 async function handlePaymentClick(event) {
@@ -108,10 +107,4 @@ async function extractFunctionErrorMessage(error) {
   }
 
   return realMessage;
-}
-
-function installTemporaryPaymentBridge() {
-  // Temporary bridge for old inline onclick handlers.
-  // Remove after index.html payment buttons use data-payment-action.
-  window.createEupagoPayment = createEupagoPayment;
 }

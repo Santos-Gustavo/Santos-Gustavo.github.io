@@ -11,7 +11,6 @@ export function initIncidentsSection() {
   document.addEventListener("click", handleIncidentClick);
   document.addEventListener("input", handleIncidentInput);
 
-  installTemporaryIncidentsBridge();
 }
 
 export function addIncident() {
@@ -132,12 +131,6 @@ function syncIncidentsState(incidents) {
 
 }
 
-function installTemporaryIncidentsBridge() {
-  window.addIncident = addIncident;
-  window.removeIncident = removeIncident;
-  window.renderIncidents = renderIncidents;
-  window.setInc = setIncidentValue;
-}
 
 function escapeHtml(value) {
   return String(value ?? "")

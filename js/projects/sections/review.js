@@ -9,7 +9,6 @@ export function initReviewSection() {
   if (initialized) return;
   initialized = true;
 
-  installTemporaryReviewBridge();
 }
 
 export function buildReview() {
@@ -136,10 +135,6 @@ function getRuntimeState() {
   return appState;
 }
 
-function installTemporaryReviewBridge() {
-  // Temporary bridge for old navigation/report files.
-  window.buildReview = buildReview;
-}
 
 function escapeHtml(value) {
   return String(value ?? "")

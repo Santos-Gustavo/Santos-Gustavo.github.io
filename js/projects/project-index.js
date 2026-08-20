@@ -20,7 +20,6 @@ export function initProjects() {
 
   document.addEventListener("click", handleProjectClick);
 
-  installTemporaryProjectBridge();
 }
 
 async function handleProjectClick(event) {
@@ -51,20 +50,4 @@ async function handleProjectClick(event) {
   if (action === "delete") {
     await deleteProject(projectId);
   }
-}
-
-function installTemporaryProjectBridge() {
-  // Temporary bridge for old navigation/report files.
-  // Remove after navigation and reports are migrated to ESM.
-  window.renderProjectList = renderProjectList;
-  window.saveCurrentProjectFromForm = saveCurrentProjectFromForm;
-
-  window.newProject = newProject;
-  window.selectProject = selectProject;
-  window.editProject = editProject;
-  window.deleteProject = deleteProject;
-
-  window.clearProjectForm = clearProjectForm;
-  window.loadProjectIntoForm = loadProjectIntoForm;
-  window.applyDefaultReportFields = applyDefaultReportFields;
 }

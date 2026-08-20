@@ -11,7 +11,6 @@ export function initNextStepsSection() {
   document.addEventListener("click", handleNextStepClick);
   document.addEventListener("input", handleNextStepInput);
 
-  installTemporaryNextStepsBridge();
 }
 
 export function addNextStep() {
@@ -143,12 +142,7 @@ function syncNextStepsState(nextSteps) {
   appState.nextSteps = nextSteps;
 }
 
-function installTemporaryNextStepsBridge() {
-  window.addNextStep = addNextStep;
-  window.removeNextStep = removeNextStep;
-  window.renderNextSteps = renderNextSteps;
-  window.setStep = setNextStepValue;
-}
+
 
 function escapeHtml(value) {
   return String(value ?? "")

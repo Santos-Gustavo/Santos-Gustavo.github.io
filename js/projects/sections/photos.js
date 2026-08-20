@@ -15,7 +15,6 @@ export function initPhotosSection() {
   document.addEventListener("change", handlePhotoChange);
   document.addEventListener("input", handlePhotoInput);
 
-  installTemporaryPhotoBridge();
 }
 
 export function addPhotoItem() {
@@ -300,14 +299,6 @@ function fileToDataUrl(file) {
   });
 }
 
-function installTemporaryPhotoBridge() {
-  // Temporary bridge for old report/review/navigation files.
-  window.addPhotoItem = addPhotoItem;
-  window.removePhoto = removePhoto;
-  window.renderPhotos = renderPhotos;
-  window.handlePhoto = handlePhotoFile;
-  window.setPhoto = setPhotoValue;
-}
 
 function escapeHtml(value) {
   return String(value ?? "")

@@ -12,7 +12,6 @@ export function initFinancialSection() {
   document.addEventListener("input", handleFinancialInput, true);
   document.addEventListener("change", handleFinancialInput, true);
 
-  installTemporaryFinancialBridge();
 }
 
 export function updateFinancialPreview() {
@@ -99,7 +98,3 @@ function getRuntimeState() {
   return appState;
 }
 
-function installTemporaryFinancialBridge() {
-  // Temporary bridge for old navigation/report files.
-  window.updateFinancialPreview = updateFinancialPreview;
-}

@@ -13,7 +13,6 @@ export function initWorksSection() {
   document.addEventListener("input", handleWorksInput);
   document.addEventListener("change", handleWorksInput);
 
-  installTemporaryWorksBridge();
 }
 
 export function addWorkItem() {
@@ -173,13 +172,6 @@ function renderOptions(options, selectedValue) {
       return `<option value="${escapeHtml(option)}"${selected}>${escapeHtml(option)}</option>`;
     })
     .join("");
-}
-
-function installTemporaryWorksBridge() {
-  window.addWorkItem = addWorkItem;
-  window.removeWork = removeWork;
-  window.renderWorks = renderWorks;
-  window.setWork = setWorkValue;
 }
 
 function escapeHtml(value) {

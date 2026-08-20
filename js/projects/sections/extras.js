@@ -12,7 +12,6 @@ export function initExtrasSection() {
   document.addEventListener("input", handleExtraInput);
   document.addEventListener("change", handleExtraInput);
 
-  installTemporaryExtrasBridge();
 }
 
 export function addExtra() {
@@ -230,13 +229,6 @@ function getExtrasState() {
 function syncExtrasState(extras) {
   appState.extras = extras;
 
-}
-
-function installTemporaryExtrasBridge() {
-  window.addExtra = addExtra;
-  window.removeExtra = removeExtra;
-  window.renderExtras = renderExtras;
-  window.setExtra = setExtraValue;
 }
 
 function escapeHtml(value) {

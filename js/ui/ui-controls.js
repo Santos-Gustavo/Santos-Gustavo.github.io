@@ -11,7 +11,6 @@ export function initUiControls() {
   document.addEventListener("click", handleUiControlClick, true);
   document.addEventListener("input", handleUiInput, true);
 
-  installTemporaryUiBridge();
 }
 
 export function selectPhase(el, phase) {
@@ -116,18 +115,6 @@ function handleUiControlClick(event) {
 function getRuntimeState() {
   return appState;
 }
-
-function installTemporaryUiBridge() {
-  // Temporary bridge for old inline HTML onclick handlers.
-  window.selectPhase = selectPhase;
-  window.toggleAlert = toggleAlert;
-  window.toggleIncidents = toggleIncidents;
-
-  window.updatePhaseUI = updatePhaseUI;
-  window.updateAlertUI = updateAlertUI;
-  window.updateIncidentsUI = updateIncidentsUI;
-}
-
 
 
 function handleUiInput(event) {

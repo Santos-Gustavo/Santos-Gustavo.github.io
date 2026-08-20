@@ -22,8 +22,6 @@ export function initNavigation() {
   initialized = true;
 
   document.addEventListener("click", handleNavigationClick);
-
-  installTemporaryNavigationBridge();
 }
 
 export function getStepEl(id) {
@@ -391,17 +389,4 @@ function rerenderLegacySections() {
 
 function getRuntimeState() {
   return appState;
-}
-
-function installTemporaryNavigationBridge() {
-  // Temporary bridge for old inline HTML onclick handlers.
-  // Remove after index.html is fully migrated to data-nav-action.
-  window.getStepEl = getStepEl;
-  window.goToStepId = goToStepId;
-  window.updateTopBar = updateTopBar;
-  window.selectMode = selectMode;
-  window.goNext = goNext;
-  window.goBack = goBack;
-  window.goHome = goHome;
-  window.prepareWeeklyReportFromPrevious = prepareWeeklyReportFromPrevious;
 }

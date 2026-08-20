@@ -17,7 +17,6 @@ export function initReportHistory() {
 
   document.addEventListener("click", handleReportHistoryClick, true);
 
-  installTemporaryReportHistoryBridge();
 }
 
 export async function renderReportHistory(projectId = null) {
@@ -115,10 +114,6 @@ function handleReportHistoryClick(event) {
   });
 }
 
-function installTemporaryReportHistoryBridge() {
-  window.renderReportHistory = renderReportHistory;
-  window.openSavedReport = openSavedReport;
-}
 
 function formatShortDate(value) {
   if (!value) return "—";
