@@ -15,6 +15,7 @@ import { initPayments } from "#payments/payment.js";
 import { initAuth } from "#auth/auth.js";
 import { appState } from "#state/app-state.js";
 import { initReportGenerator } from "#reports/report-generator.js";
+import { initReportHistory } from "#reports/report-history.js";
 import { JOB_TYPES, AREAS, CONTENT_STEPS } from "#config/app-options.js";
 
 async function boot() {
@@ -62,6 +63,9 @@ async function boot() {
 
   initReportGenerator();
   console.info("[ESM boot] Report generator initialized.");
+
+  initReportHistory();
+  console.info("[ESM boot] Report history initialized.");
 
   initPayments();
   console.info("[ESM boot] Payments initialized.");

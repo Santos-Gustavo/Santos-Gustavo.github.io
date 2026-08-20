@@ -35,6 +35,10 @@ export function selectProject(projectId) {
   appState.currentClientId = project.clientId;
   appState.currentProjectId = project.id;
 
+  if (typeof window.renderReportHistory === "function") {
+    window.renderReportHistory(appState.currentProjectId).catch(console.error);
+  }
+
   syncLegacyState();
 
   loadProjectIntoForm(project);
