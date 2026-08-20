@@ -16,6 +16,7 @@ import { initAuth } from "#auth/auth.js";
 import { appState } from "#state/app-state.js";
 import { initReportGenerator } from "#reports/report-generator.js";
 import { initReportHistory } from "#reports/report-history.js";
+import { initReportDefaults } from "#reports/report-defaults.js";
 import { JOB_TYPES, AREAS, CONTENT_STEPS } from "#config/app-options.js";
 
 async function boot() {
@@ -33,6 +34,9 @@ async function boot() {
 
   initNavigation();
   console.info("[ESM boot] Navigation initialized.");
+
+  initReportDefaults();
+  console.info("[ESM boot] Report defaults initialized.");
 
   initProjects();
   console.info("[ESM boot] Projects initialized.");
