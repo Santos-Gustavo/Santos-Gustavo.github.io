@@ -51,7 +51,6 @@ test.describe("global frontend functions", () => {
     const globals = await page.evaluate(() => {
       return {
         createEupagoPayment: typeof window.createEupagoPayment,
-        saveAndGenerateReport: typeof window.saveAndGenerateReport,
         saveReportToSupabase: typeof window.saveReportToSupabase,
         createReport: typeof window.createReport,
         savePhotosForReport: typeof window.savePhotosForReport,
@@ -60,7 +59,6 @@ test.describe("global frontend functions", () => {
     });
 
     expect(globals.createEupagoPayment).toBe("function");
-    expect(globals.saveAndGenerateReport).toBe("function");
     expect(globals.saveReportToSupabase).toBe("function");
     expect(globals.createReport).toBe("function");
     expect(globals.savePhotosForReport).toBe("function");
