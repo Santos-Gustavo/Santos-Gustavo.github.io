@@ -9,6 +9,7 @@ export function initUiControls() {
   initialized = true;
 
   document.addEventListener("click", handleUiControlClick, true);
+  document.addEventListener("input", handleUiInput, true);
 
   installTemporaryUiBridge();
 }
@@ -125,4 +126,20 @@ function installTemporaryUiBridge() {
   window.updatePhaseUI = updatePhaseUI;
   window.updateAlertUI = updateAlertUI;
   window.updateIncidentsUI = updateIncidentsUI;
+}
+
+
+
+function handleUiInput(event) {
+  const target = event.target;
+
+  if (!target?.matches("[data-ui-action='progress-slider']")) {
+    return;
+  }
+
+  const progressPct = document.getElementById("progressPct");
+
+  if (progressPct) {
+    progressPct.textContent = `${target.value}%`;
+  }
 }

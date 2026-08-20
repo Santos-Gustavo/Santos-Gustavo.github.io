@@ -91,21 +91,17 @@ export function updateTopBar(id) {
   label.textContent = `Passo ${pos} de ${total} — ${STEP_NAMES[id] || String(id)}`;
 }
 
-export async function selectMode(mode) {
+export function selectMode(mode) {
   const state = getRuntimeState();
 
+  if (mode !== "weekly" && mode !== "legal") {
+    console.error("Invalid report mode:", mode);
+    return;
+  }
+
   state.mode = mode;
-  appState.mode = mode;
 
   if (mode === "weekly") {
-    await prepareWeeklyReportFromPrevious();
-  }
-
-  if (mode === "weekly") {
-    state.flow = CONTENT_STEPS.weekly || [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-  }
-
-  if (mode === "final") {
     state.flow = CONTENT_STEPS.weekly || [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
   }
 
@@ -113,7 +109,10 @@ export async function selectMode(mode) {
     state.flow = CONTENT_STEPS.legal || [10, 11, 12];
   }
 
-  appState.flow = state.flow;
+  if (!Array.isArray(state.flow) || state.flow.length === 0) {
+    console.error("Invalid navigation flow for mode:", mode, state.flow);
+    return;
+  }
 
   goToStepId(state.flow[0]);
 }
@@ -337,12 +336,31 @@ function showPrefillNotice() {
 }
 
 function handleNavigationClick(event) {
-  const actionEl = event.target.closest("[data-nav-action]");
-  if (!actionEl) return;
+  const trigger = event.target.closest("[data-nav-action]");
 
-  const action = actionEl.dataset.navAction;
+  if (!trigger) {
+    return;
+  }
+
+  const action = trigger.dataset.navAction;
+
+  if (!action) {
+    return;
+  }
 
   event.preventDefault();
+
+  if (action === "select-mode") {
+    const mode = trigger.dataset.mode;
+
+    if (!mode) {
+      console.error("Missing data-mode on select-mode element:", trigger);
+      return;
+    }
+
+    selectMode(mode);
+    return;
+  }
 
   if (action === "next") {
     goNext();
@@ -359,9 +377,7 @@ function handleNavigationClick(event) {
     return;
   }
 
-  if (action === "select-mode") {
-    selectMode(actionEl.dataset.reportMode);
-  }
+  console.warn("Unknown navigation action:", action, trigger);
 }
 
 function rerenderLegacySections() {
