@@ -3,21 +3,29 @@
 import { appState } from "#state/app-state.js";
 import { getReportFormValues } from "#forms/form-values.js";
 
-export function buildCurrentReportDocument() {
+export function buildCurrentReportDocument(options = {}) {
   const values = getReportFormValues();
   const state = getRuntimeState();
 
+  const reportRow = options.report || null;
+  const includePhotoDisplayUrls = Boolean(options.includePhotoDisplayUrls);
+
   return deepFreeze({
+    schemaVersion: 1,
+
     meta: {
+      reportId: reportRow?.id || options.reportId || null,
+      projectId: reportRow?.project_id || state.currentProjectId || null,
       mode: normalizeMode(state.mode),
-      reportNumber: values.reportNum || "1",
-      reportDate: values.reportDate || new Date().toISOString().slice(0, 10),
-      periodStart: values.periodStart || null,
-      periodEnd: values.periodEnd || null,
+      reportNumber: reportRow?.report_num || values.reportNum || "1",
+      reportDate: reportRow?.report_date || values.reportDate || new Date().toISOString().slice(0, 10),
+      periodStart: reportRow?.period_start || values.periodStart || null,
+      periodEnd: reportRow?.period_end || values.periodEnd || null,
       generatedAt: new Date().toISOString(),
     },
 
     company: {
+      id: state.currentCompanyId || null,
       name: values.companyName || "",
       tagline: values.companyTagline || "",
       nif: values.companyNif || "",
@@ -28,6 +36,8 @@ export function buildCurrentReportDocument() {
     },
 
     project: {
+      id: state.currentProjectId || null,
+      clientId: state.currentClientId || null,
       name: values.projectName || "",
       clientName: values.clientName || "",
       location: values.location || "",
@@ -64,14 +74,19 @@ export function buildCurrentReportDocument() {
     })),
 
     photos: normalizeArray(state.photos).map((photo) => ({
+      id: photo.photoId || photo.id || null,
       area: photo.area || "",
       description: photo.desc || photo.description || "",
       worker: photo.worker || "",
       stage: photo.type || photo.stage || "during",
 
-      // Preview-only. Do not treat this as immutable report storage.
-      displayUrl: photo.dataUrl || photo.signedUrl || photo.fileUrl || "",
+      // Persist storagePath. Hydrate displayUrl at render time.
       storagePath: photo.storagePath || "",
+
+      // Only for unsaved preview. Never use this when writing snapshot_json.
+      displayUrl: includePhotoDisplayUrls
+        ? photo.dataUrl || photo.signedUrl || photo.fileUrl || ""
+        : "",
     })),
 
     extras: normalizeArray(state.extras).map((extra) => ({
@@ -81,7 +96,7 @@ export function buildCurrentReportDocument() {
       cost: toNumber(extra.cost),
       status: extra.status === "approved" ? "approved" : "pending",
       approvedBy: extra.approvedBy || "",
-      approvalMethod: extra.approvalMethod || "",
+      approvalMethod: extra.apvalMethod || extra.approvalMethod || "",
       approvalDate: extra.approvalDate || null,
       deadline: extra.deadline || null,
     })),

@@ -1,6 +1,7 @@
 // js/reports/report-generator.js
 
 import { buildCurrentReportDocument } from "#reports/report-document-builder.js";
+import { hydrateReportPhotoUrls } from "#reports/report-photo-hydration.js";
 import { renderReportHtml } from "#reports/report-renderer.js";
 import { openHtmlReportPreview } from "#reports/report-preview.js";
 
@@ -13,9 +14,13 @@ export function initReportGenerator() {
   installTemporaryReportGeneratorBridge();
 }
 
-export function generateReport() {
-  const reportDocument = buildCurrentReportDocument();
-  const html = renderReportHtml(reportDocument);
+export async function generateReport(reportDocument = null) {
+  const sourceDocument = reportDocument || buildCurrentReportDocument({
+    includePhotoDisplayUrls: true,
+  });
+
+  const hydratedDocument = await hydrateReportPhotoUrls(sourceDocument);
+  const html = renderReportHtml(hydratedDocument);
 
   return openHtmlReportPreview(html);
 }

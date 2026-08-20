@@ -38,7 +38,7 @@ async function saveAndGenerateReport() {
   }
 
   if (typeof window.generateReport === "function") {
-    window.generateReport();
+    await window.generateReport(saved.snapshotJson || null);
   } else {
     console.warn("generateReport() is not available. Report was saved, but PDF/HTML was not generated.");
   }

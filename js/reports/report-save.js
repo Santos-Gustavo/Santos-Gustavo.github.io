@@ -5,9 +5,13 @@ import { getReportFormValues } from "#forms/form-values.js";
 import { findOrCreateCompany } from "#database/db-companies.js";
 import { findOrCreateClient } from "#database/db-clients.js";
 import { createProjectInDb } from "#database/db-projects.js";
-import { createReport } from "#database/db-reports.js";
+import {
+  createReport,
+  updateReportSnapshot,
+} from "#database/db-reports.js";
 import { savePhotosForReport } from "#database/db-photos.js";
 import { renderProjectList } from "#projects/project-list.js";
+import { buildCurrentReportDocument } from "#reports/report-document-builder.js";
 
 export async function saveReportToSupabase() {
   const values = getReportFormValues();
@@ -50,6 +54,7 @@ export async function saveReportToSupabase() {
       projectId: project.id,
       values,
       state: getCurrentReportState(),
+      snapshotJson: null,
     });
 
     const photos = await savePhotosForReport({
@@ -59,12 +64,25 @@ export async function saveReportToSupabase() {
       photos: getCurrentReportState().photos,
     });
 
-    console.log("Saved normalized report:", {
+    applySavedPhotosToRuntimeState(photos);
+
+    const snapshotJson = buildCurrentReportDocument({
+      report,
+      includePhotoDisplayUrls: false,
+    });
+
+    const reportWithSnapshot = await updateReportSnapshot({
+      reportId: report.id,
+      snapshotJson,
+    });
+
+    console.log("Saved normalized report with immutable snapshot:", {
       company,
       client,
       project,
-      report,
+      report: reportWithSnapshot,
       photos,
+      snapshotJson,
     });
 
     alert("Relatório guardado com sucesso.");
@@ -75,8 +93,9 @@ export async function saveReportToSupabase() {
       company,
       client,
       project,
-      report,
+      report: reportWithSnapshot,
       photos,
+      snapshotJson,
     };
   } catch (error) {
     console.error("Supabase save error:", error);
@@ -99,4 +118,32 @@ function syncLegacySelection() {
   window.S.currentCompanyId = appState.currentCompanyId;
   window.S.currentClientId = appState.currentClientId;
   window.S.currentProjectId = appState.currentProjectId;
+}
+
+function applySavedPhotosToRuntimeState(savedPhotos) {
+  if (!Array.isArray(savedPhotos) || savedPhotos.length === 0) return;
+
+  const state = getCurrentReportState();
+
+  if (!Array.isArray(state.photos)) return;
+
+  state.photos = state.photos.map((photo, index) => {
+    const savedPhoto = savedPhotos[index];
+
+    if (!savedPhoto) return photo;
+
+    return {
+      ...photo,
+      photoId: savedPhoto.photoId || savedPhoto.id || null,
+      storagePath: savedPhoto.storagePath || photo.storagePath || "",
+      signedUrl: savedPhoto.signedUrl || photo.signedUrl || "",
+      fileUrl: savedPhoto.fileUrl || photo.fileUrl || "",
+    };
+  });
+
+  appState.photos = state.photos;
+
+  if (window.S) {
+    window.S.photos = state.photos;
+  }
 }

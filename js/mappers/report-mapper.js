@@ -7,6 +7,7 @@ export function buildReportInsertPayload({
   values,
   state,
   reportNum,
+  snapshotJson = null,
 }) {
   if (!projectId) {
     throw new Error("projectId é obrigatório para criar relatório.");
@@ -43,6 +44,8 @@ export function buildReportInsertPayload({
     incidents: Array.isArray(state.incidents) ? state.incidents : [],
     extras: Array.isArray(state.extras) ? state.extras : [],
     next_steps: Array.isArray(state.nextSteps) ? state.nextSteps : [],
+
+    snapshot_json: snapshotJson,
 
     status: 0,
   };
@@ -84,6 +87,8 @@ export function mapReportRowToAppReport(row) {
     incidents: row.incidents || [],
     extras: row.extras || [],
     nextSteps: row.next_steps || [],
+
+    snapshotJson: row.snapshot_json || null,
 
     status: row.status,
     createdAt: row.created_at,

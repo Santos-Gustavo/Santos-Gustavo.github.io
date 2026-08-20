@@ -11,6 +11,7 @@ export async function createReport({
   projectId,
   values,
   state,
+  snapshotJson = null,
 }) {
   const reportNum = await getNextReportNum(projectId);
 
@@ -19,6 +20,7 @@ export async function createReport({
     values,
     state,
     reportNum,
+    snapshotJson,
   });
 
   const { data, error } = await supabaseClient
@@ -28,6 +30,34 @@ export async function createReport({
     .single();
 
   throwIfDbError(error, "Erro ao criar relatório.");
+
+  return data;
+}
+
+export async function updateReportSnapshot({
+  reportId,
+  snapshotJson,
+}) {
+  if (!reportId) {
+    throw new Error("reportId é obrigatório para atualizar snapshot.");
+  }
+
+  if (!snapshotJson || typeof snapshotJson !== "object") {
+    throw new Error("snapshotJson inválido.");
+  }
+
+  const { data, error } = await supabaseClient
+    .from("reports")
+    .update({
+      snapshot_json: snapshotJson,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", reportId)
+    .is("deleted_at", null)
+    .select()
+    .single();
+
+  throwIfDbError(error, "Erro ao atualizar snapshot do relatório.");
 
   return data;
 }
@@ -48,6 +78,21 @@ export async function getLatestReportForProject(projectId) {
   throwIfDbError(error, "Erro ao carregar último relatório.");
 
   return data;
+}
+
+export async function getReportById(reportId) {
+  if (!reportId) return null;
+
+  const { data, error } = await supabaseClient
+    .from("reports")
+    .select("*")
+    .eq("id", reportId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  throwIfDbError(error, "Erro ao carregar relatório.");
+
+  return data ? mapReportRowToAppReport(data) : null;
 }
 
 export async function getNextReportNum(projectId) {
