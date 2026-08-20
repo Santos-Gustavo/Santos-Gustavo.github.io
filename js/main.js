@@ -14,6 +14,7 @@ import { initUiControls } from "#ui/ui-controls.js";
 import { initPayments } from "#payments/payment.js";
 import { initAuth } from "#auth/auth.js";
 import { appState } from "#state/app-state.js";
+import { initReportGenerator } from "#reports/report-generator.js";
 import { JOB_TYPES, AREAS, CONTENT_STEPS } from "#config/app-options.js";
 
 async function boot() {
@@ -58,6 +59,9 @@ async function boot() {
 
   initReviewSection();
   console.info("[ESM boot] Review initialized.");
+
+  initReportGenerator();
+  console.info("[ESM boot] Report generator initialized.");
 
   initPayments();
   console.info("[ESM boot] Payments initialized.");
