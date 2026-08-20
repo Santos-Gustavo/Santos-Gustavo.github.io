@@ -1,6 +1,5 @@
 // js/main.js
 
-import { installLegacyBridge } from "#legacy/legacy-bridge.js";
 import { initNavigation } from "#navigation/navigation.js";
 import { initProjects } from "#projects/project-index.js";
 import { initWorksSection } from "#projects/sections/works.js";
@@ -29,8 +28,6 @@ async function boot() {
     flows: Object.keys(CONTENT_STEPS),
   });
 
-  installLegacyBridge();
-  console.info("[ESM boot] Legacy bridge installed.");
 
   initNavigation();
   console.info("[ESM boot] Navigation initialized.");
