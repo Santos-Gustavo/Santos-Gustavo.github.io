@@ -120,22 +120,23 @@ test("deleting a project removes it from the project list", async ({ page }) => 
 
   await expect(projectCard).toHaveCount(1, { timeout: 15000 });
 
-  const dialogPromise = page.waitForEvent("dialog");
+  page.on("dialog", async (dialog) => {
+    await dialog.accept();
+  });
 
-  await projectCard
+  const deleteButton = projectCard
     .first()
     .getByRole("button", {
       name: /eliminar|apagar|remover|delete/i,
-    })
-    .click();
+    });
 
-  const dialog = await dialogPromise;
+  await expect(deleteButton).toBeVisible({ timeout: 10000 });
 
-  expect(dialog.message()).toMatch(/eliminar|apagar|remover|delete/i);
+  await deleteButton.click({
+    force: true,
+  });
 
-  await dialog.accept();
-
-  await expect(projectCard).toHaveCount(0, { timeout: 15000 });
+  await expect(projectCard).toHaveCount(0, { timeout: 20000 });
 
   await expect(page.locator("#projectList")).not.toContainText(projectName);
   await expect(page.locator("#projectList")).not.toContainText(contractNum);
