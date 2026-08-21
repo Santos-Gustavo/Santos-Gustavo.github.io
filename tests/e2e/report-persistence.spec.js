@@ -75,7 +75,7 @@ test("generated weekly report appears in saved reports", async ({ page }) => {
 
   await login(page);
 
-  await page.getByRole("button", { name: /nova obra/i }).click();
+  await page.getByRole("button", { name: /novo projeto/i }).click();
 
   await expect(page.locator("#stepLabel")).toHaveText(
     /configuração 1 de 2|configuracao 1 de 2|empresa/i,

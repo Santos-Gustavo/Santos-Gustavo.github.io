@@ -163,7 +163,7 @@ export async function goNext() {
     }
 
     const projectName =
-      document.getElementById("projectName")?.value || "Nova Obra";
+      document.getElementById("projectName")?.value || "Novo Projeto";
 
     const modeProjectLabel = document.getElementById("modeProjectLabel");
     if (modeProjectLabel) {

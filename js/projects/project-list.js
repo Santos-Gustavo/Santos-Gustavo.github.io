@@ -15,7 +15,7 @@ export async function renderProjectList() {
       el.innerHTML = `
         <p class="empty-hint">
           Ainda sem obras guardadas na base de dados.<br>
-          Clique em "+ Nova Obra" para começar.
+          Clique em "+ Novo Projeto" para começar.
         </p>
       `;
       return;

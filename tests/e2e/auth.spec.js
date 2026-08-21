@@ -40,5 +40,5 @@ test("user can log in and reach the app", async ({ page }) => {
         message: "Expected logged-in app screen after login",
       }
     )
-    .toMatch(/obras|nova obra|relatório|relatorio|projeto|project/i);
+    .toMatch(/obras|novo projeto|relatório|relatorio|projeto|project/i);
 });
