@@ -19,7 +19,7 @@ export async function deleteProject(projectId) {
   const project = getProjectById(projectId);
 
   if (!project) {
-    alert("Obra não encontrada.");
+    alert("Projeto não encontrado.");
     return;
   }
 

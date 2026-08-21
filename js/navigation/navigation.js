@@ -1,9 +1,8 @@
 // js/navigation/navigation.js
-
 import { appState } from "#state/app-state.js";
 import { CONTENT_STEPS, STEP_NAMES } from "#config/app-options.js";
 import { saveCurrentProjectFromForm } from "#projects/project-save.js";
-import { renderProjectList } from "#projects/project-list.js";
+import { renderProjectList, upsertProjectInCache } from "#projects/project-list.js";
 import { getLatestReportForProject } from "#database/db-reports.js";
 import { setValue } from "#forms/form-values.js";
 import { applyPreviousReportToForm } from "#reports/report-prefill.js";
@@ -14,6 +13,8 @@ import { renderPhotos } from "#projects/sections/photos.js";
 import { renderIncidents } from "#projects/sections/incidents.js";
 import { renderExtras } from "#projects/sections/extras.js";
 import { renderNextSteps } from "#projects/sections/next-steps.js";
+import { getProjectStatusLabel } from "#projects/project-status-rules.js";
+import { renderProjectModePage } from "#projects/project-mode-page.js";
 
 let initialized = false;
 
@@ -170,7 +171,14 @@ export async function goNext() {
       modeProjectLabel.textContent = projectName;
     }
 
+    const modeProjectStatus = document.getElementById("modeProjectStatus");
+    if (modeProjectStatus) {
+      modeProjectStatus.textContent = getProjectStatusLabel(saved.project.status);
+    }
+
     goToStepId("mode");
+    upsertProjectInCache(saved.project);
+    renderProjectModePage(saved.project);
     return;
   }
 

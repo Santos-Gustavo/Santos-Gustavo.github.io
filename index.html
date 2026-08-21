@@ -23,7 +23,7 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Relatório de Obra</title>
+  <title>Relatório de Projeto</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -31,7 +31,7 @@
   <section id="authScreen" class="auth-screen">
   <div class="auth-card">
     <h1>Entrar</h1>
-    <p>Entre para guardar relatórios, obras e fotografias.</p>
+    <p>Entre para guardar relatórios, projetos e fotografias.</p>
 
     <div class="field">
       <label>Email</label>
@@ -59,8 +59,8 @@
 
   <!-- TOP BAR -->
   <div class="topbar">
-    <div class="topbar-title">Relatório de Obra</div>
-    <div class="topbar-step" id="stepLabel">Obras</div>
+    <div class="topbar-title">Relatório de Projeto</div>
+    <div class="topbar-step" id="stepLabel">Projetos</div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
   </div>
 
@@ -89,8 +89,8 @@
       </button>
     </div>
       <div class="step-header">
-        <h2>Obras</h2>
-        <p>Selecione uma obra ou crie uma nova</p>
+        <h2>Projetos</h2>
+        <p>Selecione um projeto ou crie uma nova</p>
       </div>
       <div id="projectList"></div>
       <button class="btn-add" type="button" data-project-action="new-project" style="margin-top:12px">+ Novo Projeto</button>
@@ -104,12 +104,17 @@
         <h2>Tipo de Relatório</h2>
         <p id="modeProjectLabel"></p>
         <p id="modeProjectStatus" class="mode-project-status"></p>
+        <div
+          id="projectLifecycleActions"
+          class="project-lifecycle-actions"
+          aria-label="Ações da projeto"
+        ></div>
       </div>
       <div class="mode-picker">
         <div class="mode-card" data-nav-action="select-mode" data-mode="weekly">
           <div class="mode-icon">📋</div>
           <div class="mode-title">Relatório Semanal</div>
-          <div class="mode-desc">Progresso da obra, trabalhos realizados, fotos, alertas e próximos passos. Ideal para comunicação regular com o cliente.</div>
+          <div class="mode-desc">Progresso do projeto, trabalhos realizados, fotos, alertas e próximos passos. Ideal para comunicação regular com o cliente.</div>
         </div>
         <div class="mode-card" data-nav-action="select-mode" data-mode="legal">
           <div class="mode-icon">⚖️</div>
@@ -121,28 +126,28 @@
         <div class="card">
           <h3>Relatórios guardados</h3>
           <div id="reportHistoryList">
-            <p class="empty-hint">Selecione uma obra para ver relatórios anteriores.</p>
+            <p class="empty-hint">Selecione um projeto para ver relatórios anteriores.</p>
           </div>
         </div>
 
       </div>
     </div>
     <div class="nav-bar">
-      <button class="btn btn-back" data-nav-action="back">← Obras</button>
+      <button class="btn btn-back" data-nav-action="back">← Projetos</button>
     </div>
   </div>
 
   <!-- STEP 1: EMPRESA (new project only) -->
   <div class="step" id="step1">
     <div class="step-content">
-      <div class="step-header"><h2>Empresa</h2><p>Dados da empresa responsável pela obra — guardados para uso futuro</p></div>
+      <div class="step-header"><h2>Empresa</h2><p>Dados da empresa responsável pelo projeto — guardados para uso futuro</p></div>
       <div class="field"><label>Nome da Empresa *</label><input type="text" id="companyName" placeholder="Ex: Construções Santos &amp; Filhos" /></div>
       <div class="field"><label>Slogan / Especialidade</label><input type="text" id="companyTagline" placeholder="Ex: Construção · Renovação · Remodelação" /></div>
       <div class="field-row">
         <div class="field"><label>NIF</label><input type="text" id="companyNif" placeholder="509 123 456" /></div>
         <div class="field"><label>INCI n.º</label><input type="text" id="companyInci" placeholder="12345" /></div>
       </div>
-      <div class="field"><label>Responsável de Obra *</label><input type="text" id="responsible" placeholder="Ex: João Santos" /></div>
+      <div class="field"><label>Responsável de Projeto *</label><input type="text" id="responsible" placeholder="Ex: João Santos" /></div>
       <div class="field-row">
         <div class="field"><label>Telefone</label><input type="tel" id="companyPhone" placeholder="+351 912 345 678" /></div>
         <div class="field"><label>Email</label><input type="email" id="companyEmail" placeholder="joao@empresa.pt" /></div>
@@ -157,8 +162,8 @@
   <!-- STEP 2: OBRA -->
   <div class="step" id="step2">
     <div class="step-content">
-      <div class="step-header"><h2>Dados da Obra</h2><p>Identificação do projeto — guardados para uso futuro</p></div>
-      <div class="field"><label>Nome da Obra *</label><input type="text" id="projectName" placeholder="Ex: Moradia dos Pinheiros" /></div>
+      <div class="step-header"><h2>Dados do Projeto</h2><p>Identificação do projeto — guardados para uso futuro</p></div>
+      <div class="field"><label>Nome do Projeto *</label><input type="text" id="projectName" placeholder="Ex: Moradia dos Pinheiros" /></div>
       <div class="field"><label>Cliente *</label><input type="text" id="clientName" placeholder="Ex: Sr. e Sra. Monteiro" /></div>
       <div class="field"><label>Localização / Morada *</label><input type="text" id="location" placeholder="Ex: Rua das Acácias 14, Sintra" /></div>
       <div class="field"><label>N.º Contrato</label><input type="text" id="contractNum" placeholder="CONT-2026-0014" /></div>
@@ -209,7 +214,7 @@
   <!-- STEP 3: PROGRESSO -->
   <div class="step" id="step3">
     <div class="step-content">
-      <div class="step-header"><h2>Progresso Global</h2><p>Estado atual da obra</p></div>
+      <div class="step-header"><h2>Progresso Global</h2><p>Estado atual do projeto</p></div>
       <div class="field">
         <label>Fase Atual</label>
         <div class="phase-picker" id="phasePicker">

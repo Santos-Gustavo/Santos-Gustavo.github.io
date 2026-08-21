@@ -151,6 +151,23 @@ export function bindProjectListFilters() {
   });
 }
 
+export function upsertProjectInCache(project) {
+  if (!project?.id) {
+    return;
+  }
+
+  const existingIndex = appState.projectsCache.findIndex(
+    (cachedProject) => cachedProject.id === project.id
+  );
+
+  if (existingIndex >= 0) {
+    appState.projectsCache[existingIndex] = project;
+    return;
+  }
+
+  appState.projectsCache.unshift(project);
+}
+
 export function getProjectById(projectId) {
   return (
     appState.projectsCache.find((project) => project.id === projectId) || null
