@@ -1,5 +1,6 @@
 import { loadProjectsFromDb } from "#database/db-projects.js";
 import { appState } from "#state/app-state.js";
+import { getProjectStatusLabel } from "#projects/project-status-rules.js";
 
 export async function renderProjectList() {
   const el = document.getElementById("projectList");
@@ -33,10 +34,12 @@ export async function renderProjectList() {
 }
 
 function renderProjectCard(project) {
+  const statusLabel = getProjectStatusLabel(project.status);
   return `
     <div class="project-card" data-project-action="select" data-project-id="${escapeHtml(project.id)}">
       <div class="project-card-main">
         <div class="project-card-name">${escapeHtml(project.name || "—")}</div>
+        <span class="project-status-badge">${statusLabel}</span>
 
         <div class="project-card-sub">
           ${escapeHtml(project.clientName || "")}
