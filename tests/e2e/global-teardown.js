@@ -151,7 +151,7 @@ async function globalTeardown(config) {
       const firstCard = projectCards.first();
 
       const deleteButton = firstCard.getByRole("button", {
-        name: /eliminar|apagar|remover|apagar projeto|delete/i,
+        name: /eliminar|remover|remover|remover projeto|delete/i,
       });
 
       await expect(deleteButton).toBeVisible({ timeout: 10000 });

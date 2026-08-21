@@ -177,11 +177,11 @@ export async function deleteProjectViaFunction(projectId) {
   });
 
   if (error) {
-    throwIfDbError(error, "Erro ao apagar projeto.");
+    throwIfDbError(error, "Erro ao remover projeto.");
   }
 
   if (!data?.ok) {
-    throw new Error(data?.error || "Erro ao apagar projeto.");
+    throw new Error(data?.error || "Erro ao remover projeto.");
   }
 
   return data;

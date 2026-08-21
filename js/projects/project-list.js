@@ -6,6 +6,7 @@ import {
   canShowInHiddenProjectList,
   getProjectStatusLabel,
   isProjectCompleted,
+  canEditProject
 } from "#projects/project-status-rules.js";
 
 function shouldShowProjectForCurrentFilter(project) {
@@ -108,14 +109,16 @@ function renderProjectCard(project) {
       </div>
 
       <div class="project-card-actions">
-        <button
-          type="button"
-          class="btn-project-edit"
-          data-project-action="edit"
-          data-project-id="${escapeHtml(project.id)}"
-        >
-          Editar
-        </button>
+        <${canEditProject(project) ? `
+          <button
+            type="button"
+            class="btn-project-edit"
+            data-project-action="edit"
+            data-project-id="${escapeHtml(project.id)}"
+          >
+            Editar
+          </button>
+        ` : ""}
 
         <button
           type="button"

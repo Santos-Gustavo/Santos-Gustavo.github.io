@@ -13,7 +13,7 @@ import { renderPhotos } from "#projects/sections/photos.js";
 import { renderIncidents } from "#projects/sections/incidents.js";
 import { renderExtras } from "#projects/sections/extras.js";
 import { renderNextSteps } from "#projects/sections/next-steps.js";
-import { getProjectStatusLabel } from "#projects/project-status-rules.js";
+import { getProjectStatusLabel, canCreateWeeklyReport, canCreateLegalFinancialReport } from "#projects/project-status-rules.js";
 import { renderProjectModePage } from "#projects/project-mode-page.js";
 
 let initialized = false;
@@ -106,6 +106,20 @@ export function selectMode(mode) {
     return;
   }
 
+  if (mode === "weekly" && !canCreateWeeklyReport(appState.currentProject)) {
+    alert(
+      "Este projeto está arquivado. Não é possível criar novos relatórios semanais."
+    );
+    return;
+  }
+
+  if (mode === "legal" && !canCreateLegalFinancialReport(appState.currentProject)) {
+    alert(
+      "Este projeto está arquivado. Não é possível criar novos relatórios legais/financeiros."
+    );
+    return;
+  }
+
   state.mode = mode;
 
   if (mode === "weekly") {
@@ -123,7 +137,6 @@ export function selectMode(mode) {
 
   goToStepId(state.flow[0]);
 }
-
 export async function goNext() {
   const state = getRuntimeState();
   const cur = state.currentStepId;

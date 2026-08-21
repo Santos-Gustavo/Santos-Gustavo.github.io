@@ -63,8 +63,8 @@ function buildBasicSnapshot(project, extra = {}) {
   return {
     project_id: project.id,
     project_name: project.name || null,
-    company_id: project.company_id || null,
-    client_id: project.client_id || null,
+    company_id: project.company_id || project.companyId || null,
+    client_id: project.client_id || project.clientId || null,
     status: project.status ?? null,
     hidden_at: getProjectHiddenAt(project),
     archived_at: project.archived_at || project.archivedAt || null,
@@ -111,8 +111,8 @@ async function transitionProjectStatus({
 
   if (normalizedNextStatus === PROJECT_STATUS.ARCHIVED) {
     lifecycleUpdates.archived_at = now;
-    lifecycleUpdates.closure_type = closureType || project.closure_type || null;
-    lifecycleUpdates.closure_reason = reason || project.closure_reason || null;
+    lifecycleUpdates.closure_type = closureType || project.closure_type || project.closureType || null;
+    lifecycleUpdates.closure_reason = reason || project.closure_reason || project.closureReason || null;
   }
 
   if (normalizedNextStatus === PROJECT_STATUS.ACTIVE) {

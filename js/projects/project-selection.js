@@ -1,17 +1,10 @@
 import { appState } from "#state/app-state.js";
-
-import {
-  clearProjectForm,
-  loadProjectIntoForm,
-} from "#projects/project-form.js";
-
+import { clearProjectForm, loadProjectIntoForm } from "#projects/project-form.js";
 import { getProjectById } from "#projects/project-list.js";
-
 import { goToStepId } from "#navigation/navigation.js";
-
 import { renderReportHistory } from "#reports/report-history.js";
-
 import { renderProjectModePage } from "#projects/project-mode-page.js";
+import { canEditProject } from "#projects/project-status-rules.js";
 
 export function newProject() {
   appState.isNewProject = true;
@@ -56,6 +49,11 @@ export function editProject(projectId) {
 
   if (!project) {
     alert("Projeto não encontrado.");
+    return;
+  }
+
+  if (!canEditProject(project)) {
+    alert("Este projeto está arquivado. Não é possível editar os dados do projeto.");
     return;
   }
 
