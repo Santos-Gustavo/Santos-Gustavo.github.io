@@ -4,6 +4,7 @@ export const appState = {
   phase: "",
   alertOn: false,
   incidentsOn: false,
+  projectListFilter: "active",
 
   works: [],
   photos: [],

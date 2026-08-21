@@ -1,4 +1,4 @@
-import { supabase } from "#database/supabase-client.js";
+import { supabaseClient } from "#database/supabase-client.js";
 import { createProjectStatusEvent } from "#database/db-project-status-events.js";
 import {
   PROJECT_STATUS,
@@ -34,7 +34,7 @@ function getCurrentUserIdFromSession(sessionData) {
 }
 
 async function getCurrentUserId() {
-  const { data, error } = await supabase.auth.getSession();
+  const { data, error } = await supabaseClient.auth.getSession();
 
   if (error) {
     throw error;
@@ -44,7 +44,7 @@ async function getCurrentUserId() {
 }
 
 async function updateProjectLifecycle(projectId, updates) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from("projects")
     .update(updates)
     .eq("id", projectId)

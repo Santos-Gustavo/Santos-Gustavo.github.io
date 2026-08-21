@@ -1,4 +1,4 @@
-import { supabase } from "#database/supabase-client.js";
+import { supabaseClient } from "#database/supabase-client.js";
 
 export async function createProjectStatusEvent({
   projectId,
@@ -33,7 +33,7 @@ export async function createProjectStatusEvent({
     snapshot_json: snapshotJson || {},
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from("project_status_events")
     .insert(payload)
     .select("*")
@@ -52,7 +52,7 @@ export async function getProjectStatusEvents(projectId) {
     throw new Error("Missing projectId for project status events lookup.");
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from("project_status_events")
     .select("*")
     .eq("project_id", projectId)

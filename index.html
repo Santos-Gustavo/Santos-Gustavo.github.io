@@ -74,6 +74,20 @@
       <button type="button" data-payment-action="create-eupago-payment" data-payment-method="mbway">
         MB WAY
       </button>
+
+      <div class="project-list-filters" role="tablist" aria-label="Filtro de obras">
+      <button type="button" class="project-filter-btn is-active" data-project-filter="active">
+        Ativas
+      </button>
+
+      <button type="button" class="project-filter-btn" data-project-filter="completed" >
+        Concluídas
+      </button>
+
+      <button type="button" class="project-filter-btn" data-project-filter="archived" >
+        Arquivadas
+      </button>
+    </div>
       <div class="step-header">
         <h2>Obras</h2>
         <p>Selecione uma obra ou crie uma nova</p>
@@ -89,6 +103,7 @@
       <div class="step-header">
         <h2>Tipo de Relatório</h2>
         <p id="modeProjectLabel"></p>
+        <p id="modeProjectStatus" class="mode-project-status"></p>
       </div>
       <div class="mode-picker">
         <div class="mode-card" data-nav-action="select-mode" data-mode="weekly">

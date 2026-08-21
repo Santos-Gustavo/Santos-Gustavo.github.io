@@ -187,3 +187,16 @@
   color: #3730a3;
   border: 1px solid #c7d2fe;
 }
+
+.mode-project-status {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #3730a3;
+}
+
+.mode-project-status::before {
+  content: "Estado: ";
+  color: #64748b;
+  font-weight: 600;
+}

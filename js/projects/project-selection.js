@@ -6,7 +6,7 @@ import {
 import { getProjectById } from "#projects/project-list.js";
 import { goToStepId } from "#navigation/navigation.js";
 import { renderReportHistory } from "#reports/report-history.js";
-
+import { getProjectStatusLabel } from "#projects/project-status-rules.js";
 
 export function newProject() {
   appState.isNewProject = true;
@@ -43,6 +43,11 @@ export function selectProject(projectId) {
   const modeProjectLabel = document.getElementById("modeProjectLabel");
   if (modeProjectLabel) {
     modeProjectLabel.textContent = project.name || "";
+  }
+  
+  const modeProjectStatus = document.getElementById("modeProjectStatus");
+  if (modeProjectStatus) {
+    modeProjectStatus.textContent = getProjectStatusLabel(project.status);
   }
 
   goToStepId("mode");

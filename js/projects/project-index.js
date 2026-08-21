@@ -1,11 +1,18 @@
-import { renderProjectList } from "#projects/project-list.js";
+import {
+  bindProjectListFilters,
+  renderProjectList,
+} from "#projects/project-list.js";
+
 import { saveCurrentProjectFromForm } from "#projects/project-save.js";
+
 import { deleteProject } from "#projects/project-delete.js";
+
 import {
   newProject,
   selectProject,
   editProject,
 } from "#projects/project-selection.js";
+
 import {
   clearProjectForm,
   loadProjectIntoForm,
@@ -16,14 +23,17 @@ let initialized = false;
 
 export function initProjects() {
   if (initialized) return;
+
   initialized = true;
 
-  document.addEventListener("click", handleProjectClick);
+  bindProjectListFilters();
 
+  document.addEventListener("click", handleProjectClick);
 }
 
 async function handleProjectClick(event) {
   const actionEl = event.target.closest("[data-project-action]");
+
   if (!actionEl) return;
 
   const action = actionEl.dataset.projectAction;

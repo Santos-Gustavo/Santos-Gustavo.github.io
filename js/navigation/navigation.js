@@ -267,6 +267,11 @@ export function goHome() {
     modeProjectLabel.textContent = "";
   }
 
+  const modeProjectStatus = document.getElementById("modeProjectStatus");
+  if (modeProjectStatus) {
+    modeProjectStatus.textContent = "";
+  }
+
   renderProjectList();
 
   window.scrollTo(0, 0);
