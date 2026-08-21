@@ -138,7 +138,7 @@ test("user can create and generate a weekly report", async ({ page }) => {
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
   await expect(page.locator("#stepLabel")).toHaveText(
-    /configuração 2 de 2|configuracao 2 de 2|obra/i,
+    /configuração 2 de 2|configuracao 2 de 2|projeto/i,
     {
       timeout: 10000,
     }
@@ -198,7 +198,7 @@ test("user can create and generate a weekly report", async ({ page }) => {
   await page
     .locator("#weekSummary")
     .fill(
-      "Durante esta semana foram concluídos trabalhos de preparação, organização da frente de obra e avanço nas tarefas principais previstas."
+      "Durante esta semana foram concluídos trabalhos de preparação, organização da frente de projeto e avanço nas tarefas principais previstas."
     );
 
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();

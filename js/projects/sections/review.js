@@ -49,7 +49,7 @@ function buildLegalReview(values, state) {
     </div>
 
     <div class="review-section">
-      <h3>Obra</h3>
+      <h3>Projeto</h3>
       ${reviewRow("Cliente", values.clientName)}
       ${reviewRow("N.º Contrato", values.contractNum)}
       ${reviewRow("Relatório n.º", values.reportNum)}
@@ -83,7 +83,7 @@ function buildWeeklyReview(values, state) {
     </div>
 
     <div class="review-section">
-      <h3>Obra</h3>
+      <h3>Projeto</h3>
       ${reviewRow("Nome", values.projectName)}
       ${reviewRow("Cliente", values.clientName)}
       ${reviewRow("Localização", values.location)}

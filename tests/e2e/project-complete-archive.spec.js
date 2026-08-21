@@ -61,7 +61,7 @@ async function login(page) {
 
   await page.waitForTimeout(500);
 
-  await expect(page.locator("#stepLabel")).toHaveText(/projetos|obras/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/projetos|projetos/i, {
     timeout: 10000,
   });
 }
@@ -90,7 +90,7 @@ async function createProject(page, { projectName, clientName, contractNum }) {
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
   await expect(page.locator("#stepLabel")).toHaveText(
-    /configuração 2 de 2|configuracao 2 de 2|projeto|obra/i,
+    /configuração 2 de 2|configuracao 2 de 2|projeto|projeto/i,
     { timeout: 10000 }
   );
 
@@ -116,7 +116,7 @@ async function createProject(page, { projectName, clientName, contractNum }) {
 async function goBackToProjectList(page) {
   await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/projetos|obras/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/projetos|projetos/i, {
     timeout: 10000,
   });
 }

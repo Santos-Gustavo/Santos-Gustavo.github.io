@@ -150,7 +150,7 @@ async function transitionProjectStatus({
 }
 
 export async function pauseProject(project, { reason, note = "" } = {}) {
-  requireReason(reason, "pausar obra");
+  requireReason(reason, "pausar projeto");
 
   return transitionProjectStatus({
     project,
@@ -161,7 +161,7 @@ export async function pauseProject(project, { reason, note = "" } = {}) {
 }
 
 export async function resumeProject(project, { reason, note = "" } = {}) {
-  requireReason(reason, "retomar obra");
+  requireReason(reason, "retomar projeto");
 
   return transitionProjectStatus({
     project,
@@ -175,7 +175,7 @@ export async function completeProject(
   project,
   { reason, note = "", closureType = PROJECT_CLOSURE_TYPE.COMPLETED } = {}
 ) {
-  requireReason(reason, "concluir obra");
+  requireReason(reason, "concluir projeto");
 
   return transitionProjectStatus({
     project,
@@ -190,7 +190,7 @@ export async function archiveProject(
   project,
   { reason, note = "", closureType = null, snapshotExtra = {} } = {}
 ) {
-  requireReason(reason, "arquivar obra");
+  requireReason(reason, "arquivar projeto");
 
   return transitionProjectStatus({
     project,
@@ -203,7 +203,7 @@ export async function archiveProject(
 }
 
 export async function reopenProject(project, { reason, note = "" } = {}) {
-  requireReason(reason, "reabrir obra");
+  requireReason(reason, "reabrir projeto");
 
   return transitionProjectStatus({
     project,
@@ -218,16 +218,16 @@ export async function reopenProject(project, { reason, note = "" } = {}) {
 
 export async function hideArchivedProject(project, { reason, note = "" } = {}) {
   requireProject(project);
-  requireReason(reason, "ocultar obra arquivada");
+  requireReason(reason, "ocultar projeto arquivada");
 
   const oldStatus = normalizeProjectStatus(project.status);
 
   if (oldStatus !== PROJECT_STATUS.ARCHIVED) {
-    throw new Error("Só é possível ocultar obras arquivadas.");
+    throw new Error("Só é possível ocultar projetos arquivadas.");
   }
 
   if (getProjectHiddenAt(project)) {
-    throw new Error("A obra já está oculta.");
+    throw new Error("A projeto já está oculta.");
   }
 
   const changedBy = await getCurrentUserId();
@@ -264,16 +264,16 @@ export async function unhideArchivedProject(
   { reason, note = "" } = {}
 ) {
   requireProject(project);
-  requireReason(reason, "mostrar obra oculta");
+  requireReason(reason, "mostrar projeto oculta");
 
   const oldStatus = normalizeProjectStatus(project.status);
 
   if (oldStatus !== PROJECT_STATUS.ARCHIVED) {
-    throw new Error("Só é possível restaurar visibilidade de obras arquivadas.");
+    throw new Error("Só é possível restaurar visibilidade de projetos arquivadas.");
   }
 
   if (!getProjectHiddenAt(project)) {
-    throw new Error("A obra não está oculta.");
+    throw new Error("A projeto não está oculta.");
   }
 
   const changedBy = await getCurrentUserId();

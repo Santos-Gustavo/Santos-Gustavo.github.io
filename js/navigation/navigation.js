@@ -73,7 +73,7 @@ export function updateTopBar(id) {
 
   if (id === "projects") {
     fill.style.width = "0%";
-    label.textContent = "Obras";
+    label.textContent = "Projetos";
     return;
   }
 
@@ -86,7 +86,7 @@ export function updateTopBar(id) {
   if (!state.flow) {
     const pos = id === 1 ? 1 : 2;
     fill.style.width = `${Math.round((pos / 2) * 100)}%`;
-    label.textContent = `Configuração ${pos} de 2 — ${id === 1 ? "Empresa" : "Obra"}`;
+    label.textContent = `Configuração ${pos} de 2 — ${id === 1 ? "Empresa" : "Projeto"}`;
     return;
   }
 
@@ -155,7 +155,7 @@ export async function goNext() {
       state.isEditingProject = false;
       appState.isEditingProject = false;
 
-      alert("Dados da obra atualizados com sucesso.");
+      alert("Dados do projeto atualizados com sucesso.");
 
       await renderProjectList();
 
@@ -265,7 +265,7 @@ export function goHome() {
 
   const stepLabel = document.getElementById("stepLabel");
   if (stepLabel) {
-    stepLabel.textContent = "Obras";
+    stepLabel.textContent = "Projetos";
   }
 
   const progressFill = document.getElementById("progressFill");

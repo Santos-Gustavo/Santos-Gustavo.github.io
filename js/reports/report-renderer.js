@@ -61,7 +61,7 @@ function validateReportDocument(report) {
 }
 
 function buildTitle(report) {
-  return `Relatório de Obra — ${report.project.name || "Obra"}`;
+  return `Relatório de Projeto — ${report.project.name || "Projeto"}`;
 }
 
 function renderHeader(report) {
@@ -87,11 +87,11 @@ function renderHeader(report) {
       </div>
 
       <div class="header-info">
-        ${infoItem("Obra", report.project.name)}
+        ${infoItem("Projeto", report.project.name)}
         ${infoItem("Localização", report.project.location)}
         ${infoItem("Data do Relatório", formatLongDate(report.meta.reportDate))}
         ${infoItem("Cliente", report.project.clientName)}
-        ${infoItem("Responsável de Obra", report.company.responsible)}
+        ${infoItem("Responsável de Projeto", report.company.responsible)}
         ${infoItem("N.º Contrato", report.project.contractNumber, true)}
       </div>
     </header>
@@ -114,7 +114,7 @@ function renderWeeklyReport(report) {
 
   return `
     <section class="section">
-      <div class="section-title">Estado Geral da Obra</div>
+      <div class="section-title">Estado Geral do Projeto</div>
 
       <div class="status-grid">
         ${statusCard("done", "✓", done, "Concluídas")}
@@ -124,7 +124,7 @@ function renderWeeklyReport(report) {
     </section>
 
     <section class="section">
-      <div class="section-title">Progresso Global da Obra</div>
+      <div class="section-title">Progresso Global do Projeto</div>
 
       <div class="progress-section">
         <div class="progress-label">
@@ -267,7 +267,7 @@ function renderPhoto(photo) {
       </div>
 
       <div class="photo-caption">
-        <strong>${escapeHtml(photo.area || "Fotografia da obra")}</strong>
+        <strong>${escapeHtml(photo.area || "Fotografia do projeto")}</strong>
         ${escapeHtml(photo.description || "")}
 
         ${
@@ -497,8 +497,8 @@ function renderAcknowledgement() {
 function renderLegalStrip() {
   return `
     <div class="legal-strip">
-      Este relatório é emitido para efeitos de acompanhamento, comunicação e arquivo documental da obra.
-      Não substitui o contrato de empreitada, o Livro de Obra, autos de medição, faturas, licenças,
+      Este relatório é emitido para efeitos de acompanhamento, comunicação e arquivo documental do projeto.
+      Não substitui o contrato de empreitada, o Livro de Projeto, autos de medição, faturas, licenças,
       projetos aprovados, termos de responsabilidade ou aprovações formais exigidas por lei ou contrato.
       Trabalhos extra, alterações de preço, prazo ou projeto carecem de aprovação expressa por escrito,
       salvo disposição contratual em contrário.

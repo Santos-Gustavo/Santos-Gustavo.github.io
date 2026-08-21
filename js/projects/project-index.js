@@ -146,36 +146,36 @@ async function handleProjectLifecycleClick(event) {
     }
   } catch (error) {
     console.error("Error changing project lifecycle:", error);
-    alert("Erro ao alterar estado da obra: " + error.message);
+    alert("Erro ao alterar estado do projeto: " + error.message);
   }
 }
 
 function getLifecycleReasonPrompt(action, project) {
-  const projectName = project?.name || "esta obra";
+  const projectName = project?.name || "esta projeto";
 
   if (action === "pause") {
-    return `Indique o motivo para pausar a obra "${projectName}":`;
+    return `Indique o motivo para pausar a projeto "${projectName}":`;
   }
 
   if (action === "resume") {
-    return `Indique o motivo para retomar a obra "${projectName}":`;
+    return `Indique o motivo para retomar a projeto "${projectName}":`;
   }
 
   if (action === "complete") {
-    return `Indique o motivo para marcar a obra "${projectName}" como concluída:`;
+    return `Indique o motivo para marcar a projeto "${projectName}" como concluída:`;
   }
 
   if (action === "archive") {
-    return `Indique o motivo para arquivar a obra "${projectName}":`;
+    return `Indique o motivo para arquivar a projeto "${projectName}":`;
   }
 
   if (action === "hide") {
-    return `Indique o motivo para ocultar a obra "${projectName}":`;
+    return `Indique o motivo para ocultar a projeto "${projectName}":`;
   }
 
   if (action === "reopen") {
-    return `Indique o motivo para reabrir a obra "${projectName}":`;
+    return `Indique o motivo para reabrir a projeto "${projectName}":`;
   }
 
-  return `Indique o motivo para alterar o estado da obra "${projectName}":`;
+  return `Indique o motivo para alterar o estado do projeto "${projectName}":`;
 }

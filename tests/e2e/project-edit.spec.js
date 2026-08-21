@@ -95,7 +95,7 @@ test("editing a project updates the existing project without creating a duplicat
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
   await expect(page.locator("#stepLabel")).toHaveText(
-    /configuração 2 de 2|configuracao 2 de 2|obra/i,
+    /configuração 2 de 2|configuracao 2 de 2|projeto/i,
     { timeout: 10000 }
   );
 
@@ -114,7 +114,7 @@ test("editing a project updates the existing project without creating a duplicat
 
   await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/obras/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, {
     timeout: 10000,
   });
 
@@ -125,7 +125,7 @@ test("editing a project updates the existing project without creating a duplicat
   await expect(originalProjectCard).toBeVisible({ timeout: 15000 });
 
   await originalProjectCard
-    .getByRole("button", { name: /editar obra|editar/i })
+    .getByRole("button", { name: /editar projeto|editar/i })
     .click();
 
   await expect(page.locator("#stepLabel")).toHaveText(
@@ -136,7 +136,7 @@ test("editing a project updates the existing project without creating a duplicat
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
   await expect(page.locator("#stepLabel")).toHaveText(
-    /configuração 2 de 2|configuracao 2 de 2|obra/i,
+    /configuração 2 de 2|configuracao 2 de 2|projeto/i,
     { timeout: 10000 }
   );
 
@@ -147,7 +147,7 @@ test("editing a project updates the existing project without creating a duplicat
 
     await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
-    await expect(page.locator("#stepLabel")).toHaveText(/obras/i, {
+    await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, {
     timeout: 10000,
     });
 

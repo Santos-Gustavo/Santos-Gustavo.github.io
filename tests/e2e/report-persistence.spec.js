@@ -97,7 +97,7 @@ test("generated weekly report appears in saved reports", async ({ page }) => {
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
   await expect(page.locator("#stepLabel")).toHaveText(
-    /configuração 2 de 2|configuracao 2 de 2|obra/i,
+    /configuração 2 de 2|configuracao 2 de 2|projeto/i,
     {
       timeout: 10000,
     }
@@ -258,7 +258,7 @@ test("generated weekly report appears in saved reports", async ({ page }) => {
 
   await page.locator('[data-nav-action="home"]').filter({ visible: true }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/obras/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, {
     timeout: 10000,
   });
 

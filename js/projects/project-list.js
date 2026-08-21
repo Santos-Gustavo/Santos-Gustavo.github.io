@@ -38,18 +38,18 @@ function getEmptyMessageForCurrentFilter() {
   const filter = appState.projectListFilter || "active";
 
   if (filter === "completed") {
-    return "Ainda não existem obras concluídas.";
+    return "Ainda não existem projetos concluídas.";
   }
 
   if (filter === "archived") {
-    return "Ainda não existem obras arquivadas.";
+    return "Ainda não existem projetos arquivadas.";
   }
 
   if (filter === "hidden") {
-    return "Ainda não existem obras ocultas.";
+    return "Ainda não existem projetos ocultas.";
   }
 
-  return `Ainda sem obras guardadas na base de dados.<br>
+  return `Ainda sem projetos guardadas na base de dados.<br>
 Clique em "+ Novo Projeto" para começar.`;
 }
 
@@ -57,7 +57,7 @@ export async function renderProjectList() {
   const el = document.getElementById("projectList");
   if (!el) return;
 
-  el.innerHTML = '<p class="empty-hint">A carregar obras...</p>';
+  el.innerHTML = '<p class="empty-hint">A carregar projetos...</p>';
 
   try {
     const projects = await loadProjectsFromDb();
@@ -79,7 +79,7 @@ export async function renderProjectList() {
     console.error("Error rendering project list:", error);
     el.innerHTML = `
       <p class="empty-hint">
-        Erro ao carregar obras: ${escapeHtml(error.message)}
+        Erro ao carregar projetos: ${escapeHtml(error.message)}
       </p>
     `;
   }

@@ -91,7 +91,7 @@ test("deleting a project removes it from the project list", async ({ page }) => 
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
   await expect(page.locator("#stepLabel")).toHaveText(
-    /configuração 2 de 2|configuracao 2 de 2|obra/i,
+    /configuração 2 de 2|configuracao 2 de 2|projeto/i,
     { timeout: 10000 }
   );
 
@@ -110,7 +110,7 @@ test("deleting a project removes it from the project list", async ({ page }) => 
 
   await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/obras/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, {
     timeout: 10000,
   });
 

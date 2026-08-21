@@ -72,7 +72,7 @@ async function goToProjectList(page) {
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const stepLabel = await page.locator("#stepLabel").innerText().catch(() => "");
 
-    if (/obras/i.test(stepLabel)) {
+    if (/projetos/i.test(stepLabel)) {
       await expect(page.locator("#projectList")).toBeVisible({
         timeout: 10000,
       });
@@ -105,7 +105,7 @@ async function goToProjectList(page) {
     await page.waitForTimeout(1000);
   }
 
-  throw new Error("Could not navigate to Obras screen before cleanup.");
+  throw new Error("Could not navigate to Projetos screen before cleanup.");
 }
 
 async function globalTeardown(config) {
@@ -151,7 +151,7 @@ async function globalTeardown(config) {
       const firstCard = projectCards.first();
 
       const deleteButton = firstCard.getByRole("button", {
-        name: /eliminar|apagar|remover|apagar obra|delete/i,
+        name: /eliminar|apagar|remover|apagar projeto|delete/i,
       });
 
       await expect(deleteButton).toBeVisible({ timeout: 10000 });
