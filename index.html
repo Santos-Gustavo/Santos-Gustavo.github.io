@@ -2,6 +2,25 @@
 <html lang="pt">
 <head>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm",
+        "#config/": "./js/config/",
+        "#auth/": "./js/auth/",
+        "#state/": "./js/state/",
+        "#database/": "./js/database/",
+        "#mappers/": "./js/mappers/",
+        "#projects/": "./js/projects/",
+        "#forms/": "./js/forms/",
+        "#navigation/": "./js/navigation/",
+        "#ui/": "./js/ui/",
+        "#utils/": "./js/utils/",
+        "#reports/": "./js/reports/",
+        "#payments/": "./js/payments/"
+      }
+    }
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Relatório de Obra</title>
@@ -25,9 +44,9 @@
     </div>
 
     <div class="auth-actions">
-      <button onclick="signIn()">Entrar</button>
-      <button onclick="signUp()" class="secondary">Criar conta</button>
-      <button onclick="resetPassword()" class="secondary">Esqueci password</button>
+      <button type="button" data-auth-action="sign-in">Entrar</button>
+      <button type="button" data-auth-action="sign-up" class="secondary">Criar conta</button>
+      <button type="button" data-auth-action="reset-password" class="secondary">Esqueci password</button>
     </div>
 
     <p id="authMessage" class="auth-message"></p>
@@ -48,19 +67,19 @@
   <!-- LAYER 0: PROJECT LIST -->
   <div class="step active" id="step-projects">
     <div class="step-content">
-      <button type="button" onclick="createEupagoPayment('multibanco')">
-        Pagar Pro por Multibanco
+      <button type="button" data-payment-action="create-eupago-payment" data-payment-method="multibanco">
+        Multibanco
       </button>
 
-      <button type="button" onclick="createEupagoPayment('mbway')">
-        Pagar Pro por MB WAY
+      <button type="button" data-payment-action="create-eupago-payment" data-payment-method="mbway">
+        MB WAY
       </button>
       <div class="step-header">
         <h2>Obras</h2>
         <p>Selecione uma obra ou crie uma nova</p>
       </div>
       <div id="projectList"></div>
-      <button class="btn-add" onclick="newProject()" style="margin-top:12px">+ Nova Obra</button>
+      <button class="btn-add" type="button" data-project-action="new-project" style="margin-top:12px">+ Nova Obra</button>
     </div>
   </div>
 
@@ -72,20 +91,29 @@
         <p id="modeProjectLabel"></p>
       </div>
       <div class="mode-picker">
-        <div class="mode-card" onclick="selectMode('weekly')">
+        <div class="mode-card" data-nav-action="select-mode" data-mode="weekly">
           <div class="mode-icon">📋</div>
           <div class="mode-title">Relatório Semanal</div>
           <div class="mode-desc">Progresso da obra, trabalhos realizados, fotos, alertas e próximos passos. Ideal para comunicação regular com o cliente.</div>
         </div>
-        <div class="mode-card" onclick="selectMode('legal')">
+        <div class="mode-card" data-nav-action="select-mode" data-mode="legal">
           <div class="mode-icon">⚖️</div>
           <div class="mode-title">Legal / Financeiro</div>
           <div class="mode-desc">Trabalhos extra, alterações ao contrato, resumo financeiro acumulado e acuse de recibo com assinatura do cliente.</div>
         </div>
+
+        
+        <div class="card">
+          <h3>Relatórios guardados</h3>
+          <div id="reportHistoryList">
+            <p class="empty-hint">Selecione uma obra para ver relatórios anteriores.</p>
+          </div>
+        </div>
+
       </div>
     </div>
     <div class="nav-bar">
-      <button class="btn btn-back" onclick="goBack()">← Obras</button>
+      <button class="btn btn-back" data-nav-action="back">← Obras</button>
     </div>
   </div>
 
@@ -106,8 +134,8 @@
       </div>
     </div>
     <div class="nav-bar">
-      <button class="btn btn-back" onclick="goBack()">←</button>
-      <button class="btn btn-next" onclick="goNext()">Seguinte →</button>
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
     </div>
   </div>
 
@@ -130,8 +158,8 @@
       </div>
     </div>
     <div class="nav-bar">
-      <button class="btn btn-back" onclick="goBack()">←</button>
-      <button class="btn btn-next" onclick="goNext()">Seguinte →</button>
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
     </div>
   </div>
 
@@ -158,8 +186,8 @@
       </div>
     </div>
     <div class="nav-bar">
-      <button class="btn btn-back" onclick="goBack()">←</button>
-      <button class="btn btn-next" onclick="goNext()">Seguinte →</button>
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
     </div>
   </div>
 
@@ -170,25 +198,24 @@
       <div class="field">
         <label>Fase Atual</label>
         <div class="phase-picker" id="phasePicker">
-          <div class="phase-option" onclick="selectPhase(this,'Fundações')">Fundações</div>
-          <div class="phase-option" onclick="selectPhase(this,'Estrutura e Alvenaria')">Estrutura e Alvenaria</div>
-          <div class="phase-option" onclick="selectPhase(this,'Impermeabilização')">Impermeabilização</div>
-          <div class="phase-option" onclick="selectPhase(this,'Cobertura')">Cobertura</div>
-          <div class="phase-option" onclick="selectPhase(this,'Instalações')">Instalações</div>
-          <div class="phase-option" onclick="selectPhase(this,'Acabamentos')">Acabamentos</div>
-          <div class="phase-option" onclick="selectPhase(this,'Arranjos Exteriores')">Arranjos Exteriores</div>
-          <div class="phase-option" onclick="selectPhase(this,'Concluído')">Concluído ✓</div>
+          <div class="phase-option" data-phase="Fundações">Fundações</div>
+          <div class="phase-option" data-phase="Estrutura e Alvenaria">Estrutura e Alvenaria</div>
+          <div class="phase-option" data-phase="Impermeabilização">Impermeabilização</div>
+          <div class="phase-option" data-phase="Cobertura">Cobertura</div>
+          <div class="phase-option" data-phase="Instalações">Instalações</div>
+          <div class="phase-option" data-phase="Acabamentos">Acabamentos</div>
+          <div class="phase-option" data-phase="Arranjos Exteriores">Arranjos Exteriores</div>
+          <div class="phase-option" data-phase="Concluído">Concluído ✓</div>
         </div>
       </div>
       <div class="field" style="margin-top:20px;">
         <label>Percentagem Global Concluída</label>
         <div class="slider-value" id="progressPct">0%</div>
-        <input type="range" id="progressSlider" min="0" max="100" value="0" style="width:100%; height:36px; padding:0; border:none; background:none;" oninput="document.getElementById('progressPct').textContent=this.value+'%'" />
-      </div>
+        <input type="range" id="progressSlider" min="0" max="100" value="0" style="width:100%; height:36px; padding:0; border:none; background:none;" data-ui-action="progress-slider" />      </div>
     </div>
     <div class="nav-bar">
-      <button class="btn btn-back" onclick="goBack()">←</button>
-      <button class="btn btn-next" onclick="goNext()">Seguinte →</button>
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
     </div>
   </div>
 
@@ -199,8 +226,8 @@
       <div class="field"><label>Resumo *</label><textarea id="weekSummary" placeholder="Ex: Esta semana registámos avanços significativos na construção das paredes..."></textarea></div>
     </div>
     <div class="nav-bar">
-      <button class="btn btn-back" onclick="goBack()">←</button>
-      <button class="btn btn-next" onclick="goNext()">Seguinte →</button>
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
     </div>
   </div>
 
@@ -209,11 +236,11 @@
     <div class="step-content">
       <div class="step-header"><h2>Trabalhos</h2><p>Adicione os trabalhos do período — concluídos, em curso e pendentes</p></div>
       <div id="workList"></div>
-      <button class="btn-add" onclick="addWorkItem()">+ Adicionar trabalho</button>
+      <button type="button" class="btn-add" data-work-action="add">+ Adicionar trabalho</button>
     </div>
     <div class="nav-bar">
-      <button class="btn btn-back" onclick="goBack()">←</button>
-      <button class="btn btn-next" onclick="goNext()">Seguinte →</button>
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
     </div>
   </div>
 
@@ -222,11 +249,11 @@
     <div class="step-content">
       <div class="step-header"><h2>Registo Fotográfico</h2><p>Adicione as fotos do período (opcional)</p></div>
       <div id="photoList"></div>
-      <button class="btn-add" onclick="addPhotoItem()">+ Adicionar foto</button>
+      <button type="button" data-photo-action="add">Adicionar Foto</button>
     </div>
     <div class="nav-bar">
-      <button class="btn btn-back" onclick="goBack()">←</button>
-      <button class="btn btn-next" onclick="goNext()">Seguinte →</button>
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
     </div>
   </div>
 
@@ -234,7 +261,7 @@
   <div class="step" id="step7">
     <div class="step-content">
       <div class="step-header"><h2>Decisão Pendente</h2><p>Há alguma decisão urgente que o cliente precise tomar?</p></div>
-      <div class="toggle-field" onclick="toggleAlert()">
+      <div class="toggle-field" data-ui-action="toggle-alert">
         <div><div class="toggle-label">Há decisão pendente</div><div class="toggle-sub">Será destacada como alerta no relatório</div></div>
         <div class="toggle-switch" id="alertToggle"></div>
       </div>
@@ -246,8 +273,8 @@
       </div>
     </div>
     <div class="nav-bar">
-      <button class="btn btn-back" onclick="goBack()">←</button>
-      <button class="btn btn-next" onclick="goNext()">Seguinte →</button>
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
     </div>
   </div>
 
@@ -255,18 +282,18 @@
   <div class="step" id="step8">
     <div class="step-content">
       <div class="step-header"><h2>Incidentes</h2><p>Não-conformidades, acidentes ou ocorrências a registar</p></div>
-      <div class="toggle-field" onclick="toggleIncidents()">
+      <div class="toggle-field" data-ui-action="toggle-incidents">
         <div><div class="toggle-label">Há incidentes a registar</div><div class="toggle-sub">Se não houver, o relatório assinala "sem ocorrências"</div></div>
         <div class="toggle-switch" id="incidentsToggle"></div>
       </div>
       <div id="incidentFields" class="hidden">
         <div id="incidentList"></div>
-        <button class="btn-add" onclick="addIncident()">+ Adicionar incidente</button>
+        <button type="button" class="btn-add" data-incident-action="add">+ Adicionar incidente</button>
       </div>
     </div>
     <div class="nav-bar">
-      <button class="btn btn-back" onclick="goBack()">←</button>
-      <button class="btn btn-next" onclick="goNext()">Seguinte →</button>
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
     </div>
   </div>
 
@@ -275,11 +302,11 @@
     <div class="step-content">
       <div class="step-header"><h2>Trabalhos Extra</h2><p>Alterações ao contrato, trabalhos adicionais e aprovações</p></div>
       <div id="extrasList"></div>
-      <button class="btn-add" onclick="addExtra()">+ Adicionar trabalho extra</button>
+      <button type="button" class="btn-add" data-extra-action="add">+ Adicionar trabalho extra</button>
     </div>
     <div class="nav-bar">
-      <button class="btn btn-back" onclick="goBack()">←</button>
-      <button class="btn btn-next" onclick="goNext()">Seguinte →</button>
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
     </div>
   </div>
 
@@ -287,13 +314,13 @@
   <div class="step" id="step10">
     <div class="step-content">
       <div class="step-header"><h2>Resumo Financeiro</h2><p>Os extras são calculados automaticamente a partir do passo anterior</p></div>
-      <div class="field"><label>Valor do Contrato Base (€, s/ IVA)</label><input type="number" id="contractValue" placeholder="48500" step="0.01" min="0" oninput="updateFinancialPreview()" /></div>
+      <div class="field"><label>Valor do Contrato Base (€, s/ IVA)</label><input type="number" id="contractValue" placeholder="48500" step="0.01" min="0" data-financial-action="update-preview" /></div>
       <div class="field"><label>Nota adicional (opcional)</label><textarea id="financialNote" placeholder="Ex: Valores s/ IVA. Extras pendentes não incluídos até aprovação formal." style="min-height:60px;"></textarea></div>
       <div id="financialPreview" style="margin-top:16px;"></div>
     </div>
     <div class="nav-bar">
-      <button class="btn btn-back" onclick="goBack()">←</button>
-      <button class="btn btn-next" onclick="goNext()">Seguinte →</button>
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
     </div>
   </div>
 
@@ -302,11 +329,11 @@
     <div class="step-content">
       <div class="step-header"><h2>Próximos Passos</h2><p>O que está previsto para o próximo período</p></div>
       <div id="nextStepsList"></div>
-      <button class="btn-add" onclick="addNextStep()">+ Adicionar próximo passo</button>
+      <button type="button" class="btn-add" data-next-step-action="add">+ Adicionar próximo passo</button>
     </div>
     <div class="nav-bar">
-      <button class="btn btn-back" onclick="goBack()">←</button>
-      <button class="btn btn-next" onclick="goNext()">Seguinte →</button>
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
     </div>
   </div>
 
@@ -317,61 +344,13 @@
       <div id="reviewContent"></div>
     </div>
     <div class="nav-bar">
-      <button class="btn btn-back" onclick="goBack()">←</button>
-      <button class="btn btn-generate" onclick="saveAndGenerateReport()">Gerar Relatório</button>
-      <button class="btn btn-home" onclick="goHome()">Voltar ao Início</button>
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-generate" data-report-action="save-and-generate">Gerar Relatório</button>
+      <button class="btn btn-home" data-nav-action="home">Voltar ao Início</button>
     </div>
   </div>
 
 </div>
-  <script src="js/01-state-config.js"></script>
-
-  <script src="js/00-auth.js"></script>
-
-  <script src="js/07-helpers.js"></script>
-
-  <script src="js/14-form-values.js"></script>
-
-  <script src="js/02-database/db-helpers.js"></script>
-  <script src="js/02-database/db-companies.js"></script>
-  <script src="js/02-database/db-clients.js"></script>
-  <script src="js/02-database/db-projects.js"></script>
-  <script src="js/02-database/db-reports.js"></script>
-  <script src="js/02-database/db-photos.js"></script>
-  <script src="js/02-database/db-index.js"></script>
-
-  <script src="js/03-local-storage.js"></script>
-
-  <script src="js/04-projects/project-list.js"></script>
-  <script src="js/04-projects/project-form.js"></script>
-  <script src="js/04-projects/project-selection.js"></script>
-  <script src="js/04-projects/project-save.js"></script>
-  <script src="js/04-projects/project-delete.js"></script>
-  <script src="js/04-projects/project-index.js"></script>
-
-  <script src="js/05-navigation.js"></script>
-
-  <script src="js/06-ui-controls.js"></script>
-
-  <script src="js/08-works.js"></script>
-
-  <script src="js/09-photos.js"></script>
-
-  <script src="js/10-incidents.js"></script>
-
-  <script src="js/11-extras.js"></script>
-
-  <script src="js/12-next-steps.js"></script>
-
-  <script src="js/13-financial.js"></script>
-
-  <script src="js/15-review.js"></script>
-
-  <script src="js/16-date-helpers.js"></script>
-
-  <script src="js/17-report-generator.js"></script>
-  
-  <script src="js/18-init.js"></script>
-  <script src="js/19-payment.js"></script>
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>

@@ -1,0 +1,166 @@
+import { expect, test } from "@playwright/test";
+
+const E2E_EMAIL =
+  process.env.E2E_EMAIL ||
+  process.env.TEST_USER_EMAIL ||
+  process.env.PLAYWRIGHT_EMAIL;
+
+const E2E_PASSWORD =
+  process.env.E2E_PASSWORD ||
+  process.env.TEST_USER_PASSWORD ||
+  process.env.PLAYWRIGHT_PASSWORD;
+
+async function login(page) {
+  if (!E2E_EMAIL || !E2E_PASSWORD) {
+    throw new Error(
+      "Missing E2E login credentials. Set E2E_EMAIL and E2E_PASSWORD in .env."
+    );
+  }
+
+  await page.goto("/");
+
+  await expect(page.locator("#authEmail")).toBeVisible({ timeout: 10000 });
+  await expect(page.locator("#authPassword")).toBeVisible({ timeout: 10000 });
+
+  await page.locator("#authEmail").fill(E2E_EMAIL);
+  await page.locator("#authPassword").fill(E2E_PASSWORD);
+
+  await page
+    .getByRole("button", { name: /entrar|login|iniciar/i })
+    .click();
+
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() => {
+          const isVisible = (element) => {
+            if (!element) return false;
+
+            const style = window.getComputedStyle(element);
+            const rect = element.getBoundingClientRect();
+
+            return (
+              style.display !== "none" &&
+              style.visibility !== "hidden" &&
+              rect.width > 0 &&
+              rect.height > 0
+            );
+          };
+
+          return Array.from(document.querySelectorAll("button")).some(
+            (button) =>
+              isVisible(button) && /sair/i.test(button.textContent || "")
+          );
+        }),
+      {
+        timeout: 15000,
+        message: "Expected authenticated UI to show Sair after login",
+      }
+    )
+    .toBe(true);
+
+  await page.waitForTimeout(500);
+}
+
+test("editing a project updates the existing project without creating a duplicate", async ({
+  page,
+}) => {
+  const timestamp = Date.now();
+
+  const originalProjectName = `E2E Edit Original ${timestamp}`;
+  const updatedProjectName = `E2E Edit Updated ${timestamp}`;
+  const clientName = `E2E Edit Client ${timestamp}`;
+  const originalContractNum = `EDIT-ORIGINAL-${timestamp}`;
+  const updatedContractNum = `EDIT-UPDATED-${timestamp}`;
+
+  await login(page);
+
+  await page.getByRole("button", { name: /nova obra/i }).click();
+
+  await expect(page.locator("#stepLabel")).toHaveText(
+    /configuração 1 de 2|configuracao 1 de 2|empresa/i,
+    { timeout: 10000 }
+  );
+
+  await page.locator("#companyName").fill("E2E Edit Company");
+  await page
+    .locator("#companyTagline")
+    .fill("Construção · Renovação · Remodelação");
+  await page.locator("#companyNif").fill("509123456");
+  await page.locator("#companyInci").fill("12345");
+  await page.locator("#responsible").fill("E2E Responsible");
+  await page.locator("#companyPhone").fill("+351 912 345 678");
+  await page.locator("#companyEmail").fill("e2e.company@example.com");
+
+  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
+
+  await expect(page.locator("#stepLabel")).toHaveText(
+    /configuração 2 de 2|configuracao 2 de 2|obra/i,
+    { timeout: 10000 }
+  );
+
+  await page.locator("#projectName").fill(originalProjectName);
+  await page.locator("#clientName").fill(clientName);
+  await page.locator("#location").fill("Rua Editável 123, Porto");
+  await page.locator("#contractNum").fill(originalContractNum);
+  await page.locator("#distributedTo").fill("Cliente · Arquivo");
+  await page.locator("#sentVia").selectOption({ label: "WhatsApp" });
+
+  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
+
+  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
+    timeout: 10000,
+  });
+
+  await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
+
+  await expect(page.locator("#stepLabel")).toHaveText(/obras/i, {
+    timeout: 10000,
+  });
+
+  const originalProjectCard = page
+    .locator("#projectList .project-card")
+    .filter({ hasText: originalProjectName });
+
+  await expect(originalProjectCard).toBeVisible({ timeout: 15000 });
+
+  await originalProjectCard
+    .getByRole("button", { name: /editar obra|editar/i })
+    .click();
+
+  await expect(page.locator("#stepLabel")).toHaveText(
+    /configuração 1 de 2|configuracao 1 de 2|empresa/i,
+    { timeout: 10000 }
+  );
+
+  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
+
+  await expect(page.locator("#stepLabel")).toHaveText(
+    /configuração 2 de 2|configuracao 2 de 2|obra/i,
+    { timeout: 10000 }
+  );
+
+  await expect(page.locator("#projectName")).toBeVisible({ timeout: 10000 });
+
+  await page.locator("#projectName").fill(updatedProjectName);
+  await page.locator("#contractNum").fill(updatedContractNum);
+
+    await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
+
+    await expect(page.locator("#stepLabel")).toHaveText(/obras/i, {
+    timeout: 10000,
+    });
+
+  const updatedProjectCards = page
+    .locator("#projectList .project-card")
+    .filter({ hasText: updatedProjectName });
+
+  const originalProjectCards = page
+    .locator("#projectList .project-card")
+    .filter({ hasText: originalProjectName });
+
+  await expect(updatedProjectCards).toHaveCount(1, { timeout: 15000 });
+  await expect(originalProjectCards).toHaveCount(0);
+
+  await expect(updatedProjectCards.first()).toContainText(updatedContractNum);
+});
