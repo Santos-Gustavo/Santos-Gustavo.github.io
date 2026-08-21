@@ -20,6 +20,7 @@ export function newProject() {
   appState.currentClientId = null;
   appState.currentProjectId = null;
   appState.flow = null;
+  appState.currentProject = null;
 
   clearProjectForm();
 
@@ -39,6 +40,7 @@ export function selectProject(projectId) {
   appState.currentCompanyId = project.companyId;
   appState.currentClientId = project.clientId;
   appState.currentProjectId = project.id;
+  appState.currentProject = project;
 
   renderReportHistory(appState.currentProjectId).catch(console.error);
 
@@ -62,6 +64,7 @@ export function editProject(projectId) {
   appState.currentCompanyId = project.companyId;
   appState.currentClientId = project.clientId;
   appState.currentProjectId = project.id;
+  appState.currentProject = project;
 
   loadProjectIntoForm(project);
 

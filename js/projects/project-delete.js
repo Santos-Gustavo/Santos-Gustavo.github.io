@@ -117,7 +117,6 @@ function clearSelectedProjectStateIfNeeded(projectId) {
   if (appState.currentProjectId !== projectId) {
     return;
   }
-
   appState.currentProjectId = null;
   appState.currentClientId = null;
   appState.currentCompanyId = null;
@@ -125,4 +124,5 @@ function clearSelectedProjectStateIfNeeded(projectId) {
   appState.flow = null;
   appState.isEditingProject = false;
   appState.isNewProject = false;
+  appState.currentProject = null;
 }

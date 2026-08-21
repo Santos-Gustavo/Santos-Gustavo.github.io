@@ -177,6 +177,9 @@ export async function goNext() {
     }
 
     goToStepId("mode");
+
+    appState.currentProject = saved.project;
+
     upsertProjectInCache(saved.project);
     renderProjectModePage(saved.project);
     return;

@@ -29,6 +29,9 @@ import {
   resumeProject,
 } from "#projects/project-status-transitions.js";
 
+import { appState } from "#state/app-state.js";
+
+
 let initialized = false;
 
 export function initProjects() {
@@ -80,7 +83,9 @@ async function handleProjectLifecycleClick(event) {
 
   const action = actionEl.dataset.projectLifecycleAction;
   const projectId = actionEl.dataset.projectId;
-  const project = getProjectById(projectId);
+  const project =
+    getProjectById(projectId) ||
+    (appState.currentProjectId === projectId ? appState.currentProject : null);
 
   event.preventDefault();
   event.stopPropagation();
@@ -99,35 +104,44 @@ async function handleProjectLifecycleClick(event) {
 
     const trimmedReason = reason.trim();
 
+    let updatedProject = null;
+
     if (action === "pause") {
-      await pauseProject(project, { reason: trimmedReason });
+      updatedProject = await pauseProject(project, { reason: trimmedReason });
     }
 
     if (action === "resume") {
-      await resumeProject(project, { reason: trimmedReason });
+      updatedProject = await resumeProject(project, { reason: trimmedReason });
     }
 
     if (action === "complete") {
-      await completeProject(project, { reason: trimmedReason });
+      updatedProject = await completeProject(project, { reason: trimmedReason });
     }
 
     if (action === "archive") {
-      await archiveProject(project, { reason: trimmedReason });
+      updatedProject = await archiveProject(project, { reason: trimmedReason });
     }
 
     if (action === "hide") {
-      await hideArchivedProject(project, { reason: trimmedReason });
+      updatedProject = await hideArchivedProject(project, { reason: trimmedReason });
     }
 
     if (action === "reopen") {
-      await reopenProject(project, { reason: trimmedReason });
+      updatedProject = await reopenProject(project, { reason: trimmedReason });
+    }
+
+    if (updatedProject) {
+      appState.currentProject = updatedProject;
     }
 
     await renderProjectList();
 
-    const updatedProject = getProjectById(projectId);
+    if (updatedProject) {
+      selectProject(updatedProject.id);
+    }
 
     if (updatedProject) {
+      appState.currentProject = updatedProject;
       selectProject(projectId);
     }
   } catch (error) {
