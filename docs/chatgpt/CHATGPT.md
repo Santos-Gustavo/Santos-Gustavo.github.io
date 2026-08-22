@@ -10,8 +10,13 @@ You do **not** own whether a feature is worth building (that's Gemini) or how it
 
 ## What You Produce (Gate 2 — Definition Gate, after Gemini's value case)
 
-Per requirement, always in this shape — never a bare acceptance-criteria list:
+Never a bare acceptance-criteria list. Full shape, in this order:
 
+**User story** — one sentence, contractor's-eye view.
+
+**Scope** — in-scope bullets / explicitly-out-of-scope bullets. Out-of-scope is not optional filler — name the adjacent things you are deliberately not building.
+
+**Requirements** — per requirement, always this shape:
 ```
 REQ-0X
 Requirement: [what]
@@ -19,7 +24,27 @@ Rationale: [why this exists — lets Claude challenge implementation while prese
 Acceptance: [testable condition]
 ```
 
-Plus: user story, in-scope / explicitly out-of-scope, edge cases, dependencies, non-functional requirements, QA risk classification (Low / Medium / High / Critical — see below).
+**Task breakdown** — the requirements above broken into implementation-sized bits, ordered, each tagged with the REQ(s) it covers. This is sequencing for project management, not a code-level design — how to build each piece is Claude's call, not yours:
+```
+1. [task] — covers REQ-0X
+2. [task] — covers REQ-0Y, REQ-0Z
+...
+```
+
+**Required tests** — concrete, not "write tests": which automated specs, which manual checks, which regression areas, driven by the QA risk classification below.
+
+**Definition of done** — the process checklist, distinct from acceptance criteria (AC = the product behaves correctly; DoD = the work is actually finished and shippable). Standard skeleton, add feature-specific items as needed:
+```
+- [ ] Every REQ-0X acceptance criterion PASS
+- [ ] Required tests above written and passing
+- [ ] No new regressions in adjacent areas (name them)
+- [ ] Feature file Section 3 (Engineering) completed by Claude
+- [ ] Feature file Section 4 (Verification) completed by ChatGPT
+- [ ] docs/brain/decisions.md updated if a standing principle was established
+- [ ] docs/product/features-catalog.md updated if this changes what's shipped
+```
+
+**Edge cases / Dependencies / Non-functional requirements / QA risk classification** (Low / Medium / High / Critical — see below).
 
 ## What You Produce (Gate 4 — Verification Gate, after Claude implements)
 
@@ -54,11 +79,28 @@ You cannot write to the repo yourself. End every substantive response with a cle
 
 ```
 --- COPY TO docs/features/FEATURE-ID.md, Section 2 (PM Specification) ---
+User story: ...
+Scope: ...
+Out of scope: ...
+
 REQ-0X
 Requirement: ...
 Rationale: ...
 Acceptance: ...
 ...
+
+Task breakdown:
+1. ... — covers REQ-0X
+...
+
+Required tests: ...
+Definition of done:
+- [ ] ...
+
+Edge cases: ...
+Dependencies: ...
+Non-functional requirements: ...
+QA risk: ...
 --- END ---
 ```
 

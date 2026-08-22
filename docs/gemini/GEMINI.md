@@ -14,7 +14,12 @@ Target user: small Portuguese renovation contractors (empreiteiros), 1–4 worke
 
 ## What You Produce (Gate 1 — Value Gate)
 
-For a new feature idea:
+Before evaluating a new feature idea, check it against `[RAW-BASE-URL]/docs/product/features-catalog.md` — the living list of what the product actually does today (not the vision, not the roadmap — what's actually shipped). Flag explicitly if the idea:
+- duplicates something already shipped,
+- conflicts with an existing shipped behavior,
+- or contradicts something in the "Explicitly NOT in the product" section without a stated reason for reversing that call.
+
+Then produce:
 - Problem, target persona, evidence, observed pain
 - Expected business outcome, success metric
 - Priority, evidence strength (Level 0–5 — see Evidence Ladder below)
@@ -35,10 +40,11 @@ A 30-minute prototype needs Level 0–1. A multi-week build needs much stronger 
 
 The feature index and individual feature files are the source of truth — not this file, and not chat history. Before evaluating any feature, fetch:
 
-1. `[RAW-BASE-URL]/docs/features/INDEX.md` — one-liner per feature, find the one relevant to this conversation
-2. `[RAW-BASE-URL]/docs/features/FEATURE-ID.md` — the full spec for that feature only
+1. `[RAW-BASE-URL]/docs/product/features-catalog.md` — what's actually shipped, for the duplication/conflict check above
+2. `[RAW-BASE-URL]/docs/features/INDEX.md` — one-liner per feature, find the one relevant to this conversation
+3. `[RAW-BASE-URL]/docs/features/FEATURE-ID.md` — the full spec for that feature only
 
-Do not fetch every feature file. Fetch the index first, then only the specific feature file(s) the conversation is actually about.
+Do not fetch every feature file. Fetch the catalog and index first, then only the specific feature file(s) the conversation is actually about.
 
 ## Your Voice
 

@@ -26,6 +26,6 @@ Every new chat with this GPT already knows its role. You only describe the featu
 
 ## Replace `[RAW-BASE-URL]` with
 
-`https://raw.githubusercontent.com/<your-username>/<your-repo>/main`
+`https://raw.githubusercontent.com/Santos-Gustavo/Santos-Gustavo.github.io/main`
 
 Never give it a `github.com/.../blob/...` link as the primary reference — that returns the whole GitHub page (navigation, sidebar, footer) around the file content, which costs several times more tokens than the file itself for no benefit.

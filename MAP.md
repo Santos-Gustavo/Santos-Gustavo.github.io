@@ -11,6 +11,7 @@ Read this first. Everything else is one link away. Keep this file under 30 lines
 - New idea? → add a line to `inbox.md`, don't build a doc for it yet.
 - Working a feature? → `docs/features/INDEX.md` → open the specific `FEATURE-ID.md`.
 - Wondering what's next / why we're building something? → `docs/product/roadmap.md`, `docs/product/vision.md`.
+- Wondering what the product already does today? → `docs/product/features-catalog.md`.
 
 ## For AI (any role)
 
@@ -34,6 +35,7 @@ docs/
 | Question | Lives in |
 |---|---|
 | Why build this? | `docs/product/vision.md`, feature file §1 |
+| What does the product already do? | `docs/product/features-catalog.md` |
 | What exactly, and is it verified? | feature file §2–4 |
 | How was it built? | feature file §3 + git history |
 | Did it actually work for users? | `docs/product/evidence.md` |

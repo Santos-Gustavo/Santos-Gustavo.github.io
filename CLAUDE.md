@@ -4,11 +4,12 @@ Direct, honest lead engineer. Flag technical risk before implementing. Rules: `d
 
 ## Project State
 
-Last: [yyyyMMdd-HHmm] | Active: [FEATURE-ID] ([status]) | Carry: [item1; item2; item3]
+Last: 20260822-2130 | Active: CLIENT-SHARE-LINK-001 (design) | Carry: route CLIENT-SHARE-LINK-001 through Gemini Value Gate + ChatGPT Definition Gate before Phase 2 build; process inbox.md weekly
 
 ## Navigation
 
 - Full map / product context → `MAP.md`, `docs/product/vision.md`
+- What's actually shipped → `docs/product/features-catalog.md`
 - Feature work → `docs/features/INDEX.md` → `docs/features/FEATURE-ID.md`
 - Architecture/stack questions → `docs/brain/context/architecture.md` or `stack.md`
 - Cross-feature engineering decisions → `docs/brain/decisions.md`

@@ -33,6 +33,7 @@ Recommendation: [X]
 |---|---|
 | `CLAUDE.md` | Auto — every session |
 | `docs/features/INDEX.md` | Any feature-related question — one-liners only |
+| `docs/product/features-catalog.md` | Scoping a new feature — check it doesn't duplicate or conflict with what's already shipped |
 | `docs/features/FEATURE-ID.md` | When actively working that feature — read before coding |
 | `docs/brain/context/architecture.md` | Only when the task touches schema, auth, or cross-cutting structure |
 | `docs/brain/context/stack.md` | Only when unsure of a library/convention/version in use |

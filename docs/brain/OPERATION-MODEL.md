@@ -934,6 +934,22 @@ Requirement:
 Rationale:
 Acceptance:
 
+Task breakdown:
+(requirements above, broken into implementation-sized bits, each tagged with the REQ(s) it covers — sequencing for project management, not a code-level design)
+
+Required tests:
+(concrete: which automated specs, which manual checks, which regression areas — driven by QA risk below)
+
+Definition of done:
+(process checklist, distinct from acceptance criteria — AC is "the product behaves correctly," DoD is "the work is actually finished and shippable")
+- [ ] Every REQ-0X acceptance criterion PASS
+- [ ] Required tests above written and passing
+- [ ] No new regressions in adjacent areas
+- [ ] Section 3 (Engineering) completed
+- [ ] Section 4 (Verification) completed
+- [ ] decisions.md updated if a standing principle was established
+- [ ] features-catalog.md updated if this changes what's shipped
+
 Edge cases:
 Dependencies:
 Non-functional requirements:

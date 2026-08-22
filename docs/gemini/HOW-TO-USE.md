@@ -25,6 +25,6 @@ After that, every new chat with this Gem already knows its role — you only nee
 
 ## Replace `[RAW-BASE-URL]` with
 
-`https://raw.githubusercontent.com/<your-username>/<your-repo>/main`
+`https://raw.githubusercontent.com/Santos-Gustavo/Santos-Gustavo.github.io/main`
 
 (GitHub blob/web URLs like `github.com/.../blob/main/...` will also technically work if Gemini's browsing tool renders them, but they return the full page chrome around the file, not just its content — wastes a large share of context on navigation menus. Always use the `raw.githubusercontent.com` form.)
