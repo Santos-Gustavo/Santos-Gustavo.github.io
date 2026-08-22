@@ -126,11 +126,11 @@ export async function deletePhotoViaFunction(photoId) {
   });
 
   if (error) {
-    throwIfDbError(error, "Erro ao apagar fotografia.");
+    throwIfDbError(error, "Erro ao remover fotografia.");
   }
 
   if (!data?.ok) {
-    throw new Error(data?.error || "Erro ao apagar fotografia.");
+    throw new Error(data?.error || "Erro ao remover fotografia.");
   }
 
   if (data.deletedStoragePath) {

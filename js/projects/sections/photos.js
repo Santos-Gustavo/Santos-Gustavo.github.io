@@ -47,7 +47,7 @@ export async function removePhoto(photoId) {
   const hasPersistedDbRow = Boolean(photo.photoId);
 
   if (hasPersistedDbRow) {
-    const confirmed = confirm("Apagar esta fotografia da base de dados e do armazenamento?");
+    const confirmed = confirm("Remover esta fotografia da base de dados e do armazenamento?");
 
     if (!confirmed) return;
 
@@ -55,7 +55,7 @@ export async function removePhoto(photoId) {
       await deletePhotoViaFunction(photo.photoId);
     } catch (error) {
       console.error("Error deleting persisted photo:", error);
-      alert("Erro ao apagar fotografia: " + error.message);
+      alert("Erro ao remover fotografia: " + error.message);
       return;
     }
   }

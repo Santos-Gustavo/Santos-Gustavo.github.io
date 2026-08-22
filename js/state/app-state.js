@@ -4,6 +4,7 @@ export const appState = {
   phase: "",
   alertOn: false,
   incidentsOn: false,
+  projectListFilter: "active",
 
   works: [],
   photos: [],
@@ -20,8 +21,10 @@ export const appState = {
   currentClientId: null,
   currentProjectId: null,
   currentReportId: null,
+  currentProject: null,
 
   projectsCache: [],
+  
 };
 
 export function resetReportDraftState() {
@@ -48,6 +51,7 @@ export function resetProjectSelectionState() {
   appState.currentClientId = null;
   appState.currentProjectId = null;
   appState.currentReportId = null;
+  appState.currentProject = null;
 }
 
 export function resetAllAppState() {

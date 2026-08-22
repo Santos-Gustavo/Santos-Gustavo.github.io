@@ -31,7 +31,7 @@ export async function saveCurrentProjectFromForm() {
         !appState.currentProjectId
       ) {
         throw new Error(
-          "Modo edição ativo, mas faltam IDs da empresa, cliente ou obra."
+          "Modo edição ativo, mas faltam IDs da empresa, cliente ou projeto."
         );
       }
 
@@ -72,7 +72,7 @@ export async function saveCurrentProjectFromForm() {
     }
 
     if (!project?.id) {
-      throw new Error("Obra não foi guardada corretamente.");
+      throw new Error("Projeto não foi guardada corretamente.");
     }
 
     appState.currentCompanyId = company.id;
@@ -102,7 +102,7 @@ export async function saveCurrentProjectFromForm() {
     console.error("Error saving project:", error);
     console.groupEnd();
 
-    alert("Erro ao guardar obra: " + error.message);
+    alert("Erro ao guardar projeto: " + error.message);
 
     return null;
   }

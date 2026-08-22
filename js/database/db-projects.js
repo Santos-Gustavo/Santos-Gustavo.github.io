@@ -25,7 +25,7 @@ export async function loadProjectsFromDb() {
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
 
-  throwIfDbError(projectError, "Erro ao carregar obras.");
+  throwIfDbError(projectError, "Erro ao carregar projetos.");
 
   const projects = projectRows || [];
 
@@ -41,7 +41,7 @@ export async function loadProjectsFromDb() {
     .select("*")
     .in("id", clientIds);
 
-  throwIfDbError(clientsError, "Erro ao carregar clientes das obras.");
+  throwIfDbError(clientsError, "Erro ao carregar clientes das projetos.");
 
   const { data: reports, error: reportsError } = await supabaseClient
     .from("reports")
@@ -49,7 +49,7 @@ export async function loadProjectsFromDb() {
     .in("project_id", projectIds)
     .is("deleted_at", null);
 
-  throwIfDbError(reportsError, "Erro ao carregar relatórios das obras.");
+  throwIfDbError(reportsError, "Erro ao carregar relatórios das projetos.");
 
   const companiesById = new Map(companies.map((company) => [company.id, company]));
   const clientsById = new Map((clients || []).map((client) => [client.id, client]));
@@ -80,15 +80,15 @@ export async function createProjectInDb({ companyId, clientId, values }) {
   const projectName = cleanText(values.projectName);
 
   if (!projectName) {
-    throw new Error("Nome da obra é obrigatório.");
+    throw new Error("Nome do projeto é obrigatório.");
   }
 
   if (!companyId) {
-    throw new Error("Empresa é obrigatória para criar obra.");
+    throw new Error("Empresa é obrigatória para criar projeto.");
   }
 
   if (!clientId) {
-    throw new Error("Cliente é obrigatório para criar obra.");
+    throw new Error("Cliente é obrigatório para criar projeto.");
   }
 
   const payload = {
@@ -112,14 +112,14 @@ export async function createProjectInDb({ companyId, clientId, values }) {
     .select()
     .single();
 
-  throwIfDbError(error, "Erro ao criar obra.");
+  throwIfDbError(error, "Erro ao criar projeto.");
 
   return data;
 }
 
 export async function updateProjectInDb(projectId, companyId, clientId, values) {
   if (!projectId) {
-    throw new Error("ID da obra em falta.");
+    throw new Error("ID do projeto em falta.");
   }
 
   if (!companyId) {
@@ -133,7 +133,7 @@ export async function updateProjectInDb(projectId, companyId, clientId, values) 
   const name = cleanText(values.projectName);
 
   if (!name) {
-    throw new Error("Nome da obra é obrigatório.");
+    throw new Error("Nome do projeto é obrigatório.");
   }
 
   const payload = {
@@ -160,29 +160,7 @@ export async function updateProjectInDb(projectId, companyId, clientId, values) 
     .select()
     .single();
 
-  throwIfDbError(error, "Erro ao atualizar obra.");
-
-  return data;
-}
-
-export async function deleteProjectViaFunction(projectId) {
-  if (!projectId) {
-    throw new Error("ID da obra em falta.");
-  }
-
-  const { data, error } = await supabaseClient.functions.invoke("delete-project", {
-    body: {
-      project_id: projectId,
-    },
-  });
-
-  if (error) {
-    throwIfDbError(error, "Erro ao apagar obra.");
-  }
-
-  if (!data?.ok) {
-    throw new Error(data?.error || "Erro ao apagar obra.");
-  }
+  throwIfDbError(error, "Erro ao atualizar projeto.");
 
   return data;
 }

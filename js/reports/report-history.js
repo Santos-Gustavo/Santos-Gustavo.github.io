@@ -32,7 +32,7 @@ export async function renderReportHistory(projectId = null) {
     null;
 
   if (!resolvedProjectId) {
-    target.innerHTML = `<p class="empty-hint">Selecione uma obra para ver relatórios anteriores.</p>`;
+    target.innerHTML = `<p class="empty-hint">Selecione um projeto para ver relatórios anteriores.</p>`;
     return;
   }
 

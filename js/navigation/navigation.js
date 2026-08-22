@@ -1,9 +1,8 @@
 // js/navigation/navigation.js
-
 import { appState } from "#state/app-state.js";
 import { CONTENT_STEPS, STEP_NAMES } from "#config/app-options.js";
 import { saveCurrentProjectFromForm } from "#projects/project-save.js";
-import { renderProjectList } from "#projects/project-list.js";
+import { renderProjectList, upsertProjectInCache } from "#projects/project-list.js";
 import { getLatestReportForProject } from "#database/db-reports.js";
 import { setValue } from "#forms/form-values.js";
 import { applyPreviousReportToForm } from "#reports/report-prefill.js";
@@ -14,6 +13,8 @@ import { renderPhotos } from "#projects/sections/photos.js";
 import { renderIncidents } from "#projects/sections/incidents.js";
 import { renderExtras } from "#projects/sections/extras.js";
 import { renderNextSteps } from "#projects/sections/next-steps.js";
+import { getProjectStatusLabel, canCreateWeeklyReport, canCreateLegalFinancialReport } from "#projects/project-status-rules.js";
+import { renderProjectModePage } from "#projects/project-mode-page.js";
 
 let initialized = false;
 
@@ -72,7 +73,7 @@ export function updateTopBar(id) {
 
   if (id === "projects") {
     fill.style.width = "0%";
-    label.textContent = "Obras";
+    label.textContent = "Projetos";
     return;
   }
 
@@ -85,7 +86,7 @@ export function updateTopBar(id) {
   if (!state.flow) {
     const pos = id === 1 ? 1 : 2;
     fill.style.width = `${Math.round((pos / 2) * 100)}%`;
-    label.textContent = `Configuração ${pos} de 2 — ${id === 1 ? "Empresa" : "Obra"}`;
+    label.textContent = `Configuração ${pos} de 2 — ${id === 1 ? "Empresa" : "Projeto"}`;
     return;
   }
 
@@ -102,6 +103,20 @@ export function selectMode(mode) {
 
   if (mode !== "weekly" && mode !== "legal") {
     console.error("Invalid report mode:", mode);
+    return;
+  }
+
+  if (mode === "weekly" && !canCreateWeeklyReport(appState.currentProject)) {
+    alert(
+      "Este projeto está arquivado. Não é possível criar novos relatórios semanais."
+    );
+    return;
+  }
+
+  if (mode === "legal" && !canCreateLegalFinancialReport(appState.currentProject)) {
+    alert(
+      "Este projeto está arquivado. Não é possível criar novos relatórios legais/financeiros."
+    );
     return;
   }
 
@@ -122,7 +137,6 @@ export function selectMode(mode) {
 
   goToStepId(state.flow[0]);
 }
-
 export async function goNext() {
   const state = getRuntimeState();
   const cur = state.currentStepId;
@@ -154,7 +168,7 @@ export async function goNext() {
       state.isEditingProject = false;
       appState.isEditingProject = false;
 
-      alert("Dados da obra atualizados com sucesso.");
+      alert("Dados do projeto atualizados com sucesso.");
 
       await renderProjectList();
 
@@ -163,14 +177,24 @@ export async function goNext() {
     }
 
     const projectName =
-      document.getElementById("projectName")?.value || "Nova Obra";
+      document.getElementById("projectName")?.value || "Novo Projeto";
 
     const modeProjectLabel = document.getElementById("modeProjectLabel");
     if (modeProjectLabel) {
       modeProjectLabel.textContent = projectName;
     }
 
+    const modeProjectStatus = document.getElementById("modeProjectStatus");
+    if (modeProjectStatus) {
+      modeProjectStatus.textContent = getProjectStatusLabel(saved.project.status);
+    }
+
     goToStepId("mode");
+
+    appState.currentProject = saved.project;
+
+    upsertProjectInCache(saved.project);
+    renderProjectModePage(saved.project);
     return;
   }
 
@@ -254,7 +278,7 @@ export function goHome() {
 
   const stepLabel = document.getElementById("stepLabel");
   if (stepLabel) {
-    stepLabel.textContent = "Obras";
+    stepLabel.textContent = "Projetos";
   }
 
   const progressFill = document.getElementById("progressFill");
@@ -265,6 +289,11 @@ export function goHome() {
   const modeProjectLabel = document.getElementById("modeProjectLabel");
   if (modeProjectLabel) {
     modeProjectLabel.textContent = "";
+  }
+
+  const modeProjectStatus = document.getElementById("modeProjectStatus");
+  if (modeProjectStatus) {
+    modeProjectStatus.textContent = "";
   }
 
   renderProjectList();

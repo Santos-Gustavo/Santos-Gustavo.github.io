@@ -40,32 +40,16 @@ export function mapProjectRowToAppProject(row, relations = {}) {
     companyEmail: company?.email || "",
 
     lastReportNum,
+
+    status: row.status,
+    archivedAt: row.archived_at || null,
+    hiddenAt: row.hidden_at || null,
+    closureType: row.closure_type || null,
+    closureReason: row.closure_reason || null,
+    closedAt: row.closed_at || null,
+    reopenedAt: row.reopened_at || null,
   };
 
-  // Temporary compatibility with old UI code.
-  project.obra = buildLegacyObraView(project);
 
   return project;
-}
-
-export function buildLegacyObraView(project) {
-  return {
-    projectName: project.name || "",
-
-    companyName: project.companyName || "",
-    companyNif: project.companyNif || "",
-    companyInci: project.companyInci || "",
-    responsible: project.responsible || "",
-    companyPhone: project.companyPhone || "",
-    companyEmail: project.companyEmail || "",
-
-    clientName: project.clientName || "",
-    clientPhone: project.clientPhone || "",
-    clientEmail: project.clientEmail || "",
-    clientNif: project.clientNif || "",
-
-    location: project.location || "",
-    contractNum: project.contractNum || "",
-    contractValue: project.contractValue ?? "",
-  };
 }
