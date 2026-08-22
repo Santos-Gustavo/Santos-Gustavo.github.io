@@ -1,12 +1,12 @@
 import { loadProjectsFromDb } from "#database/db-projects.js";
 import { appState } from "#state/app-state.js";
 import {
+  canEditProject,
   canShowInArchivedProjectList,
   canShowInDefaultProjectList,
   canShowInHiddenProjectList,
   getProjectStatusLabel,
   isProjectCompleted,
-  canEditProject
 } from "#projects/project-status-rules.js";
 
 function shouldShowProjectForCurrentFilter(project) {
@@ -88,6 +88,7 @@ export async function renderProjectList() {
 
 function renderProjectCard(project) {
   const statusLabel = getProjectStatusLabel(project.status);
+  const canEdit = canEditProject(project);
 
   return `
     <div class="project-card" data-project-action="select" data-project-id="${escapeHtml(project.id)}">
@@ -109,16 +110,20 @@ function renderProjectCard(project) {
       </div>
 
       <div class="project-card-actions">
-        <${canEditProject(project) ? `
-          <button
-            type="button"
-            class="btn-project-edit"
-            data-project-action="edit"
-            data-project-id="${escapeHtml(project.id)}"
-          >
-            Editar
-          </button>
-        ` : ""}
+        ${
+          canEdit
+            ? `
+              <button
+                type="button"
+                class="btn-project-edit"
+                data-project-action="edit"
+                data-project-id="${escapeHtml(project.id)}"
+              >
+                Editar
+              </button>
+            `
+            : ""
+        }
 
         <button
           type="button"

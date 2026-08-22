@@ -32,36 +32,9 @@ const E2E_PASSWORD =
     .getByRole("button", { name: /entrar|login|iniciar/i })
     .click();
 
-  await expect
-    .poll(
-      async () =>
-        page.evaluate(() => {
-          const isVisible = (element) => {
-            if (!element) return false;
-
-            const style = window.getComputedStyle(element);
-            const rect = element.getBoundingClientRect();
-
-            return (
-              style.display !== "none" &&
-              style.visibility !== "hidden" &&
-              rect.width > 0 &&
-              rect.height > 0
-            );
-          };
-
-          const buttons = Array.from(document.querySelectorAll("button"));
-
-          return buttons.some((button) => {
-            return isVisible(button) && /sair/i.test(button.textContent || "");
-          });
-        }),
-      {
-        timeout: 15000,
-        message: "Expected authenticated UI to show Sair after login",
-      }
-    )
-    .toBe(true);
+  await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, {
+    timeout: 15000,
+  });
 
   await page.waitForTimeout(500);
 }
@@ -116,7 +89,10 @@ async function dumpVisibleState(page, label) {
 test("user can create and generate a weekly report", async ({ page }) => {
   await login(page);
 
-  await page.getByRole("button", { name: /novo projeto/i }).click();
+  await page
+  .locator('[data-project-action="new-project"]')
+  .filter({ visible: true })
+  .click();
 
   await expect(page.locator("#stepLabel")).toHaveText(
     /configuração 1 de 2|configuracao 1 de 2|empresa/i,
