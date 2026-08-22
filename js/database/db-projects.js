@@ -164,25 +164,3 @@ export async function updateProjectInDb(projectId, companyId, clientId, values) 
 
   return data;
 }
-
-export async function deleteProjectViaFunction(projectId) {
-  if (!projectId) {
-    throw new Error("ID do projeto em falta.");
-  }
-
-  const { data, error } = await supabaseClient.functions.invoke("delete-project", {
-    body: {
-      project_id: projectId,
-    },
-  });
-
-  if (error) {
-    throwIfDbError(error, "Erro ao remover projeto.");
-  }
-
-  if (!data?.ok) {
-    throw new Error(data?.error || "Erro ao remover projeto.");
-  }
-
-  return data;
-}

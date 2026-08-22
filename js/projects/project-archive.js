@@ -15,7 +15,7 @@ import {
   renderProjectList,
 } from "#projects/project-list.js";
 
-export async function deleteProject(projectId) {
+export async function archiveOrHideProject(projectId) {
   const project = getProjectById(projectId);
 
   if (!project) {

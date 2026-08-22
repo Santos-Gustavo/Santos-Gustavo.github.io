@@ -127,8 +127,8 @@ function renderProjectCard(project) {
 
         <button
           type="button"
-          class="btn-project-delete"
-          data-project-action="delete"
+          class="btn-project-archive"
+          data-project-action="archive-hide"
           data-project-id="${escapeHtml(project.id)}"
         >
           Arquivar/Ocultar

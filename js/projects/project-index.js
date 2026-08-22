@@ -6,7 +6,7 @@ import {
 
 import { saveCurrentProjectFromForm } from "#projects/project-save.js";
 
-import { deleteProject } from "#projects/project-delete.js";
+import { archiveOrHideProject } from "#projects/project-archive.js";
 
 import {
   newProject,
@@ -71,8 +71,8 @@ async function handleProjectClick(event) {
     return;
   }
 
-  if (action === "delete") {
-    await deleteProject(projectId);
+  if (action === "archive-hide") {
+    await archiveOrHideProject(projectId);
   }
 }
 

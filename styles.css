@@ -547,7 +547,7 @@ h1, h2, h3, .mode-title, .project-card-name, .btn-generate, .btn-next {
 /* ---------- PROJECT CARD ACTIONS ---------- */
 .project-card-actions { display: flex; gap: 0.5rem; margin-top: 0.7rem; align-items: stretch; }
 
-.btn-project-edit, .btn-project-delete {
+.btn-project-edit, .btn-project-archive {
   min-height: 2.4rem;
   padding: 0.45rem 0.65rem;
   border-radius: 0.4rem;
@@ -562,9 +562,9 @@ h1, h2, h3, .mode-title, .project-card-name, .btn-generate, .btn-next {
   transition: background 0.15s, border-color 0.15s;
 }
 .btn-project-edit { flex: 1; border: 1px solid var(--border); background: var(--input-bg); color: var(--muted); }
-.btn-project-delete { flex: 0 0 auto; min-width: 4.4rem; border: 1px solid #ecc3ba; background: var(--rust-soft); color: var(--rust); }
+.btn-project-archive { flex: 0 0 auto; min-width: 4.4rem; border: 1px solid #ecc3ba; background: var(--rust-soft); color: var(--rust); }
 .btn-project-edit:hover, .btn-project-edit:active { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
-.btn-project-delete:active { background: #f4cfc5; }
+.btn-project-archive:active { background: #f4cfc5; }
 
 .project-card-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
