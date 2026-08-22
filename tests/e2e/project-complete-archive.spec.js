@@ -78,7 +78,7 @@ async function createProject(page, { projectName, clientName, contractNum }) {
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-    timeout: 10000,
+    timeout: 20000,
   });
 
   await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);

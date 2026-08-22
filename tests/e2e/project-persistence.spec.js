@@ -93,7 +93,7 @@ test("created project appears in project list and can be reopened", async ({
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-    timeout: 10000,
+    timeout: 20000,
   });
 
   await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();

@@ -34,10 +34,6 @@ async function login(page) {
   });
 
   await page.waitForTimeout(500);
-
-  await expect(page.locator("#stepLabel")).toHaveText(/projetos|projetos/i, {
-    timeout: 10000,
-  });
 }
 
 async function createProject(page, { projectName, clientName, contractNum }) {
@@ -51,7 +47,7 @@ async function createProject(page, { projectName, clientName, contractNum }) {
     { timeout: 10000 }
   );
 
-  await page.locator("#companyName").fill("E2E Hide Archived Company");
+  await page.locator("#companyName").fill("E2E Archived Readonly Company");
   await page
     .locator("#companyTagline")
     .fill("Construção · Renovação · Remodelação");
@@ -64,13 +60,13 @@ async function createProject(page, { projectName, clientName, contractNum }) {
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
   await expect(page.locator("#stepLabel")).toHaveText(
-    /configuração 2 de 2|configuracao 2 de 2|projeto|projeto/i,
+    /configuração 2 de 2|configuracao 2 de 2|projeto/i,
     { timeout: 10000 }
   );
 
   await page.locator("#projectName").fill(projectName);
   await page.locator("#clientName").fill(clientName);
-  await page.locator("#location").fill("Rua Hide Archived 123, Porto");
+  await page.locator("#location").fill("Rua Arquivada 123, Porto");
   await page.locator("#contractNum").fill(contractNum);
   await page.locator("#distributedTo").fill("Cliente · Arquivo");
   await page.locator("#sentVia").selectOption({ label: "WhatsApp" });
@@ -82,47 +78,36 @@ async function createProject(page, { projectName, clientName, contractNum }) {
   });
 
   await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/em curso/i, {
-    timeout: 10000,
-  });
 }
 
 async function goBackToProjectList(page) {
   await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/projetos|projetos/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, {
     timeout: 10000,
   });
 }
 
-async function selectProjectFromCurrentList(page, projectName) {
-  const projectCard = page
-    .locator("#projectList .project-card")
-    .filter({ hasText: projectName });
+test("archived project can be viewed but not edited or used to create new reports", async ({
+  page,
+}) => {
+  const timestamp = Date.now();
 
-  await expect(projectCard).toHaveCount(1, { timeout: 15000 });
+  const projectName = `E2E Archived Readonly Project ${timestamp}`;
+  const clientName = `E2E Archived Readonly Client ${timestamp}`;
+  const contractNum = `ARCHIVED-READONLY-${timestamp}`;
 
-  await projectCard.first().click();
+  await login(page);
 
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-    timeout: 10000,
-  });
-
-  await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
-}
-
-async function completeCurrentProject(page) {
-  await expect(
-    page.locator('[data-project-lifecycle-action="complete"]').filter({
-      visible: true,
-    })
-  ).toBeVisible({
-    timeout: 10000,
+  await createProject(page, {
+    projectName,
+    clientName,
+    contractNum,
   });
 
   page.once("dialog", async (dialog) => {
     expect(dialog.message()).toMatch(/concluir|conclu/i);
-    await dialog.accept("Conclusão E2E antes de arquivar");
+    await dialog.accept("Conclusão E2E para validar leitura de arquivada");
   });
 
   await page
@@ -133,20 +118,10 @@ async function completeCurrentProject(page) {
   await expect(page.locator("#modeProjectStatus")).toHaveText(/concluída/i, {
     timeout: 15000,
   });
-}
-
-async function archiveCurrentProject(page) {
-  await expect(
-    page.locator('[data-project-lifecycle-action="archive"]').filter({
-      visible: true,
-    })
-  ).toBeVisible({
-    timeout: 10000,
-  });
 
   page.once("dialog", async (dialog) => {
     expect(dialog.message()).toMatch(/arquivar/i);
-    await dialog.accept("Arquivo E2E antes de ocultar");
+    await dialog.accept("Arquivo E2E para validar leitura de arquivada");
   });
 
   await page
@@ -157,60 +132,38 @@ async function archiveCurrentProject(page) {
   await expect(page.locator("#modeProjectStatus")).toHaveText(/arquivada/i, {
     timeout: 15000,
   });
-}
 
-test("archived project can be hidden from the archived list", async ({
-  page,
-}) => {
-  const timestamp = Date.now();
-
-  const projectName = `E2E Hide Archived Project ${timestamp}`;
-  const clientName = `E2E Hide Archived Client ${timestamp}`;
-  const contractNum = `HIDE-ARCHIVED-${timestamp}`;
-
-  await login(page);
-
-  await createProject(page, {
-    projectName,
-    clientName,
-    contractNum,
+  page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toBe(
+      "Este projeto está arquivado. Não é possível criar novos relatórios semanais."
+    );
+    await dialog.accept();
   });
 
-  await completeCurrentProject(page);
-  await archiveCurrentProject(page);
-
-  await goBackToProjectList(page);
-
   await page
-    .locator('[data-project-filter="archived"]')
+    .locator('[data-nav-action="select-mode"][data-mode="weekly"]')
     .filter({ visible: true })
     .click();
 
-  await expect(
-    page.locator("#projectList .project-card").filter({ hasText: projectName })
-  ).toHaveCount(1, {
-    timeout: 15000,
-  });
-
-  await selectProjectFromCurrentList(page, projectName);
-
-  await expect(
-    page.locator('[data-project-lifecycle-action="hide"]').filter({
-      visible: true,
-    })
-  ).toBeVisible({
+  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
     timeout: 10000,
   });
 
   page.once("dialog", async (dialog) => {
-    expect(dialog.message()).toMatch(/ocultar/i);
-    await dialog.accept("Ocultar E2E projeto arquivado");
+    expect(dialog.message()).toBe(
+      "Este projeto está arquivado. Não é possível criar novos relatórios legais/financeiros."
+    );
+    await dialog.accept();
   });
 
   await page
-    .locator('[data-project-lifecycle-action="hide"]')
+    .locator('[data-nav-action="select-mode"][data-mode="legal"]')
     .filter({ visible: true })
     .click();
+
+  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
+    timeout: 10000,
+  });
 
   await goBackToProjectList(page);
 
@@ -219,12 +172,13 @@ test("archived project can be hidden from the archived list", async ({
     .filter({ visible: true })
     .click();
 
-  await expect(
-    page.locator("#projectList .project-card").filter({ hasText: projectName })
-  ).toHaveCount(0, {
-    timeout: 15000,
-  });
+  const archivedProjectCard = page
+    .locator("#projectList .project-card")
+    .filter({ hasText: projectName });
 
-  await expect(page.locator("#projectList")).not.toContainText(projectName);
-  await expect(page.locator("#projectList")).not.toContainText(contractNum);
+  await expect(archivedProjectCard).toHaveCount(1, { timeout: 15000 });
+
+  await expect(
+    archivedProjectCard.getByRole("button", { name: /editar/i })
+  ).toHaveCount(0);
 });

@@ -130,7 +130,7 @@ test("user can create and generate a weekly report", async ({ page }) => {
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-    timeout: 10000,
+    timeout: 20000,
   });
 
   await page

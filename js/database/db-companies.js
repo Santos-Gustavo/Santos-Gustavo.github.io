@@ -6,15 +6,24 @@ import {
 } from "#database/db-helpers.js";
 
 export async function requireUser() {
-  const { data, error } = await supabaseClient.auth.getUser();
+  const attempts = 3;
+  const retryDelayMs = 200;
 
-  throwIfDbError(error, "Erro ao verificar utilizador.");
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const { data, error } = await supabaseClient.auth.getSession();
 
-  if (!data.user) {
-    throw new Error("Precisa de entrar na conta antes de guardar.");
+    throwIfDbError(error, "Erro ao verificar utilizador.");
+
+    if (data.session?.user) {
+      return data.session.user;
+    }
+
+    if (attempt < attempts) {
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+    }
   }
 
-  return data.user;
+  throw new Error("Precisa de entrar na conta antes de guardar.");
 }
 
 export async function loadCurrentUserCompanies() {
