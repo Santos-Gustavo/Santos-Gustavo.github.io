@@ -1,0 +1,715 @@
+-- | schemaname | tablename             | rls_enabled | force_rls |
+-- | ---------- | --------------------- | ----------- | --------- |
+-- | public     | clients               | true        | false     |
+-- | public     | companies             | true        | false     |
+-- | public     | payments              | true        | false     |
+-- | public     | photos                | true        | false     |
+-- | public     | project_status_events | true        | false     |
+-- | public     | projects              | true        | false     |
+-- | public     | reports               | true        | false     |
+
+
+
+
+
+-- | schemaname | tablename             | policyname                                 | permissive | roles           | cmd    | qual                                                                                                                                                                                                          | with_check                                                                                                                                                                                                    |
+-- | ---------- | --------------------- | ------------------------------------------ | ---------- | --------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+-- | public     | clients               | clients_delete_own                         | PERMISSIVE | {authenticated} | DELETE | (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = clients.company_id) AND (c.owner_id = auth.uid()))))                                                                                                  | null                                                                                                                                                                                                          |
+-- | public     | clients               | clients_insert_own                         | PERMISSIVE | {authenticated} | INSERT | null                                                                                                                                                                                                          | (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = clients.company_id) AND (c.owner_id = auth.uid()))))                                                                                                  |
+-- | public     | clients               | clients_select_own                         | PERMISSIVE | {authenticated} | SELECT | (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = clients.company_id) AND (c.owner_id = auth.uid()))))                                                                                                  | null                                                                                                                                                                                                          |
+-- | public     | clients               | clients_update_own                         | PERMISSIVE | {authenticated} | UPDATE | (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = clients.company_id) AND (c.owner_id = auth.uid()))))                                                                                                  | (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = clients.company_id) AND (c.owner_id = auth.uid()))))                                                                                                  |
+-- | public     | companies             | companies_delete_own                       | PERMISSIVE | {authenticated} | DELETE | (owner_id = auth.uid())                                                                                                                                                                                       | null                                                                                                                                                                                                          |
+-- | public     | companies             | companies_insert_own                       | PERMISSIVE | {authenticated} | INSERT | null                                                                                                                                                                                                          | (owner_id = auth.uid())                                                                                                                                                                                       |
+-- | public     | companies             | companies_select_own                       | PERMISSIVE | {authenticated} | SELECT | (owner_id = auth.uid())                                                                                                                                                                                       | null                                                                                                                                                                                                          |
+-- | public     | companies             | companies_update_own                       | PERMISSIVE | {authenticated} | UPDATE | (owner_id = auth.uid())                                                                                                                                                                                       | (owner_id = auth.uid())                                                                                                                                                                                       |
+-- | public     | payments              | payments_select_own                        | PERMISSIVE | {authenticated} | SELECT | (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = payments.company_id) AND (c.owner_id = auth.uid()))))                                                                                                 | null                                                                                                                                                                                                          |
+-- | public     | photos                | photos_delete_own                          | PERMISSIVE | {authenticated} | DELETE | (EXISTS ( SELECT 1
+--    FROM ((reports r
+--      JOIN projects p ON ((p.id = r.project_id)))
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((r.id = photos.report_id) AND (c.owner_id = auth.uid())))) | null                                                                                                                                                                                                          |
+-- | public     | photos                | photos_insert_own                          | PERMISSIVE | {authenticated} | INSERT | null                                                                                                                                                                                                          | (EXISTS ( SELECT 1
+--    FROM ((reports r
+--      JOIN projects p ON ((p.id = r.project_id)))
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((r.id = photos.report_id) AND (c.owner_id = auth.uid())))) |
+-- | public     | photos                | photos_select_own                          | PERMISSIVE | {authenticated} | SELECT | (EXISTS ( SELECT 1
+--    FROM ((reports r
+--      JOIN projects p ON ((p.id = r.project_id)))
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((r.id = photos.report_id) AND (c.owner_id = auth.uid())))) | null                                                                                                                                                                                                          |
+-- | public     | photos                | photos_update_own                          | PERMISSIVE | {authenticated} | UPDATE | (EXISTS ( SELECT 1
+--    FROM ((reports r
+--      JOIN projects p ON ((p.id = r.project_id)))
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((r.id = photos.report_id) AND (c.owner_id = auth.uid())))) | (EXISTS ( SELECT 1
+--    FROM ((reports r
+--      JOIN projects p ON ((p.id = r.project_id)))
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((r.id = photos.report_id) AND (c.owner_id = auth.uid())))) |
+-- | public     | project_status_events | Users can insert own project status events | PERMISSIVE | {authenticated} | INSERT | null                                                                                                                                                                                                          | ((changed_by = auth.uid()) AND (EXISTS ( SELECT 1
+--    FROM (projects p
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((p.id = project_status_events.project_id) AND (c.owner_id = auth.uid())))))  |
+-- | public     | project_status_events | Users can select own project status events | PERMISSIVE | {authenticated} | SELECT | (EXISTS ( SELECT 1
+--    FROM (projects p
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((p.id = project_status_events.project_id) AND (c.owner_id = auth.uid()))))                                  | null                                                                                                                                                                                                          |
+-- | public     | projects              | projects_delete_own                        | PERMISSIVE | {authenticated} | DELETE | (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = projects.company_id) AND (c.owner_id = auth.uid()))))                                                                                                 | null                                                                                                                                                                                                          |
+-- | public     | projects              | projects_insert_own                        | PERMISSIVE | {authenticated} | INSERT | null                                                                                                                                                                                                          | (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = projects.company_id) AND (c.owner_id = auth.uid()))))                                                                                                 |
+-- | public     | projects              | projects_select_own                        | PERMISSIVE | {authenticated} | SELECT | (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = projects.company_id) AND (c.owner_id = auth.uid()))))                                                                                                 | null                                                                                                                                                                                                          |
+-- | public     | projects              | projects_update_own                        | PERMISSIVE | {authenticated} | UPDATE | (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = projects.company_id) AND (c.owner_id = auth.uid()))))                                                                                                 | (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = projects.company_id) AND (c.owner_id = auth.uid()))))                                                                                                 |
+-- | public     | reports               | reports_delete_own                         | PERMISSIVE | {authenticated} | DELETE | (EXISTS ( SELECT 1
+--    FROM (projects p
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((p.id = reports.project_id) AND (c.owner_id = auth.uid()))))                                                | null                                                                                                                                                                                                          |
+-- | public     | reports               | reports_insert_own                         | PERMISSIVE | {authenticated} | INSERT | null                                                                                                                                                                                                          | (EXISTS ( SELECT 1
+--    FROM (projects p
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((p.id = reports.project_id) AND (c.owner_id = auth.uid()))))                                                |
+-- | public     | reports               | reports_select_own                         | PERMISSIVE | {authenticated} | SELECT | (EXISTS ( SELECT 1
+--    FROM (projects p
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((p.id = reports.project_id) AND (c.owner_id = auth.uid()))))                                                | null                                                                                                                                                                                                          |
+-- | public     | reports               | reports_update_own                         | PERMISSIVE | {authenticated} | UPDATE | (EXISTS ( SELECT 1
+--    FROM (projects p
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((p.id = reports.project_id) AND (c.owner_id = auth.uid()))))                                                | (EXISTS ( SELECT 1
+--    FROM (projects p
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((p.id = reports.project_id) AND (c.owner_id = auth.uid()))))                                                |
+-- | storage    | objects               | Project photos: delete own company folder  | PERMISSIVE | {authenticated} | DELETE | ((bucket_id = 'project-photos'::text) AND (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND (c.owner_id = auth.uid())))))                            | null                                                                                                                                                                                                          |
+-- | storage    | objects               | Project photos: read own company folder    | PERMISSIVE | {authenticated} | SELECT | ((bucket_id = 'project-photos'::text) AND (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND (c.owner_id = auth.uid())))))                            | null                                                                                                                                                                                                          |
+-- | storage    | objects               | Project photos: update own company folder  | PERMISSIVE | {authenticated} | UPDATE | ((bucket_id = 'project-photos'::text) AND (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND (c.owner_id = auth.uid())))))                            | ((bucket_id = 'project-photos'::text) AND (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND (c.owner_id = auth.uid())))))                            |
+-- | storage    | objects               | Project photos: upload own company folder  | PERMISSIVE | {authenticated} | INSERT | null                                                                                                                                                                                                          | ((bucket_id = 'project-photos'::text) AND (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND (c.owner_id = auth.uid())))))                            |
+
+
+-- | policy_sql                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+-- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+-- | create policy "clients_delete_own"
+-- on public.clients
+-- as PERMISSIVE
+-- for DELETE
+-- to authenticated
+-- using ((EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = clients.company_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                                                                                                                                                           |
+-- | create policy "clients_insert_own"
+-- on public.clients
+-- as PERMISSIVE
+-- for INSERT
+-- to authenticated
+-- with check ((EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = clients.company_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                                                                                                                                                      |
+-- | create policy "clients_select_own"
+-- on public.clients
+-- as PERMISSIVE
+-- for SELECT
+-- to authenticated
+-- using ((EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = clients.company_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                                                                                                                                                           |
+-- | create policy "clients_update_own"
+-- on public.clients
+-- as PERMISSIVE
+-- for UPDATE
+-- to authenticated
+-- using ((EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = clients.company_id) AND (c.owner_id = auth.uid())))))
+-- with check ((EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = clients.company_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                                 |
+-- | create policy "companies_delete_own"
+-- on public.companies
+-- as PERMISSIVE
+-- for DELETE
+-- to authenticated
+-- using ((owner_id = auth.uid()))
+-- ;                                                                                                                                                                                                                                                                                                                                                                                                            |
+-- | create policy "companies_insert_own"
+-- on public.companies
+-- as PERMISSIVE
+-- for INSERT
+-- to authenticated
+-- with check ((owner_id = auth.uid()))
+-- ;                                                                                                                                                                                                                                                                                                                                                                                                       |
+-- | create policy "companies_select_own"
+-- on public.companies
+-- as PERMISSIVE
+-- for SELECT
+-- to authenticated
+-- using ((owner_id = auth.uid()))
+-- ;                                                                                                                                                                                                                                                                                                                                                                                                            |
+-- | create policy "companies_update_own"
+-- on public.companies
+-- as PERMISSIVE
+-- for UPDATE
+-- to authenticated
+-- using ((owner_id = auth.uid()))
+-- with check ((owner_id = auth.uid()))
+-- ;                                                                                                                                                                                                                                                                                                                                                                       |
+-- | create policy "payments_select_own"
+-- on public.payments
+-- as PERMISSIVE
+-- for SELECT
+-- to authenticated
+-- using ((EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = payments.company_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                                                                                                                                                        |
+-- | create policy "photos_delete_own"
+-- on public.photos
+-- as PERMISSIVE
+-- for DELETE
+-- to authenticated
+-- using ((EXISTS ( SELECT 1
+--    FROM ((reports r
+--      JOIN projects p ON ((p.id = r.project_id)))
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((r.id = photos.report_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                                                            |
+-- | create policy "photos_insert_own"
+-- on public.photos
+-- as PERMISSIVE
+-- for INSERT
+-- to authenticated
+-- with check ((EXISTS ( SELECT 1
+--    FROM ((reports r
+--      JOIN projects p ON ((p.id = r.project_id)))
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((r.id = photos.report_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                                                       |
+-- | create policy "photos_select_own"
+-- on public.photos
+-- as PERMISSIVE
+-- for SELECT
+-- to authenticated
+-- using ((EXISTS ( SELECT 1
+--    FROM ((reports r
+--      JOIN projects p ON ((p.id = r.project_id)))
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((r.id = photos.report_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                                                            |
+-- | create policy "photos_update_own"
+-- on public.photos
+-- as PERMISSIVE
+-- for UPDATE
+-- to authenticated
+-- using ((EXISTS ( SELECT 1
+--    FROM ((reports r
+--      JOIN projects p ON ((p.id = r.project_id)))
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((r.id = photos.report_id) AND (c.owner_id = auth.uid())))))
+-- with check ((EXISTS ( SELECT 1
+--    FROM ((reports r
+--      JOIN projects p ON ((p.id = r.project_id)))
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((r.id = photos.report_id) AND (c.owner_id = auth.uid())))))
+-- ; |
+-- | create policy "Users can insert own project status events"
+-- on public.project_status_events
+-- as PERMISSIVE
+-- for INSERT
+-- to authenticated
+-- with check (((changed_by = auth.uid()) AND (EXISTS ( SELECT 1
+--    FROM (projects p
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((p.id = project_status_events.project_id) AND (c.owner_id = auth.uid()))))))
+-- ;                                                                                                                                                                                |
+-- | create policy "Users can select own project status events"
+-- on public.project_status_events
+-- as PERMISSIVE
+-- for SELECT
+-- to authenticated
+-- using ((EXISTS ( SELECT 1
+--    FROM (projects p
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((p.id = project_status_events.project_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                                                     |
+-- | create policy "projects_delete_own"
+-- on public.projects
+-- as PERMISSIVE
+-- for DELETE
+-- to authenticated
+-- using ((EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = projects.company_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                                                                                                                                                        |
+-- | create policy "projects_insert_own"
+-- on public.projects
+-- as PERMISSIVE
+-- for INSERT
+-- to authenticated
+-- with check ((EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = projects.company_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                                                                                                                                                   |
+-- | create policy "projects_select_own"
+-- on public.projects
+-- as PERMISSIVE
+-- for SELECT
+-- to authenticated
+-- using ((EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = projects.company_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                                                                                                                                                        |
+-- | create policy "projects_update_own"
+-- on public.projects
+-- as PERMISSIVE
+-- for UPDATE
+-- to authenticated
+-- using ((EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = projects.company_id) AND (c.owner_id = auth.uid())))))
+-- with check ((EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE ((c.id = projects.company_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                             |
+-- | create policy "reports_delete_own"
+-- on public.reports
+-- as PERMISSIVE
+-- for DELETE
+-- to authenticated
+-- using ((EXISTS ( SELECT 1
+--    FROM (projects p
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((p.id = reports.project_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                                                                                                         |
+-- | create policy "reports_insert_own"
+-- on public.reports
+-- as PERMISSIVE
+-- for INSERT
+-- to authenticated
+-- with check ((EXISTS ( SELECT 1
+--    FROM (projects p
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((p.id = reports.project_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                                                                                                    |
+-- | create policy "reports_select_own"
+-- on public.reports
+-- as PERMISSIVE
+-- for SELECT
+-- to authenticated
+-- using ((EXISTS ( SELECT 1
+--    FROM (projects p
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((p.id = reports.project_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                                                                                                         |
+-- | create policy "reports_update_own"
+-- on public.reports
+-- as PERMISSIVE
+-- for UPDATE
+-- to authenticated
+-- using ((EXISTS ( SELECT 1
+--    FROM (projects p
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((p.id = reports.project_id) AND (c.owner_id = auth.uid())))))
+-- with check ((EXISTS ( SELECT 1
+--    FROM (projects p
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((p.id = reports.project_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                             |
+-- | create policy "Project photos: delete own company folder"
+-- on storage.objects
+-- as PERMISSIVE
+-- for DELETE
+-- to authenticated
+-- using (((bucket_id = 'project-photos'::text) AND (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND (c.owner_id = auth.uid()))))))
+-- ;                                                                                                                                                                                                                             |
+-- | create policy "Project photos: read own company folder"
+-- on storage.objects
+-- as PERMISSIVE
+-- for SELECT
+-- to authenticated
+-- using (((bucket_id = 'project-photos'::text) AND (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND (c.owner_id = auth.uid()))))))
+-- ;                                                                                                                                                                                                                               |
+-- | create policy "Project photos: update own company folder"
+-- on storage.objects
+-- as PERMISSIVE
+-- for UPDATE
+-- to authenticated
+-- using (((bucket_id = 'project-photos'::text) AND (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND (c.owner_id = auth.uid()))))))
+-- with check (((bucket_id = 'project-photos'::text) AND (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND (c.owner_id = auth.uid()))))))
+-- ;                             |
+-- | create policy "Project photos: upload own company folder"
+-- on storage.objects
+-- as PERMISSIVE
+-- for INSERT
+-- to authenticated
+-- with check (((bucket_id = 'project-photos'::text) AND (EXISTS ( SELECT 1
+--    FROM companies c
+--   WHERE (((c.id)::text = (storage.foldername(objects.name))[1]) AND (c.owner_id = auth.uid()))))))
+-- ;                                                                                                                                                                                                                        |
+
+
+
+/*
+Manual Supabase live schema/RLS baseline.
+
+Created manually because supabase db pull requires Docker and Docker is not available in this environment.
+
+This file is documentation only.
+Do not execute this file as a migration without reviewing and converting it into a proper migration.
+No secrets are included.
+*/
+
+
+-- create table public.companies (
+--   id uuid not null default gen_random_uuid (),
+--   owner_id uuid not null,
+--   created_at timestamp with time zone not null default now(),
+--   updated_at timestamp with time zone not null default now(),
+--   name text not null,
+--   nif text null,
+--   impic text null,
+--   responsible text null,
+--   phone text null,
+--   email text null,
+--   address text null,
+--   logo_url text null,
+--   default_vat_rate numeric not null default 23.00,
+--   notes text null,
+--   subscription_status smallint not null default 0,
+--   subscription_plan smallint null,
+--   current_period_start timestamp with time zone null,
+--   current_period_end timestamp with time zone null,
+--   constraint companies_pkey primary key (id),
+--   constraint companies_owner_id_fkey foreign KEY (owner_id) references auth.users (id) on delete CASCADE,
+--   constraint companies_default_vat_rate_check check (
+--     (
+--       (default_vat_rate >= (0)::numeric)
+--       and (default_vat_rate <= (100)::numeric)
+--     )
+--   )
+-- ) TABLESPACE pg_default;
+
+-- create index IF not exists idx_companies_owner_id on public.companies using btree (owner_id) TABLESPACE pg_default;
+
+-- create index IF not exists idx_companies_subscription_status on public.companies using btree (subscription_status) TABLESPACE pg_default;
+
+-- create trigger set_companies_updated_at BEFORE
+-- update on companies for EACH row
+-- execute FUNCTION set_updated_at ();
+
+
+
+-- create table public.clients (
+--   id uuid not null default gen_random_uuid (),
+--   company_id uuid not null,
+--   created_at timestamp with time zone not null default now(),
+--   updated_at timestamp with time zone not null default now(),
+--   name text not null,
+--   phone text null,
+--   email text null,
+--   nif text null,
+--   address text null,
+--   notes text null,
+--   archived_at timestamp with time zone null,
+--   deleted_at timestamp with time zone null,
+--   constraint clients_pkey primary key (id),
+--   constraint clients_id_company_id_unique unique (id, company_id),
+--   constraint clients_company_id_fkey foreign KEY (company_id) references companies (id) on delete CASCADE
+-- ) TABLESPACE pg_default;
+
+-- create index IF not exists idx_clients_company_id on public.clients using btree (company_id) TABLESPACE pg_default;
+
+-- create index IF not exists idx_clients_company_not_deleted on public.clients using btree (company_id, created_at desc) TABLESPACE pg_default
+-- where
+--   (deleted_at is null);
+
+-- create trigger set_clients_updated_at BEFORE
+-- update on clients for EACH row
+-- execute FUNCTION set_updated_at ();
+
+
+
+-- create table public.payments (
+--   id uuid not null default gen_random_uuid (),
+--   company_id uuid not null,
+--   created_at timestamp with time zone not null default now(),
+--   updated_at timestamp with time zone not null default now(),
+--   provider smallint not null default 1,
+--   method smallint not null,
+--   status smallint not null default 0,
+--   amount numeric not null,
+--   currency character(3) not null default 'EUR'::bpchar,
+--   period_days integer not null default 30,
+--   eupago_transaction_id text null,
+--   eupago_reference text null,
+--   eupago_entity text null,
+--   eupago_identifier text null,
+--   eupago_payment_method_code text null,
+--   expires_at timestamp with time zone null,
+--   paid_at timestamp with time zone null,
+--   raw_create_response jsonb null,
+--   raw_webhook_payload jsonb null,
+--   constraint payments_pkey primary key (id),
+--   constraint payments_company_id_fkey foreign KEY (company_id) references companies (id) on delete CASCADE,
+--   constraint payments_amount_positive_check check ((amount > (0)::numeric)),
+--   constraint payments_provider_check check ((provider = 1)),
+--   constraint payments_status_check check ((status = any (array[0, 1, 2, 3, 4, 5]))),
+--   constraint payments_period_days_positive_check check ((period_days > 0)),
+--   constraint payments_method_check check ((method = any (array[1, 2])))
+-- ) TABLESPACE pg_default;
+
+-- create index IF not exists idx_payments_company_id on public.payments using btree (company_id) TABLESPACE pg_default;
+
+-- create index IF not exists idx_payments_status on public.payments using btree (status) TABLESPACE pg_default;
+
+-- create index IF not exists idx_payments_eupago_identifier on public.payments using btree (eupago_identifier) TABLESPACE pg_default;
+
+-- create index IF not exists idx_payments_eupago_transaction_id on public.payments using btree (eupago_transaction_id) TABLESPACE pg_default;
+
+-- create trigger set_payments_updated_at BEFORE
+-- update on payments for EACH row
+-- execute FUNCTION set_updated_at ();
+
+
+
+
+-- create table public.projects (
+--   id uuid not null default gen_random_uuid (),
+--   client_id uuid not null,
+--   company_id uuid not null,
+--   created_at timestamp with time zone not null default now(),
+--   updated_at timestamp with time zone not null default now(),
+--   name text not null,
+--   site_address text null,
+--   type_of_work text null,
+--   start_date date null,
+--   expected_end_date date null,
+--   actual_end_date date null,
+--   contract_num text null,
+--   contract_value numeric null,
+--   internal_notes text null,
+--   status smallint not null default 1,
+--   archived_at timestamp with time zone null,
+--   deleted_at timestamp with time zone null,
+--   hidden_at timestamp with time zone null,
+--   closure_type text null,
+--   closure_reason text null,
+--   closed_at timestamp with time zone null,
+--   reopened_at timestamp with time zone null,
+--   constraint projects_pkey primary key (id),
+--   constraint projects_company_id_fkey foreign KEY (company_id) references companies (id) on delete CASCADE,
+--   constraint projects_client_company_fkey foreign KEY (client_id, company_id) references clients (id, company_id) on delete RESTRICT,
+--   constraint projects_expected_end_after_start_check check (
+--     (
+--       (expected_end_date is null)
+--       or (start_date is null)
+--       or (expected_end_date >= start_date)
+--     )
+--   ),
+--   constraint projects_actual_end_after_start_check check (
+--     (
+--       (actual_end_date is null)
+--       or (start_date is null)
+--       or (actual_end_date >= start_date)
+--     )
+--   ),
+--   constraint projects_status_check check ((status = any (array[0, 1, 2, 3, 4, 5]))),
+--   constraint projects_closure_type_check check (
+--     (
+--       (closure_type is null)
+--       or (
+--         closure_type = any (
+--           array[
+--             'completed'::text,
+--             'cancelled'::text,
+--             'abandoned'::text,
+--             'disputed'::text,
+--             'transferred'::text,
+--             'other'::text
+--           ]
+--         )
+--       )
+--     )
+--   ),
+--   constraint projects_contract_value_check check (
+--     (
+--       (contract_value is null)
+--       or (contract_value >= (0)::numeric)
+--     )
+--   )
+-- ) TABLESPACE pg_default;
+
+-- create index IF not exists idx_projects_client_id on public.projects using btree (client_id) TABLESPACE pg_default;
+
+-- create index IF not exists idx_projects_company_id on public.projects using btree (company_id) TABLESPACE pg_default;
+
+-- create index IF not exists idx_projects_company_not_deleted on public.projects using btree (company_id, created_at desc) TABLESPACE pg_default
+-- where
+--   (deleted_at is null);
+
+-- create index IF not exists idx_projects_deleted_at on public.projects using btree (deleted_at) TABLESPACE pg_default;
+
+-- create trigger set_projects_updated_at BEFORE
+-- update on projects for EACH row
+-- execute FUNCTION set_updated_at ();
+
+
+
+-- create table public.reports (
+--   id uuid not null default gen_random_uuid (),
+--   project_id uuid not null,
+--   created_at timestamp with time zone not null default now(),
+--   updated_at timestamp with time zone not null default now(),
+--   report_num integer null,
+--   report_date date not null default CURRENT_DATE,
+--   period_start date null,
+--   period_end date null,
+--   distributed_to text null,
+--   sent_via smallint null,
+--   phase text null,
+--   progress_pct integer not null default 0,
+--   week_summary text null,
+--   alert_on boolean not null default false,
+--   alert_title text null,
+--   alert_desc text null,
+--   alert_deadline date null,
+--   alert_consequence text null,
+--   incidents_on boolean not null default false,
+--   financial_note text null,
+--   works jsonb not null default '[]'::jsonb,
+--   incidents jsonb not null default '[]'::jsonb,
+--   extras jsonb not null default '[]'::jsonb,
+--   next_steps jsonb not null default '[]'::jsonb,
+--   pdf_url text null,
+--   pdf_storage_path text null,
+--   status smallint not null default 0,
+--   archived_at timestamp with time zone null,
+--   deleted_at timestamp with time zone null,
+--   snapshot_json jsonb null,
+--   constraint reports_pkey primary key (id),
+--   constraint reports_project_report_num_unique unique (project_id, report_num),
+--   constraint reports_project_id_fkey foreign KEY (project_id) references projects (id) on delete CASCADE,
+--   constraint reports_sent_via_code_check check (
+--     (
+--       (sent_via is null)
+--       or (sent_via = any (array[0, 1, 2, 3, 4]))
+--     )
+--   ),
+--   constraint reports_period_valid_check check (
+--     (
+--       (period_start is null)
+--       or (period_end is null)
+--       or (period_end >= period_start)
+--     )
+--   ),
+--   constraint reports_status_code_check check ((status = any (array[0, 1, 2, 3, 4]))),
+--   constraint reports_progress_check check (
+--     (
+--       (progress_pct >= 0)
+--       and (progress_pct <= 100)
+--     )
+--   ),
+--   constraint reports_report_num_positive_check check (
+--     (
+--       (report_num is null)
+--       or (report_num > 0)
+--     )
+--   )
+-- ) TABLESPACE pg_default;
+
+-- create index IF not exists idx_reports_project_id on public.reports using btree (project_id) TABLESPACE pg_default;
+
+-- create index IF not exists idx_reports_project_report_date on public.reports using btree (project_id, report_date desc) TABLESPACE pg_default;
+
+-- create index IF not exists idx_reports_project_status on public.reports using btree (project_id, status) TABLESPACE pg_default;
+
+-- create index IF not exists idx_reports_project_not_deleted on public.reports using btree (project_id, report_date desc) TABLESPACE pg_default
+-- where
+--   (deleted_at is null);
+
+-- create index IF not exists idx_reports_snapshot_json_gin on public.reports using gin (snapshot_json) TABLESPACE pg_default;
+
+-- create trigger set_reports_updated_at BEFORE
+-- update on reports for EACH row
+-- execute FUNCTION set_updated_at ();
+
+-- create trigger trg_prevent_report_insert_on_deleted_project BEFORE INSERT on reports for EACH row
+-- execute FUNCTION prevent_report_insert_on_deleted_project ();
+
+
+
+
+-- create table public.project_status_events (
+--   id uuid not null default gen_random_uuid (),
+--   project_id uuid not null,
+--   old_status smallint null,
+--   new_status smallint null,
+--   old_hidden_at timestamp with time zone null,
+--   new_hidden_at timestamp with time zone null,
+--   closure_type text null,
+--   reason text null,
+--   note text null,
+--   changed_by uuid null,
+--   created_at timestamp with time zone not null default now(),
+--   snapshot_json jsonb not null default '{}'::jsonb,
+--   constraint project_status_events_pkey primary key (id),
+--   constraint project_status_events_changed_by_fkey foreign KEY (changed_by) references auth.users (id),
+--   constraint project_status_events_project_id_fkey foreign KEY (project_id) references projects (id) on delete CASCADE,
+--   constraint project_status_events_closure_type_check check (
+--     (
+--       (closure_type is null)
+--       or (
+--         closure_type = any (
+--           array[
+--             'completed'::text,
+--             'cancelled'::text,
+--             'abandoned'::text,
+--             'disputed'::text,
+--             'transferred'::text,
+--             'other'::text
+--           ]
+--         )
+--       )
+--     )
+--   )
+-- ) TABLESPACE pg_default;
