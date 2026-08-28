@@ -9,7 +9,8 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:mobile": "playwright test tests/e2e/mobile.spec.js --headed",
-    "check:migration": "node scripts/check-esm-migration.js"
+    "check:migration": "node scripts/check-esm-migration.js",
+    "check:share-boundary": "node scripts/check-share-import-boundary.js"
   },
   "repository": {
     "type": "git",

@@ -8,7 +8,7 @@ Keep this to structure that changes rarely. Feature-specific schema belongs in t
 - Playwright E2E
 
 ## Cross-cutting patterns
-- Public/unauthenticated routes: token-based access (opaque, server-generated, hashed at rest — never a UUID or predictable value), never RLS relaxation. See `docs/features/CLIENT-SHARE-LINK-001.md` §3 for a worked design once it ships, and existing `delete-photo`/`delete-project` Edge Functions for the JWT → service-role → `SECURITY DEFINER` RPC house style.
+- Public/unauthenticated routes: token-based access (opaque, server-generated, hashed at rest — never a UUID or predictable value), never RLS relaxation. `docs/features/CLIENT-SHARE-LINK-001.md` §3 is the first shipped example of this pattern (`share.html` + `get-shared-report`, implemented and deployed 2026-08-28) — see its §3.11 for live SQL fixes this pattern required in practice. Existing `delete-photo`/`delete-project` Edge Functions remain the reference for the JWT → service-role → `SECURITY DEFINER` RPC house style.
 - Versioned records: see `decisions.md` → "Version lineage ≠ business status" before building anything append-only.
 - [add other durable patterns as they're established]
 
