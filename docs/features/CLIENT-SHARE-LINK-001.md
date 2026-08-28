@@ -1,11 +1,29 @@
 # CLIENT-SHARE-LINK-001
 
-Status: **Implemented, Deployed, Tested.** The migration is applied to the live Supabase project, all three Edge Functions are deployed, and the full Playwright suite — including all five `client-share-link-*` specs — passes end to end against that live deployment. See §3.10 for build history, §3.11 for the live SQL fixes required to get it working, §3.12 for the deploy runbook, and §3.13 for the actual test evidence.
+Status: **Implemented, Deployed, Tested.** The migration is applied to the live Supabase project, all three Edge Functions are deployed, and the full Playwright suite — including all five `client-share-link-*` specs — passes end to end against that live deployment. See §3.10 for build history, §3.11 for the live SQL fixes required to get it working, §3.12 for the deploy runbook, and §3.13 for the actual test evidence. §3.14 adds Delivery Telemetry (CLIENT-CONFIRMATION-001) — read-only "has the client opened this link" badges on the same UI, built from columns this table already had. Not a new feature, not an approval/signature workflow.
 Risk: High — new public/unauthenticated surface, RLS-adjacent (per `docs/brain/context/architecture.md` — public routes use token-based access, never RLS relaxation). Deployed and tested does not lower this — it's still the app's only public/anon-reachable surface.
 Evidence Level: 0 — Not yet externally validated. This is a *product/business* evidence axis (customer statements, observed pain, usage/retention/revenue signal — see `docs/product/evidence.md`, which has no traceable entry for this feature) and is intentionally separate from engineering/QA status: the feature is technically implemented and tested (§3.10-§3.13, §4), but no real contractor or client has used it yet. Do not conflate "tested" with "validated" — raising this above 0 requires a real logged observation in `docs/product/evidence.md`, not a green test run.
 Execution Path: Full Gate (public access + auth-adjacent surface both trigger Full Gate per `docs/brain/OPERATION-MODEL.md` §9). Gustavo used a CEO override to proceed straight to implementation without a formal Gemini Value Gate / ChatGPT Definition Gate pass — see §6. That gap is still open and is not closed by shipping; it's tracked as a carry item in `CLAUDE.md`'s Project State.
 
 This document originated as a standalone engineering investigation/design before the feature-file structure existed; Sections 1 and 2 were drafted afterward, then Section 3 was built out and deployed. Section 1 (Product Rationale) and Section 2 (PM Specification) are still drafts that were never independently reviewed by Gemini/ChatGPT in their own role sessions — the "Value Gate Pass" and QA-passed language elsewhere in this document is Claude's own read/verification, not a substitute for those sign-offs (see §1 and §4 for the exact caveats). Section 3 (Engineering) reflects what is actually live today, including three SQL fixes that only surfaced during deployment. Section 5 (Product Validation) is genuinely pending — no real customer has used this yet. Section 6 records the CEO's decision to proceed and ship.
+
+### Key Files
+
+Orientation only — what lives where, so a future session can `Read`/`Grep` directly instead of re-discovering this from scratch. No line numbers (they drift); if a path below no longer exists, trust the repo and fix this table, not the other way around.
+
+| Path | What it owns |
+|---|---|
+| `supabase/migrations/20260828120000_report_share_links.sql` | `report_share_links` table + RLS policy + the three `SECURITY DEFINER` RPCs (`create_report_share_link`, `get_report_by_share_token`, `revoke_report_share_link`). **Statements are stale vs. live** — see §3.11 for the three live-only fixes not yet reflected here. |
+| `supabase/manual/live_schema_rls_baseline.sql` | Dump-style copy of what's actually live (schema + RLS), for cross-checking against the migration file above when they disagree. |
+| `supabase/functions/create-report-share-link/index.ts` | Edge Function: authenticated contractor → mints a new link, revoking any prior active one for the same report. |
+| `supabase/functions/get-shared-report/index.ts` | Edge Function: unauthenticated, token in body → validates + returns client-safe report JSON with fresh signed photo URLs. This is where `access_count`/`last_accessed_at` get bumped (inside the RPC it calls, not in this file). |
+| `supabase/functions/revoke-report-share-link/index.ts` | Edge Function: authenticated contractor → revokes a link they own. |
+| `share.html` + `js/share/share-client.js` | Standalone public entry point the client opens. Reads `#token=`, calls `get-shared-report`, renders via `report-renderer.js` into a sandboxed iframe. Import-boundary-restricted — see AC-04.2 and `scripts/check-share-import-boundary.js`. |
+| `js/reports/report-history.js` | Contractor-side "Relatórios guardados" list: renders each report, its "Criar link para cliente" action, and the share panel (link/copy/WhatsApp/revoke + status badges from §3.14). |
+| `js/reports/report-share.js` | Thin API layer `report-history.js` calls into: `createReportShareLink`, `revokeReportShareLink`, `loadShareLinkStatusesForReports` (§3.14), `buildWhatsAppShareUrl`. |
+| `styles.css` | `.share-panel`, `.share-link-input`, `.share-panel-actions`, `.share-status-badge` (+ 4 state modifiers) — search for `share-` to find all of it. |
+| `tests/e2e/client-share-link-*.spec.js` | One spec per REQ-01..04 concern (readonly-boundary, expiry, revoked, invalid-token, isolation), plus `-status.spec.js` for §3.14's badges. |
+| `tests/e2e/helpers/report-share-test-helper.js` | Shared seeding/assertion helpers: `createTestShareLink`, `forceExpireTestLink`, `revokeTestShareLink`, `getProjectNameForReport`, `deleteShareLinksForReport`. Uses a service-role client — Node-test-only, never shipped to the browser. |
 
 ## 1. Product Rationale — Gemini
 
@@ -311,6 +329,7 @@ All new specs should reuse the existing `.env`-driven credential pattern (`E2E_E
 - **Phase 4 — WhatsApp link generation.** The "Criar link para cliente" action in the authenticated app (`js/reports/report-share.js`), calling `create-report-share-link` and building the `wa.me` deep link. This is the first phase a contractor can use unassisted.
 - **Phase 5 — Tests.** The five specs in §3.8, plus updating any existing suite that enumerates all `data-*-action` attributes if one exists, so it stays honest about the new surface.
 - **Phase 6 — Polish.** Revoke-link UI/action, "copiar link" fallback, nicer expired/revoked messaging, optional access-log table for the contractor's own visibility, basic abuse-rate protection — none of it security-load-bearing, all of it deferred without weakening §3.7.
+  - The "contractor's own visibility" item shipped 2026-08-28 as **Delivery Telemetry** — not a new access-log table, just status badges over the `access_count`/`last_accessed_at`/`expires_at`/`revoked_at` columns this table already had. See §3.14. Abuse-rate protection is still deferred.
 
 ### 3.10 Implementation notes (2026-08-28)
 
@@ -367,6 +386,34 @@ Static checks also pass: `node scripts/check-share-import-boundary.js` (AC-04.2)
 
 This is Claude's own engineering-verification run (real command output, not a self-report) — it satisfies the "tested" claim in this document's Status line, but it is not a substitute for ChatGPT's own independent Verification Gate pass, which has not happened. See §4.
 
+### 3.14 Delivery Telemetry — CLIENT-CONFIRMATION-001 (2026-08-28)
+
+**Status: Implemented, Tested.** A light extension, requested and scoped explicitly as *not* a new feature: show the contractor, on the same report-history/share-link UI, whether a client has actually opened a shared report link. No new table, no approval/signature/change-order semantics, no notifications, no IP/geolocation tracking — strictly a read of columns `report_share_links` already had since §3.2 (`access_count`, `last_accessed_at`, `expires_at`, `revoked_at`).
+
+**What was built:**
+- [js/reports/report-share.js](../../js/reports/report-share.js) gained `loadShareLinkStatusesForReports(reportIds)` — a batched `select` against `report_share_links` (via the existing anon-key `supabaseClient`, reading through the `report_share_links_select_own` RLS policy already in place; no service-role key touches the browser). Returns the most-recently-created link per report id.
+- [js/reports/report-history.js](../../js/reports/report-history.js) fetches these statuses when rendering the report list, and derives a badge/text view via `computeShareStatusView()` with this precedence: revoked > expired > viewed/not-viewed by `access_count`. The share panel now renders this status whenever a report has a link, even after a page reload/reopen (previously the panel only ever showed state that lived in that page load's DOM, created moments earlier).
+- Four states, Portuguese, viewing/access language only:
+  - `access_count = 0`, active → badge **"Não visualizado"**, text "O cliente ainda não abriu este link."
+  - `access_count > 0`, active → badge **"Visualizado"**, text "Último acesso: [Data/Hora] ([X] visualizações)" — if `last_accessed_at` is null despite `access_count > 0`, the "Último acesso" prefix is dropped rather than inventing a timestamp.
+  - `expires_at` in the past, not revoked → badge **"Expirado"**, text "Este link expirou em [Data]."
+  - `revoked_at` set → badge **"Cancelado"**, text "O acesso a este link foi revogado." (checked first — revoked takes precedence over expired, which takes precedence over viewed/not-viewed).
+  - Any active state also shows "Expira em: [Data/Hora]".
+- CSS: `.share-status-badge` + four color modifiers in [styles.css](../../styles.css), following the same visual pattern as `.project-status-badge` (brass/forest/amber/rust from the existing palette — no new colors introduced).
+- Explicitly avoided: "Aprovado", "Aprovação", "Aceite", "Assinado", "Confirmado", "Confirmação do cliente", "Validado" — none of these strings appear anywhere in the new UI code; enforced by an e2e assertion (see below), not just by convention.
+
+**What was deliberately not touched:** `get-shared-report` (the client-facing function already updates `access_count`/`last_accessed_at` inside `get_report_by_share_token`, per §3.2/AC-03.4 — nothing to change there), `share.html`, and no new database table or migration.
+
+**Tests:** [tests/e2e/client-share-link-status.spec.js](../../tests/e2e/client-share-link-status.spec.js), two specs:
+- Full lifecycle in one authenticated session: create a link → asserts "Não visualizado" → opens it as an unauthenticated client in a second browser context (exercising the real `get-shared-report` increment path) → reopens the contractor's report history → asserts "Visualizado" with the access count → revokes → asserts "Cancelado" and that no revoke action remains. Asserts the forbidden-word list is absent at every stage.
+- A separately-seeded, force-expired link (via the existing `forceExpireTestLink` helper from the `-expiry`/`-revoked` specs) → asserts "Expirado".
+
+Both run against `E2E_REPORT_ID` / `E2E_SECOND_REPORT_ID` respectively; the expiry spec deliberately uses the second report id and a new `deleteShareLinksForReport()` cleanup helper (added to `tests/e2e/helpers/report-share-test-helper.js`) to avoid a test-isolation trap: `forceExpireTestLink` must backdate `created_at` to satisfy the table's `expires_at > created_at` check constraint, so without cleanup a real-time row left by an earlier spec on the same report would out-rank the deliberately-backdated one under "most recently created link wins" — a test-fixture artifact only, not a production concern (`created_at` is never backdated outside tests).
+
+Full suite result (`npm run test:e2e`, 25 specs): 24 passed, including both new specs. The one failure, `payments-readonly-boundary.spec.js`, is pre-existing and unrelated — confirmed by running it against the unmodified branch (`git stash`) before this change, where it fails identically.
+
+Static checks: `node scripts/check-share-import-boundary.js` and `node scripts/check-esm-migration.js` both pass unchanged (this work never touched `js/share/*`).
+
 ## 4. Verification — ChatGPT
 
 QA status: **Passed** — against real evidence, not a self-report. All five `client-share-link-*` Playwright specs (REQ-01 through REQ-04's automated coverage) pass against the live deployment, the full pre-existing 23-spec suite passes with no regressions, and both static checks (`check:share-boundary`, `check:migration`) pass. See §3.13 for the full list and §3.12 for how to reproduce it.
@@ -388,3 +435,4 @@ Next action: Real Gemini Product Validation (§5) and ChatGPT Verification Gate 
 
 * **2026-08-28** — Gustavo: skip formal Value Gate / Definition Gate sign-off, proceed straight to implementation. Recorded here so the gap is traceable rather than silently absent.
 * **2026-08-28** — Claude: applied the migration and deployed all three Edge Functions to the live Supabase project; fixed three live SQL problems in the process (`pgcrypto` schema qualification, PL/pgSQL column-ambiguity aliasing, PostgREST schema-cache reload — see §3.11); confirmed working via the full Playwright suite (§3.13). Feature is implemented, deployed, and tested — not yet product-validated (§5) or independently QA-verified by ChatGPT (§4).
+* **2026-08-28** — Claude: implemented Delivery Telemetry (CLIENT-CONFIRMATION-001) as a light extension of this feature — "Não visualizado"/"Visualizado"/"Expirado"/"Cancelado" badges on the existing report-history/share-link UI, built entirely from `report_share_links` columns that already existed. No new table, no approval/signature language, no new Edge Function or migration. See §3.14 for full detail and test evidence.

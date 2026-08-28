@@ -48,8 +48,19 @@ function handleReportClick(event) {
 
   event.preventDefault();
 
-  saveAndGenerateReport().catch((error) => {
-    console.error("Failed to save and generate report:", error);
-    alert("Erro ao gerar relatório: " + error.message);
-  });
+  if (button.disabled) return;
+
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = "A gerar...";
+
+  saveAndGenerateReport()
+    .catch((error) => {
+      console.error("Failed to save and generate report:", error);
+      alert("Erro ao gerar relatório: " + error.message);
+    })
+    .finally(() => {
+      button.disabled = false;
+      button.textContent = originalLabel;
+    });
 }

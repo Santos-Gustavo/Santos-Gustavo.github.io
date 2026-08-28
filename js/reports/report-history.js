@@ -11,6 +11,7 @@ import {
   createReportShareLink,
   revokeReportShareLink,
   buildWhatsAppShareUrl,
+  loadShareLinkStatusesForReports,
 } from "#reports/report-share.js";
 import { appState } from "#state/app-state.js";
 
@@ -49,7 +50,16 @@ export async function renderReportHistory(projectId = null) {
       return;
     }
 
-    target.innerHTML = reports.map(renderReportHistoryItem).join("");
+    const shareLinkStatuses = await loadShareLinkStatusesForReports(
+      reports.map((report) => report.id)
+    ).catch((error) => {
+      console.error("Failed to load share link statuses:", error);
+      return new Map();
+    });
+
+    target.innerHTML = reports
+      .map((report) => renderReportHistoryItem(report, shareLinkStatuses.get(report.id)))
+      .join("");
   } catch (error) {
     console.error("Failed to render report history:", error);
     target.innerHTML = `<p class="empty-hint">Erro ao carregar relatórios anteriores.</p>`;
@@ -77,8 +87,12 @@ export async function openSavedReport(reportId) {
   return openHtmlReportPreview(html);
 }
 
-function renderReportHistoryItem(report) {
+function renderReportHistoryItem(report, shareStatus) {
   const hasSnapshot = Boolean(report.snapshotJson);
+  const view = computeShareStatusView(shareStatus);
+  const linkIdAttr = shareStatus?.linkId
+    ? ` data-link-id="${escapeHtml(shareStatus.linkId)}"`
+    : "";
 
   return `
     <div class="project-card report-history-card" data-report-history-card="${escapeHtml(report.id)}">
@@ -114,7 +128,126 @@ function renderReportHistoryItem(report) {
         </div>
       </div>
 
-      <div class="share-panel" data-share-panel hidden></div>
+      <div class="share-panel" data-share-panel${linkIdAttr} ${view ? "" : "hidden"}>${
+        view ? renderSharePanelContent({ view, shareUrl: null, whatsAppUrl: null }) : ""
+      }</div>
+    </div>
+  `;
+}
+
+// Derives the badge/text state for a share link from the raw DB fields, per the
+// precedence rules in docs/features/CLIENT-SHARE-LINK-001.md (Delivery Telemetry):
+// revoked > expired > viewed/not-viewed by access_count. `status` is null when the
+// report has no share link yet.
+function computeShareStatusView(status) {
+  if (!status) return null;
+
+  if (status.revokedAt) {
+    return {
+      code: "revoked",
+      isActive: false,
+      badgeClass: "share-status-badge--revoked",
+      badgeLabel: "Cancelado",
+      secondaryText: "O acesso a este link foi revogado.",
+      expiryText: null,
+    };
+  }
+
+  const expiresAt = status.expiresAt ? new Date(status.expiresAt) : null;
+  const isExpired =
+    expiresAt && !Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= Date.now();
+
+  if (isExpired) {
+    return {
+      code: "expired",
+      isActive: false,
+      badgeClass: "share-status-badge--expired",
+      badgeLabel: "Expirado",
+      secondaryText: `Este link expirou em ${formatShortDate(status.expiresAt)}.`,
+      expiryText: null,
+    };
+  }
+
+  const expiryText = `Expira em: ${formatDateTime(status.expiresAt)}`;
+  const accessCount = Number(status.accessCount) || 0;
+
+  if (accessCount > 0) {
+    // last_accessed_at can be null even when access_count > 0 (e.g. backfilled data) —
+    // never fabricate a timestamp in that case, just drop the "Último acesso" prefix.
+    const secondaryText = status.lastAccessedAt
+      ? `Último acesso: ${formatDateTime(status.lastAccessedAt)} (${accessCount} visualizações)`
+      : `${accessCount} visualizações`;
+
+    return {
+      code: "viewed",
+      isActive: true,
+      badgeClass: "share-status-badge--viewed",
+      badgeLabel: "Visualizado",
+      secondaryText,
+      expiryText,
+    };
+  }
+
+  return {
+    code: "not-viewed",
+    isActive: true,
+    badgeClass: "share-status-badge--not-viewed",
+    badgeLabel: "Não visualizado",
+    secondaryText: "O cliente ainda não abriu este link.",
+    expiryText,
+  };
+}
+
+function renderShareStatusBlock(view) {
+  const expiryHtml = view.expiryText
+    ? `<div class="share-status-expiry">${escapeHtml(view.expiryText)}</div>`
+    : "";
+
+  return `
+    <div class="share-status-row">
+      <span class="share-status-badge ${view.badgeClass}">${escapeHtml(view.badgeLabel)}</span>
+      <span class="share-status-text">${escapeHtml(view.secondaryText)}</span>
+    </div>
+    ${expiryHtml}
+  `;
+}
+
+// A revoked/expired link shows only its status (no URL, no actions — nothing left to
+// do with it). An active link shows its status plus whatever actions apply: the share
+// URL/copy/WhatsApp only when we actually know the URL (i.e. right after creation —
+// only the token hash is persisted, so a page reload can show status but never recover
+// the URL), and "Revogar link" whenever the link is still active.
+function renderSharePanelContent({ view, shareUrl, whatsAppUrl }) {
+  const statusHtml = renderShareStatusBlock(view);
+
+  if (!view.isActive) {
+    return statusHtml;
+  }
+
+  const urlHtml = shareUrl
+    ? `<input type="text" class="share-link-input" value="${escapeHtml(shareUrl)}" readonly>`
+    : "";
+
+  const linkActionsHtml = shareUrl
+    ? `
+      <button type="button" class="secondary" data-report-history-action="copy-share-link">
+        Copiar link
+      </button>
+
+      <a class="secondary" href="${escapeHtml(whatsAppUrl)}" target="_blank" rel="noopener noreferrer">
+        Abrir WhatsApp
+      </a>
+    `
+    : "";
+
+  return `
+    ${statusHtml}
+    ${urlHtml}
+    <div class="share-panel-actions">
+      ${linkActionsHtml}
+      <button type="button" class="secondary" data-report-history-action="revoke-share-link">
+        Revogar link
+      </button>
     </div>
   `;
 }
@@ -163,11 +296,18 @@ async function handleCreateShareLink(button, reportId) {
     const link = await createReportShareLink(reportId);
     const projectName = appState.currentProject?.name || "";
     const whatsAppUrl = buildWhatsAppShareUrl(link.shareUrl, projectName);
+    const view = computeShareStatusView({
+      linkId: link.linkId,
+      expiresAt: link.expiresAt,
+      revokedAt: null,
+      accessCount: 0,
+      lastAccessedAt: null,
+    });
 
     panel.hidden = false;
     panel.dataset.linkId = link.linkId;
     panel.dataset.shareUrl = link.shareUrl;
-    panel.innerHTML = renderSharePanel(link.shareUrl, whatsAppUrl);
+    panel.innerHTML = renderSharePanelContent({ view, shareUrl: link.shareUrl, whatsAppUrl });
   } catch (error) {
     console.error("Failed to create share link:", error);
     alert("Erro ao criar link de partilha: " + error.message);
@@ -205,34 +345,14 @@ async function handleRevokeShareLink(button) {
 
   try {
     await revokeReportShareLink(linkId);
-    panel.innerHTML = `<p class="muted">Link revogado. O cliente deixa de conseguir aceder.</p>`;
+    delete panel.dataset.shareUrl;
+    panel.innerHTML = renderShareStatusBlock(computeShareStatusView({ revokedAt: new Date().toISOString() }));
   } catch (error) {
     console.error("Failed to revoke share link:", error);
     alert("Erro ao revogar link: " + error.message);
     button.disabled = false;
   }
 }
-
-function renderSharePanel(shareUrl, whatsAppUrl) {
-  return `
-    <input type="text" class="share-link-input" value="${escapeHtml(shareUrl)}" readonly>
-
-    <div class="share-panel-actions">
-      <button type="button" class="secondary" data-report-history-action="copy-share-link">
-        Copiar link
-      </button>
-
-      <a class="secondary" href="${escapeHtml(whatsAppUrl)}" target="_blank" rel="noopener noreferrer">
-        Abrir WhatsApp
-      </a>
-
-      <button type="button" class="secondary" data-report-history-action="revoke-share-link">
-        Revogar link
-      </button>
-    </div>
-  `;
-}
-
 
 function formatShortDate(value) {
   if (!value) return "—";
@@ -241,6 +361,18 @@ function formatShortDate(value) {
   if (Number.isNaN(date.getTime())) return value;
 
   return date.toLocaleDateString("pt-PT");
+}
+
+function formatDateTime(value) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  const datePart = date.toLocaleDateString("pt-PT");
+  const timePart = date.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
+
+  return `${datePart} ${timePart}`;
 }
 
 function escapeHtml(value) {

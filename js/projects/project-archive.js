@@ -35,15 +35,15 @@ export async function archiveOrHideProject(projectId) {
 
   if (isProjectActive(project)) {
     alert(
-      `A projeto "${project.name}" está em curso.\n\n` +
-        "Uma projeto em curso não pode ser arquivada diretamente. " +
-        "Primeiro pause ou conclua a projeto."
+      `O projeto "${project.name}" está em curso.\n\n` +
+        "Um projeto em curso não pode ser arquivado diretamente. " +
+        "Primeiro pause ou conclua o projeto."
     );
     return;
   }
 
   alert(
-    `Não é possível arquivar esta projeto no estado atual: ${getProjectStatusLabel(
+    `Não é possível arquivar este projeto no estado atual: ${getProjectStatusLabel(
       project.status
     )}.`
   );
@@ -51,7 +51,7 @@ export async function archiveOrHideProject(projectId) {
 
 async function archiveProjectFlow(project) {
   const reason = prompt(
-    `Indique o motivo para arquivar a projeto "${project.name}":`
+    `Indique o motivo para arquivar o projeto "${project.name}":`
   );
 
   if (!reason || !reason.trim()) {
@@ -59,8 +59,8 @@ async function archiveProjectFlow(project) {
   }
 
   const confirmed = confirm(
-    `Arquivar a projeto "${project.name}"?\n\n` +
-      "A projeto deixará de aparecer na lista principal, mas os relatórios, fotografias e registos serão preservados."
+    `Arquivar o projeto "${project.name}"?\n\n` +
+      "O projeto deixará de aparecer na lista principal, mas os relatórios, fotografias e registos serão preservados."
   );
 
   if (!confirmed) return;
@@ -74,7 +74,7 @@ async function archiveProjectFlow(project) {
 
     await renderProjectList();
 
-    alert("Projeto arquivada com sucesso.");
+    alert("Projeto arquivado com sucesso.");
   } catch (error) {
     console.error("Error archiving project:", error);
     alert("Erro ao arquivar projeto: " + error.message);
@@ -83,7 +83,7 @@ async function archiveProjectFlow(project) {
 
 async function hideProjectFlow(project) {
   const reason = prompt(
-    `Indique o motivo para ocultar a projeto arquivada "${project.name}":`
+    `Indique o motivo para ocultar o projeto arquivado "${project.name}":`
   );
 
   if (!reason || !reason.trim()) {
@@ -91,8 +91,8 @@ async function hideProjectFlow(project) {
   }
 
   const confirmed = confirm(
-    `Ocultar a projeto arquivada "${project.name}"?\n\n` +
-      "A projeto deixará de aparecer nas listas normais, mas os registos serão preservados."
+    `Ocultar o projeto arquivado "${project.name}"?\n\n` +
+      "O projeto deixará de aparecer nas listas normais, mas os registos serão preservados."
   );
 
   if (!confirmed) return;
@@ -106,7 +106,7 @@ async function hideProjectFlow(project) {
 
     await renderProjectList();
 
-    alert("Projeto ocultada com sucesso.");
+    alert("Projeto ocultado com sucesso.");
   } catch (error) {
     console.error("Error hiding archived project:", error);
     alert("Erro ao ocultar projeto: " + error.message);

@@ -39,18 +39,18 @@ function getEmptyMessageForCurrentFilter() {
   const filter = appState.projectListFilter || "active";
 
   if (filter === "completed") {
-    return "Ainda não existem projetos concluídas.";
+    return "Ainda não existem projetos concluídos.";
   }
 
   if (filter === "archived") {
-    return "Ainda não existem projetos arquivadas.";
+    return "Ainda não existem projetos arquivados.";
   }
 
   if (filter === "hidden") {
-    return "Ainda não existem projetos ocultas.";
+    return "Ainda não existem projetos ocultos.";
   }
 
-  return `Ainda sem projetos guardadas na base de dados.<br>
+  return `Ainda sem projetos guardados na base de dados.<br>
 Clique em "+ Novo Projeto" para começar.`;
 }
 

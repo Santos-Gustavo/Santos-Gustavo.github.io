@@ -87,3 +87,43 @@ export async function revokeTestShareLink(linkId) {
 export function randomNeverIssuedToken() {
   return crypto.randomBytes(32).toString("base64url");
 }
+
+// Clears out any share_link rows left on a report by earlier tests in the same run, so
+// a test that seeds a specific state (e.g. forceExpireTestLink's backdated created_at)
+// isn't shadowed by an unrelated, more-recently-created row for the same report — the
+// report-history UI shows the most-recently-created link, which in real usage is
+// always correct (created_at is never backdated outside tests).
+export async function deleteShareLinksForReport(reportId) {
+  const client = getServiceRoleClient();
+  const { error } = await client
+    .from("report_share_links")
+    .delete()
+    .eq("report_id", reportId);
+
+  if (error) throw error;
+}
+
+// Resolves the project name a seeded report belongs to, so UI-driven specs can
+// navigate the contractor session to it (the app has no "open by report id" affordance,
+// only click-through from the project list).
+export async function getProjectNameForReport(reportId) {
+  const client = getServiceRoleClient();
+
+  const { data: report, error: reportError } = await client
+    .from("reports")
+    .select("project_id")
+    .eq("id", reportId)
+    .single();
+
+  if (reportError) throw reportError;
+
+  const { data: project, error: projectError } = await client
+    .from("projects")
+    .select("name")
+    .eq("id", report.project_id)
+    .single();
+
+  if (projectError) throw projectError;
+
+  return project.name;
+}

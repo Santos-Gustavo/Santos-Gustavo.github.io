@@ -180,10 +180,10 @@ function showAuthMessage(message, isError = false) {
 
 async function showLoggedInUI() {
   const authScreen = document.getElementById("authScreen");
-  const appScreen = document.getElementById("appScreen");
+  const appShell = document.getElementById("appShell");
 
   if (authScreen) authScreen.style.display = "none";
-  if (appScreen) appScreen.style.display = "block";
+  if (appShell) appShell.style.display = "flex";
 
   renderUserInfo();
 
@@ -193,10 +193,10 @@ async function showLoggedInUI() {
 
 function showLoggedOutUI() {
   const authScreen = document.getElementById("authScreen");
-  const appScreen = document.getElementById("appScreen");
+  const appShell = document.getElementById("appShell");
 
   if (authScreen) authScreen.style.display = "flex";
-  if (appScreen) appScreen.style.display = "none";
+  if (appShell) appShell.style.display = "none";
 
   const userInfo = document.getElementById("userInfo");
   if (userInfo) userInfo.remove();
