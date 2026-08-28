@@ -7,6 +7,24 @@ Execution Path: Full Gate (public access + auth-adjacent surface both trigger Fu
 
 This document originated as a standalone engineering investigation/design before the feature-file structure existed; Sections 1 and 2 were drafted afterward, then Section 3 was built out and deployed. Section 1 (Product Rationale) and Section 2 (PM Specification) are still drafts that were never independently reviewed by Gemini/ChatGPT in their own role sessions — the "Value Gate Pass" and QA-passed language elsewhere in this document is Claude's own read/verification, not a substitute for those sign-offs (see §1 and §4 for the exact caveats). Section 3 (Engineering) reflects what is actually live today, including three SQL fixes that only surfaced during deployment. Section 5 (Product Validation) is genuinely pending — no real customer has used this yet. Section 6 records the CEO's decision to proceed and ship.
 
+### Key Files
+
+Orientation only — what lives where, so a future session can `Read`/`Grep` directly instead of re-discovering this from scratch. No line numbers (they drift); if a path below no longer exists, trust the repo and fix this table, not the other way around.
+
+| Path | What it owns |
+|---|---|
+| `supabase/migrations/20260828120000_report_share_links.sql` | `report_share_links` table + RLS policy + the three `SECURITY DEFINER` RPCs (`create_report_share_link`, `get_report_by_share_token`, `revoke_report_share_link`). **Statements are stale vs. live** — see §3.11 for the three live-only fixes not yet reflected here. |
+| `supabase/manual/live_schema_rls_baseline.sql` | Dump-style copy of what's actually live (schema + RLS), for cross-checking against the migration file above when they disagree. |
+| `supabase/functions/create-report-share-link/index.ts` | Edge Function: authenticated contractor → mints a new link, revoking any prior active one for the same report. |
+| `supabase/functions/get-shared-report/index.ts` | Edge Function: unauthenticated, token in body → validates + returns client-safe report JSON with fresh signed photo URLs. This is where `access_count`/`last_accessed_at` get bumped (inside the RPC it calls, not in this file). |
+| `supabase/functions/revoke-report-share-link/index.ts` | Edge Function: authenticated contractor → revokes a link they own. |
+| `share.html` + `js/share/share-client.js` | Standalone public entry point the client opens. Reads `#token=`, calls `get-shared-report`, renders via `report-renderer.js` into a sandboxed iframe. Import-boundary-restricted — see AC-04.2 and `scripts/check-share-import-boundary.js`. |
+| `js/reports/report-history.js` | Contractor-side "Relatórios guardados" list: renders each report, its "Criar link para cliente" action, and the share panel (link/copy/WhatsApp/revoke + status badges from §3.14). |
+| `js/reports/report-share.js` | Thin API layer `report-history.js` calls into: `createReportShareLink`, `revokeReportShareLink`, `loadShareLinkStatusesForReports` (§3.14), `buildWhatsAppShareUrl`. |
+| `styles.css` | `.share-panel`, `.share-link-input`, `.share-panel-actions`, `.share-status-badge` (+ 4 state modifiers) — search for `share-` to find all of it. |
+| `tests/e2e/client-share-link-*.spec.js` | One spec per REQ-01..04 concern (readonly-boundary, expiry, revoked, invalid-token, isolation), plus `-status.spec.js` for §3.14's badges. |
+| `tests/e2e/helpers/report-share-test-helper.js` | Shared seeding/assertion helpers: `createTestShareLink`, `forceExpireTestLink`, `revokeTestShareLink`, `getProjectNameForReport`, `deleteShareLinksForReport`. Uses a service-role client — Node-test-only, never shipped to the browser. |
+
 ## 1. Product Rationale — Gemini
 
 * **Problem:** Contractors currently generate report previews as temporary local browser blob URLs that cannot be shared. They are forced to screenshot reports or send raw files over WhatsApp, resulting in messy, unformatted communication where clients miss progress updates and dispute extra work.
