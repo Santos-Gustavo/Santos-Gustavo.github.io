@@ -174,7 +174,7 @@ export function validateProjectTransition(project, nextStatus) {
   if (currentStatus === normalizedNextStatus) {
     return {
       allowed: false,
-      reason: "A projeto já está nesse estado.",
+      reason: "O projeto já está nesse estado.",
     };
   }
 
@@ -185,7 +185,7 @@ export function validateProjectTransition(project, nextStatus) {
     return {
       allowed: false,
       reason:
-        "Uma projeto em curso não pode ser arquivada diretamente. Primeiro pause ou conclua a projeto.",
+        "Um projeto em curso não pode ser arquivado diretamente. Primeiro pause ou conclua o projeto.",
     };
   }
 

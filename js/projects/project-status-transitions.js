@@ -218,16 +218,16 @@ export async function reopenProject(project, { reason, note = "" } = {}) {
 
 export async function hideArchivedProject(project, { reason, note = "" } = {}) {
   requireProject(project);
-  requireReason(reason, "ocultar projeto arquivada");
+  requireReason(reason, "ocultar projeto arquivado");
 
   const oldStatus = normalizeProjectStatus(project.status);
 
   if (oldStatus !== PROJECT_STATUS.ARCHIVED) {
-    throw new Error("Só é possível ocultar projetos arquivadas.");
+    throw new Error("Só é possível ocultar projetos arquivados.");
   }
 
   if (getProjectHiddenAt(project)) {
-    throw new Error("A projeto já está oculta.");
+    throw new Error("O projeto já está oculto.");
   }
 
   const changedBy = await getCurrentUserId();
@@ -264,16 +264,16 @@ export async function unhideArchivedProject(
   { reason, note = "" } = {}
 ) {
   requireProject(project);
-  requireReason(reason, "mostrar projeto oculta");
+  requireReason(reason, "mostrar projeto oculto");
 
   const oldStatus = normalizeProjectStatus(project.status);
 
   if (oldStatus !== PROJECT_STATUS.ARCHIVED) {
-    throw new Error("Só é possível restaurar visibilidade de projetos arquivadas.");
+    throw new Error("Só é possível restaurar visibilidade de projetos arquivados.");
   }
 
   if (!getProjectHiddenAt(project)) {
-    throw new Error("A projeto não está oculta.");
+    throw new Error("O projeto não está oculto.");
   }
 
   const changedBy = await getCurrentUserId();

@@ -80,6 +80,12 @@ h1, h2, h3, .mode-title, .project-card-name, .btn-generate, .btn-next {
   box-shadow: 0 0 0 1px var(--paper-line), 0 24px 60px rgba(22,38,58,0.10);
 }
 
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
 /* ---------- TOP BAR / title block ---------- */
 .topbar {
   background: var(--ink);
@@ -305,6 +311,7 @@ h1, h2, h3, .mode-title, .project-card-name, .btn-generate, .btn-next {
 .btn-next:hover { background: #1e3350; }
 .btn-generate { background: var(--forest); color: white; }
 .btn-generate:hover { background: #275c3d; }
+.btn-generate:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-home {
   background: var(--input-bg);
   color: var(--ink);

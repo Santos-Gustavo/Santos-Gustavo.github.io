@@ -28,7 +28,7 @@ test("client share link renders a read-only report with no admin surface reachab
 
   // Different document entirely, not just hidden.
   await expect(page.locator("#authScreen")).toHaveCount(0);
-  await expect(page.locator("#appScreen")).toHaveCount(0);
+  await expect(page.locator("#appShell")).toHaveCount(0);
 
   // Zero admin/lifecycle affordances anywhere the client could reach — top page or
   // inside the rendered report — per AC-04.3.

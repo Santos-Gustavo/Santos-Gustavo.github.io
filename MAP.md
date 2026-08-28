@@ -26,6 +26,7 @@ inbox.md                  ← raw unsorted ideas, process weekly
 docs/
   product/                ← Gemini's domain: vision, evidence, roadmap
   features/                ← shared: one file per FEATURE-ID, INDEX.md dashboard
+  validation/              ← trial/beta plans: tester profile, task checklist, go/no-go
   brain/                   ← Claude's domain: architecture, decisions, sessions
   gemini/ · chatgpt/       ← role definitions for web-interface AIs
 ```

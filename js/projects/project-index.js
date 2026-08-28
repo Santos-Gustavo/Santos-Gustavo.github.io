@@ -151,30 +151,30 @@ async function handleProjectLifecycleClick(event) {
 }
 
 function getLifecycleReasonPrompt(action, project) {
-  const projectName = project?.name || "esta projeto";
+  const projectName = project?.name || "este projeto";
 
   if (action === "pause") {
-    return `Indique o motivo para pausar a projeto "${projectName}":`;
+    return `Indique o motivo para pausar o projeto "${projectName}":`;
   }
 
   if (action === "resume") {
-    return `Indique o motivo para retomar a projeto "${projectName}":`;
+    return `Indique o motivo para retomar o projeto "${projectName}":`;
   }
 
   if (action === "complete") {
-    return `Indique o motivo para marcar a projeto "${projectName}" como concluída:`;
+    return `Indique o motivo para marcar o projeto "${projectName}" como concluído:`;
   }
 
   if (action === "archive") {
-    return `Indique o motivo para arquivar a projeto "${projectName}":`;
+    return `Indique o motivo para arquivar o projeto "${projectName}":`;
   }
 
   if (action === "hide") {
-    return `Indique o motivo para ocultar a projeto "${projectName}":`;
+    return `Indique o motivo para ocultar o projeto "${projectName}":`;
   }
 
   if (action === "reopen") {
-    return `Indique o motivo para reabrir a projeto "${projectName}":`;
+    return `Indique o motivo para reabrir o projeto "${projectName}":`;
   }
 
   return `Indique o motivo para alterar o estado do projeto "${projectName}":`;
