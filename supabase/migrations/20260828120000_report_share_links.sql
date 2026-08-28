@@ -1,5 +1,29 @@
 -- CLIENT-SHARE-LINK-001 — Phase 2: data + access layer.
 -- See docs/features/CLIENT-SHARE-LINK-001.md §3.2-3.3 for the design this implements.
+--
+-- STATUS (2026-08-28): applied to the live Supabase project. Applying it exposed three
+-- real problems that required live fixes NOT reflected in the statements below — this
+-- header is a documentation-only note (per an explicit doc-only task boundary); the
+-- actual CREATE FUNCTION bodies here still need a follow-up code change to match what
+-- is genuinely live. Full detail: docs/features/CLIENT-SHARE-LINK-001.md §3.11.
+--   1. pgcrypto qualification — gen_random_bytes()/digest() live in the `extensions`
+--      schema on this project, not `public`. The live create_report_share_link uses
+--      `set search_path = public, extensions` and calls them as
+--      `extensions.gen_random_bytes(32)` / `extensions.digest(v_token, 'sha256')`.
+--      The plain `gen_random_bytes(32)` / `digest(...)` calls below will fail with an
+--      unqualified-name error unless applied with that expanded search_path.
+--   2. PL/pgSQL column ambiguity — the live create_report_share_link aliases
+--      report_share_links as `l` and references `l.expires_at`, `l.revoked_at`,
+--      `l.report_id` explicitly (a bare `expires_at` reference was ambiguous in
+--      context). The live get_report_by_share_token renames its output columns to
+--      `link_id`, `linked_report_id`, `link_expires_at`, `link_revoked_at` for the
+--      same reason — the `report_id`/`snapshot_json` names below are what shipped in
+--      this file originally, not what's live.
+--   3. PostgREST schema reload — after applying/changing any of these functions,
+--      PostgREST kept serving the previous signature until the schema cache was
+--      explicitly reloaded: `notify pgrst, 'reload schema';`. Required after every
+--      live edit to these functions, not just the first deploy.
+-- revoke_report_share_link needed none of the above fixes.
 
 -- gen_random_bytes()/digest() (used for token generation/hashing below) come from
 -- pgcrypto, not core Postgres. gen_random_uuid() alone (already used elsewhere in this
@@ -58,6 +82,15 @@ using (
 -- (the create-report-share-link Edge Function, after verifying the caller's JWT) rather
 -- than read from auth.uid(), because this function runs as SECURITY DEFINER and is only
 -- reachable via the service-role client — see grant below.
+--
+-- LIVE BEHAVIOR NOT YET IN THIS FILE (2026-08-28): the deployed version of this function
+-- also revokes any previous active, unexpired report_share_links row for the same
+-- report_id before inserting the new one — one active link per report, enforced
+-- server-side. This resolved a previously-open design question; see AC-03.3 and the
+-- Edge Cases in docs/features/CLIENT-SHARE-LINK-001.md §2. The body below does not yet
+-- include that revoke step — see the file header for why (doc-only pass; needs a
+-- follow-up code change to reconcile this file with what's live), plus the pgcrypto
+-- qualification and column-aliasing fixes also required live.
 create or replace function public.create_report_share_link(
   p_report_id uuid,
   p_user_id uuid,

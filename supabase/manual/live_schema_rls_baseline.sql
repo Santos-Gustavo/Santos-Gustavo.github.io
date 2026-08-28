@@ -6,6 +6,7 @@
 -- | public     | photos                | true        | false     |
 -- | public     | project_status_events | true        | false     |
 -- | public     | projects              | true        | false     |
+-- | public     | report_share_links    | true        | false     |
 -- | public     | reports               | true        | false     |
 
 
@@ -81,6 +82,11 @@
 --   WHERE ((c.id = projects.company_id) AND (c.owner_id = auth.uid()))))                                                                                                 | (EXISTS ( SELECT 1
 --    FROM companies c
 --   WHERE ((c.id = projects.company_id) AND (c.owner_id = auth.uid()))))                                                                                                 |
+-- | public     | report_share_links    | report_share_links_select_own              | PERMISSIVE | {authenticated} | SELECT | (EXISTS ( SELECT 1
+--    FROM ((reports r
+--      JOIN projects p ON ((p.id = r.project_id)))
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((r.id = report_share_links.report_id) AND (c.owner_id = auth.uid())))) | null                                                                                                                                                                                                          |
 -- | public     | reports               | reports_delete_own                         | PERMISSIVE | {authenticated} | DELETE | (EXISTS ( SELECT 1
 --    FROM (projects p
 --      JOIN companies c ON ((c.id = p.company_id)))
@@ -303,6 +309,17 @@
 --    FROM companies c
 --   WHERE ((c.id = projects.company_id) AND (c.owner_id = auth.uid())))))
 -- ;                                                                                                                                                                                             |
+-- | create policy "report_share_links_select_own"
+-- on public.report_share_links
+-- as PERMISSIVE
+-- for SELECT
+-- to authenticated
+-- using ((EXISTS ( SELECT 1
+--    FROM ((reports r
+--      JOIN projects p ON ((p.id = r.project_id)))
+--      JOIN companies c ON ((c.id = p.company_id)))
+--   WHERE ((r.id = report_share_links.report_id) AND (c.owner_id = auth.uid())))))
+-- ;                                                                                                                                                                                                                                                                         |
 -- | create policy "reports_delete_own"
 -- on public.reports
 -- as PERMISSIVE
@@ -713,3 +730,43 @@ No secrets are included.
 --     )
 --   )
 -- ) TABLESPACE pg_default;
+
+
+
+-- Added 2026-08-28 (CLIENT-SHARE-LINK-001) — applied live via the Supabase SQL Editor.
+-- See supabase/migrations/20260828120000_report_share_links.sql for the checked-in
+-- source and docs/features/CLIENT-SHARE-LINK-001.md §3.2/§3.11 for the design and the
+-- live SQL fixes required beyond what that migration file's statements currently say.
+
+-- create table public.report_share_links (
+--   id uuid not null default gen_random_uuid (),
+--   report_id uuid not null references reports (id) on delete CASCADE,
+--   token_hash text not null,
+--   expires_at timestamp with time zone not null,
+--   revoked_at timestamp with time zone null,
+--   created_by uuid null references auth.users (id),
+--   created_at timestamp with time zone not null default now(),
+--   last_accessed_at timestamp with time zone null,
+--   access_count integer not null default 0,
+--   constraint report_share_links_pkey primary key (id),
+--   constraint report_share_links_token_hash_key unique (token_hash),
+--   constraint report_share_links_expires_after_created_check check ((expires_at > created_at))
+-- ) TABLESPACE pg_default;
+
+-- create index IF not exists idx_report_share_links_report_id on public.report_share_links using btree (report_id) TABLESPACE pg_default;
+
+-- create index IF not exists idx_report_share_links_token_hash on public.report_share_links using btree (token_hash) TABLESPACE pg_default;
+
+-- create index IF not exists idx_report_share_links_expires_at on public.report_share_links using btree (expires_at) TABLESPACE pg_default
+-- where (revoked_at is null);
+
+-- RLS enabled, select-only policy for authenticated owners (see the rls_enabled /
+-- policies / policy_sql tables above). No insert/update/delete policy exists on this
+-- table — all mutation goes through three SECURITY DEFINER RPCs
+-- (create_report_share_link, get_report_by_share_token, revoke_report_share_link),
+-- execute granted to service_role only, called exclusively from the
+-- create-report-share-link / get-shared-report / revoke-report-share-link Edge
+-- Functions. RPC bodies are not reproduced here — this file's established scope is
+-- table/RLS/storage-policy snapshots, not function bodies (the same is true of the
+-- pre-existing get_authorized_photo_storage_path / delete_authorized_photo functions
+-- used by delete-photo / delete-project, which also aren't documented in this file).

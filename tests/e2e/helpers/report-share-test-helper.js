@@ -7,40 +7,24 @@
 // functions deployed just to seed state — only get-shared-report (what share.html
 // actually calls) needs to be live for the specs' real assertions.
 
-import { createClient } from "@supabase/supabase-js";
 import crypto from "node:crypto";
+import {
+  getFunctionUrl,
+  getServiceRoleClient,
+  hasServiceRoleEnv,
+} from "./supabase-admin.js";
 
-const SUPABASE_URL =
-  process.env.SUPABASE_URL ||
-  process.env.VITE_SUPABASE_URL ||
-  process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+export { getFunctionUrl, getServiceRoleClient };
 
 const E2E_USER_ID = process.env.E2E_USER_ID;
 
 export function missingShareLinkTestEnv() {
   const missing = [];
 
-  if (!SUPABASE_URL) missing.push("SUPABASE_URL");
-  if (!SUPABASE_SERVICE_ROLE_KEY) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (!hasServiceRoleEnv()) missing.push("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY");
   if (!E2E_USER_ID) missing.push("E2E_USER_ID");
 
   return missing;
-}
-
-let serviceClient = null;
-
-export function getServiceRoleClient() {
-  if (!serviceClient) {
-    serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-  }
-
-  return serviceClient;
-}
-
-export function getFunctionUrl(functionName) {
-  return `${SUPABASE_URL}/functions/v1/${functionName}`;
 }
 
 export async function createTestShareLink(reportId, ttlHours = 168) {
