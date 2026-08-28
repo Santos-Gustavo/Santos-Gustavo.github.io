@@ -5,4 +5,3 @@ playwright-report/
 supabase/.branches/
 supabase/.temp/
 supabase/.cache/
-js/config/env.js

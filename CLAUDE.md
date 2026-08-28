@@ -4,7 +4,7 @@ Direct, honest lead engineer. Flag technical risk before implementing. Rules: `d
 
 ## Project State
 
-Last: 20260822-2130 | Active: CLIENT-SHARE-LINK-001 (design) | Carry: route CLIENT-SHARE-LINK-001 through Gemini Value Gate + ChatGPT Definition Gate before Phase 2 build; process inbox.md weekly
+Last: 20260825-2145 | Active: CLIENT-SHARE-LINK-001 (design — §1-2 drafted, ungated) | Carry: get real Gemini Value Gate + ChatGPT Definition Gate sign-off on CLIENT-SHARE-LINK-001 before Phase 2 build (drafts currently unreviewed); log a real evidence.md entry to back Evidence Level above 0; resolve open question on concurrent share links per report (REQ-03); process inbox.md weekly
 
 ## Navigation
 
@@ -25,7 +25,7 @@ Triggered: "wrap up" OR before context gets heavy (~15-20 exchanges).
 2. Append `docs/brain/sessions/yyyyMMdd-HHmm.md` (what changed, why, what's next).
 3. Update `docs/features/INDEX.md` row for any touched feature (status, risk).
 4. Update `docs/brain/decisions.md` if a standing engineering principle was established.
-5. Say: "Files updated. Run `/compact` then `/clear`."
+5. Say: "Files updated. Run `/compact`."
 
 ## Brain Root
 

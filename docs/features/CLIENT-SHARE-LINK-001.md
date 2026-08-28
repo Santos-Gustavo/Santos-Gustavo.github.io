@@ -1,28 +1,143 @@
 # CLIENT-SHARE-LINK-001
 
-Status: Design (Engineering Gate drafted; Product and Definition gates not yet run)
+Status: Design (Product Rationale and PM Specification drafted; not yet through Gemini's Value Gate sign-off, ChatGPT's Definition Gate sign-off, or Gustavo's Full Gate release decision)
 Risk: High — new public/unauthenticated surface, RLS-adjacent (per `docs/brain/context/architecture.md` — public routes use token-based access, never RLS relaxation)
-Evidence Level: Not yet assessed — no entry in `docs/product/evidence.md` yet
+Evidence Level: 0 — Not yet externally validated (no traceable entry in `docs/product/evidence.md`; see §1 Evidence)
 Execution Path: Full Gate (public access + auth-adjacent surface both trigger Full Gate per `docs/brain/OPERATION-MODEL.md` §9)
 
-This document originated as a standalone engineering investigation/design before the feature-file structure existed. It contains a complete, implementation-ready Section 3 (Engineering). Sections 1, 2, 4, 5, and 6 have not been produced yet — this feature has not been through the Value Gate or Definition Gate. Do not treat the "Proposed data model" or "Recommendation" below as approved; they are Claude's engineering proposal awaiting Gemini/ChatGPT review and Gustavo's release decision.
+This document originated as a standalone engineering investigation/design before the feature-file structure existed; Sections 1 and 2 were drafted afterward. Section 3 (Engineering) is complete and implementation-ready. Sections 4, 5, and 6 have not been produced yet. Nothing in this document is approved — Sections 1–3 are drafted proposals awaiting Gemini's Value Gate, ChatGPT's Definition Gate, and Gustavo's Full Gate release decision.
 
 ## 1. Product Rationale — Gemini
 
-*Not yet produced.* The constraint table in §2 below implies the underlying problem (contractors have no way to hand a client a link to a report), but no formal problem statement, target-persona confirmation, evidence level, or expected business outcome has been written. Needed before this proceeds past design.
+* **Problem:** Contractors currently generate report previews as temporary local browser blob URLs that cannot be shared. They are forced to screenshot reports or send raw files over WhatsApp, resulting in messy, unformatted communication where clients miss progress updates and dispute extra work.
+* **Target User:** Micro-contractors and small renovation teams (1–4 workers) communicating progress and evidence directly to homeowners via WhatsApp.
+* **Observed Pain:** Contractors lack a simple, professional, 1-click way to hand a client an immutable proof-of-work summary without forcing the client to create an account or download an app.
+* **Evidence:** Level 0 — not yet externally validated. The discovery-call observations this rationale draws on are not logged in `docs/product/evidence.md`; add a traceable entry there (source, date, what was observed) before raising this above Level 0.
+* **Expected Business Outcome:** High share-link creation rate per project → higher client engagement → contractor perceives app as an essential professional communication tool → drives conversion to a paid subscription.
+* **Success Metrics:**
+  * % of generated reports shared via link.
+  * % of share links opened by clients within 48 hours.
+  * Zero security/isolation breaches (cross-report data leakage or unauthorized project access).
+* **Priority:** Critical. Client share links are required before reports can be delivered professionally through WhatsApp without manual PDF export.
+* **Value Gate Pass:** YES —
+  * Prevents payment disputes by creating a clean, professional evidence trail for delivered work.
+  * Replaces messy chat screenshots with a polished, branded client-facing report.
+  * Increases client trust and visibility into documented project progress.
+  * (This is Claude's read of the stated rationale, carried over while cleaning this document — it is not a substitute for Gemini's own Value Gate sign-off, which is still outstanding.)
 
 ## 2. PM Specification — ChatGPT
 
-*Not yet produced.* Needs formal `REQ-0X` entries with rationale, a task breakdown, required tests, and a definition of done (see `docs/chatgpt/CHATGPT.md`). The table below is the original constraint list from the design investigation — a reasonable starting point for ChatGPT to formalize.
+*Drafted below following the Gate 2 template (`docs/chatgpt/CHATGPT.md`). Not yet reviewed or signed off by ChatGPT.*
 
-| Requirement | Source constraint |
-|---|---|
-| Contractor can hand a client a link to one report | current flow has no shareable artifact at all |
-| Client needs no account/login | client is external, has no Supabase Auth user |
-| Client cannot see any other report or project | must not be a "logged in as a limited client role" model — must be scoped per-link |
-| Client cannot edit/archive/create anything | link must be strictly read-only, no admin UI reachable |
-| Link can expire and can be revoked | contractor needs to shut off access after the fact |
-| Photos stay private except via short-lived signed URLs | never make `project-photos` public |
+### User Story
+
+As a contractor, I want to hand my client a single link to their project report so they can review documented progress and photos on WhatsApp, without me exporting a PDF or screenshotting the report by hand.
+
+### Scope
+
+* Tokenized, read-only, expiring link to exactly one saved report.
+* Contractor-initiated link creation from the report history view.
+* WhatsApp deep-link generation, plus a "Copiar link" fallback.
+* Revocation of an active link by the contractor.
+* Print-friendly layout so the client can use their own browser's print/save-to-PDF.
+
+### Out of Scope
+
+* Client accounts or login of any kind.
+* Client-side approval/sign-off workflow — no "aprovar"/"aprovação" language in v1 (see AC-02.7).
+* Per-photo client visibility selection is out of scope for v1. All photos already attached to the saved report are shared as-is.
+* Custom server-side PDF generation/export.
+* Rate limiting or abuse protection beyond token strength (deferred — see Section 3.9 Phase 6).
+
+### Requirements & Acceptance Criteria
+
+* **REQ-01: Tokenized Unauthenticated Client View**
+  * **AC-01.1:** An unauthenticated user accessing `share.html#token=<RAW_TOKEN>` shall see a client-safe, read-only report payload.
+  * **AC-01.2:** The shared report payload shall be built strictly from an explicit allowlist of client-safe fields.
+  * **AC-01.3:** The shared view shall omit all internal database UUIDs, including `report_id`, `project_id`, `client_id`, `company_id`, and `owner_id`.
+  * **AC-01.4:** The shared report shall include the photos already attached to the saved report, rendered through fresh short-lived signed URLs.
+  * **AC-01.5:** The raw token shall be generated server-side using cryptographically secure randomness, at least 32 bytes before encoding.
+  * **AC-01.6:** Only `token_hash` shall be stored in the database. The raw token shall never be stored in plaintext.
+  * **AC-01.7:** `share.html` shall read the token strictly from `location.hash`, never `location.search`.
+  * **AC-01.8:** Invalid, unknown, expired, and revoked tokens shall all return the same generic unavailable response: `"Este link não está disponível."`
+  * **AC-01.9:** The shared page shall include a print-friendly layout CSS. Custom PDF generation binaries are out of scope for v1 (handled via browser print/save-to-PDF).
+
+* **REQ-02: Link Generation & WhatsApp Action**
+  * **AC-02.1:** A logged-in contractor can click "Criar link para cliente" on a saved report.
+  * **AC-02.2:** A share link cannot be created for an unsaved report without a persisted report id.
+  * **AC-02.3:** The created link shall have a default TTL of 7 days (`p_ttl_hours = 168`).
+  * **AC-02.4:** The app shall generate `share.html#token=<RAW_TOKEN>`.
+  * **AC-02.5:** The app shall provide a "Copiar link" fallback button to copy the URL to the clipboard.
+  * **AC-02.6:** The app shall provide a WhatsApp action using an encoded `wa.me` text message:
+    `"Olá! Aqui está o relatório do projeto [Nome do Projeto]: [LINK]. Por favor, aceda ao link para rever o progresso documentado."`
+  * **AC-02.7:** The WhatsApp message shall not use "aprovar", "aprovação", or equivalent sign-off language in v1.
+
+* **REQ-03: Link Lifecycle & Revocation**
+  * **AC-03.1:** If `expires_at` is in the past or `revoked_at` is populated, `get-shared-report` shall return `"Este link não está disponível."`
+  * **AC-03.2:** Revoking a link shall immediately block client access.
+  * **AC-03.3:** The contractor can generate a new active share link for the same report after revocation or expiry.
+  * **AC-03.4:** Access tracking such as `last_accessed_at` and `access_count` may be updated, but failure to update tracking shall not expose data or break the client view.
+
+* **REQ-04: Strict Isolation & Read-Only Boundary**
+  * **AC-04.1:** `share.html` shall be a standalone public entrypoint.
+  * **AC-04.2:** `js/share/*` shall not import `#projects/`, `#navigation/`, `#auth/`, `#database/`, or admin app modules.
+  * **AC-04.3:** No project controls shall exist or be reachable in `share.html`: Editar, Arquivar, Ocultar, Reabrir, Pausar, Marcar como concluído, Novo relatório, Novo projeto.
+  * **AC-04.4:** The `project-photos` bucket shall remain private.
+  * **AC-04.5:** No service-role key shall be exposed to browser code.
+  * **AC-04.6:** The shared endpoint shall return only one report. It shall never return a project report list, other projects, other clients, or owner/company internals.
+
+### Task Breakdown
+
+1. DB data layer: migration for `report_share_links` table + `authenticated`-only RLS policies, no public policies — covers REQ-01, REQ-03.
+2. Edge Function `create-report-share-link`: authenticated, verifies report ownership, generates token, stores only its hash — covers REQ-02, REQ-01.
+3. Edge Function `get-shared-report`: accepts token, validates hash/TTL/revocation, returns client-safe allowlisted JSON payload with fresh signed photo URLs — covers REQ-01, REQ-03, REQ-04.
+4. Client standalone page: `share.html` + `js/share/share-client.js`, pure rendering via `report-renderer.js`, print-friendly CSS, zero admin module imports — covers REQ-01, REQ-04.
+5. Contractor app integration: "Criar link para cliente" and "Copiar link" UI actions in `report-history.js`, `wa.me` deep link generator with the non-approval wording — covers REQ-02.
+6. Automated security & boundary test suite: unauthenticated token access, invalid/expired/revoked generic response, no-UUID-leakage assertions, static import-boundary check for `js/share/*` — covers REQ-01, REQ-03, REQ-04.
+
+### Required Tests
+
+* **Automated (Playwright):** the five specs scoped in Section 3.8 — `client-share-link-readonly-boundary`, `-expiry`, `-revoked`, `-invalid-token`, `-isolation`.
+* **Automated (static):** import-boundary check verifying `js/share/*` never imports admin/auth/db modules (AC-04.2).
+* **Manual:** WhatsApp deep link opens the chat picker with the correct message copy, on both mobile and desktop (AC-02.6/AC-02.7).
+* **Manual:** browser print/save-to-PDF from the shared page renders legibly (AC-01.9).
+* **Regression:** existing authenticated report-history/report-preview flows are unaffected — no `js/share/*` code pulled into the admin bundle.
+
+### Edge Cases
+
+* Report is deleted after a share link was created → cascading delete removes the link row (Section 3.2); client sees the generic unavailable state, not an error.
+* Contractor revokes a link the client currently has open → next load/reload shows the generic unavailable state immediately (AC-03.2).
+* Token is well-formed but never existed (guessed) → same generic unavailable response as expired/revoked (AC-01.8/AC-03.1).
+* Report has zero photos → shared view renders the report content with an empty photos section, not an error.
+* Contractor creates a new link for a report that still has a live, unexpired link — whether the old link keeps working or is implicitly superseded is not yet specified (see Unresolved Open Questions).
+
+### Dependencies
+
+* `report-renderer.js` (`renderReportHtml()`) must remain a pure, import-free function — the zero-admin-import guarantee in AC-04.2 depends on this staying true.
+* Existing `delete-photo`/`delete-project` Edge Function pattern (bearer JWT → anon-key client resolves caller → service-role client → `SECURITY DEFINER` RPC) is the template for both new Edge Functions.
+* `storage-service.js`'s signed-URL issuance pattern is reused server-side (in the Edge Function) for the shared view's photos.
+
+### Non-Functional Requirements
+
+* Token generation must use cryptographically secure randomness (`gen_random_bytes(32)`, AC-01.5).
+* No service-role key is ever reachable from browser code (AC-04.5).
+* Public endpoint responses must not distinguish failure reasons — consistent shape across expired/revoked/not-found/malformed tokens (AC-01.8/AC-03.1).
+* `share.html` must load with no build step and no bundler changes, consistent with the rest of the app.
+
+### QA Risk
+
+**High** — public, unauthenticated, RLS-adjacent surface serving real client data (report content, photos). Per `docs/chatgpt/CHATGPT.md`'s High-risk bar: automated tests + adversarial edge cases + permission/state testing, not just a happy-path smoke test.
+
+### Definition of Done
+
+* [ ] Every REQ-01…REQ-04 acceptance criterion PASS
+* [ ] All five Required Tests specs (Task 6) written and passing
+* [ ] Static import-boundary check for `js/share/*` passing
+* [ ] No new regressions in existing report-history/report-preview flows
+* [ ] Section 3 (Engineering) updated to reflect anything that changed during implementation
+* [ ] Section 4 (Verification) completed by ChatGPT
+* [ ] `docs/product/evidence.md` gains a traceable entry if real client usage data becomes available post-release
+* [ ] `docs/product/features-catalog.md` updated to move client-facing sharing from "in design" to shipped
 
 ## 3. Engineering — Claude
 
