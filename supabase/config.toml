@@ -42,3 +42,21 @@ entrypoint = "./functions/delete-project/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/delete-project/*.html" ]
+
+[functions.create-report-share-link]
+enabled = true
+verify_jwt = false
+import_map = "./functions/create-report-share-link/deno.json"
+entrypoint = "./functions/create-report-share-link/index.ts"
+
+[functions.revoke-report-share-link]
+enabled = true
+verify_jwt = false
+import_map = "./functions/revoke-report-share-link/deno.json"
+entrypoint = "./functions/revoke-report-share-link/index.ts"
+
+[functions.get-shared-report]
+enabled = true
+verify_jwt = false
+import_map = "./functions/get-shared-report/deno.json"
+entrypoint = "./functions/get-shared-report/index.ts"

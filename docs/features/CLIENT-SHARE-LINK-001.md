@@ -1,6 +1,6 @@
 # CLIENT-SHARE-LINK-001
 
-Status: Design (Product Rationale and PM Specification drafted; not yet through Gemini's Value Gate sign-off, ChatGPT's Definition Gate sign-off, or Gustavo's Full Gate release decision)
+Status: Built, not deployed. Code for Phases 2-5 (§3.9) is written — data/access layer, all three Edge Functions, the public share page, contractor-side create/copy/revoke UI, and the five Playwright specs. Nothing has been applied to the live Supabase project or run against it yet — see §3.10. CEO gave GO on 2026-08-28 without a formal Gemini Value Gate / ChatGPT Definition Gate pass — see §6.
 Risk: High — new public/unauthenticated surface, RLS-adjacent (per `docs/brain/context/architecture.md` — public routes use token-based access, never RLS relaxation)
 Evidence Level: 0 — Not yet externally validated (no traceable entry in `docs/product/evidence.md`; see §1 Evidence)
 Execution Path: Full Gate (public access + auth-adjacent surface both trigger Full Gate per `docs/brain/OPERATION-MODEL.md` §9)
@@ -312,9 +312,29 @@ All new specs should reuse the existing `.env`-driven credential pattern (`E2E_E
 - **Phase 5 — Tests.** The five specs in §3.8, plus updating any existing suite that enumerates all `data-*-action` attributes if one exists, so it stays honest about the new surface.
 - **Phase 6 — Polish.** Revoke-link UI/action, "copiar link" fallback, nicer expired/revoked messaging, optional access-log table for the contractor's own visibility, basic abuse-rate protection — none of it security-load-bearing, all of it deferred without weakening §3.7.
 
+### 3.10 Implementation notes (2026-08-28)
+
+Built per §3.9 Phases 2-5, with two deliberate deviations from that plan and one open item before this is genuinely shippable:
+
+**What was built:**
+- **Phase 2:** [supabase/migrations/20260828120000_report_share_links.sql](../../supabase/migrations/20260828120000_report_share_links.sql) — `report_share_links` table, `select`-only RLS policy for authenticated owners (no insert/update/delete policy — all mutation goes through the two RPCs below), `create_report_share_link`, `get_report_by_share_token`, `revoke_report_share_link` (all `SECURITY DEFINER`, execute granted to `service_role` only). [supabase/functions/create-report-share-link/index.ts](../../supabase/functions/create-report-share-link/index.ts), [.../get-shared-report/index.ts](../../supabase/functions/get-shared-report/index.ts), [.../revoke-report-share-link/index.ts](../../supabase/functions/revoke-report-share-link/index.ts) — same bearer-JWT-then-service-role-then-RPC shape as `delete-photo`/`delete-project`.
+- **Phase 3:** [share.html](../../share.html) + [js/share/share-client.js](../../js/share/share-client.js) — reads `#token=`, calls `get-shared-report`, renders into a sandboxed (`allow-scripts` only, no `allow-same-origin`) iframe via `renderReportHtml()`.
+- **Phase 4:** [js/reports/report-share.js](../../js/reports/report-share.js) + UI in [js/reports/report-history.js](../../js/reports/report-history.js) — "Criar link para cliente" button per saved report, revealing a panel with the link, "Copiar link", a `wa.me` deep link, and "Revogar link". The optional step 7 in §3.5 (auto-setting `sentVia = WhatsApp`) was **not** implemented — it was marked optional, not an AC.
+- **Phase 5:** all five specs from §3.8 under `tests/e2e/client-share-link-*.spec.js`, plus a seeding helper at `tests/e2e/helpers/report-share-test-helper.js`, plus the AC-04.2 static import-boundary check at [scripts/check-share-import-boundary.js](../../scripts/check-share-import-boundary.js) (wired as `npm run check:share-boundary`).
+
+**Deviations from §3.9:**
+1. **Revocation and "Copiar link" were built now, not deferred to Phase 6.** §3.9 listed "Revoke-link UI/action" and "copiar link fallback" under Phase 6 (Polish), but Section 2's own Scope and AC-02.5/AC-03.2 require both for v1. Treated Section 2 as authoritative over the older Phase 6 note.
+2. **Token encoding uses base64url, not §3.5's literal example.** §3.5 said `encode(gen_random_bytes(32), 'base64')` as an "e.g."; standard base64 can contain `+`, `/`, `=`, which are valid but needless friction in a URL fragment / `wa.me` text param. The migration base64url-encodes instead (`translate` + strip padding) — same 256 bits of entropy, satisfies AC-01.5 unchanged.
+
+**Not done — required before this can move past Claude's Engineering Gate:**
+- **Nothing has been deployed or run.** No `supabase db push` / migration apply, no `supabase functions deploy` for the three new functions, no execution of the Playwright specs. This environment has no Docker and no Supabase CLI session — deploying is Gustavo's action to take (or explicitly hand back to Claude with deploy access).
+- The five Playwright specs need env vars that don't exist in `.env` yet: `SUPABASE_SERVICE_ROLE_KEY`, `E2E_USER_ID`, `E2E_REPORT_ID` (a saved report with `snapshot_json` owned by that user), `E2E_SECOND_REPORT_ID` (optional, only the isolation spec needs it). Until those are set, all five specs report `skip`, not `pass`.
+- The static import-boundary check **was** run locally and passes today (`node scripts/check-share-import-boundary.js`), as does the existing `check:migration` guard — neither needed deployment.
+- Definition of Done in §2 is therefore **not** met yet: written ≠ passing. Do not mark this Released or update `features-catalog.md` until the specs have actually run green against a deployed environment.
+
 ## 4. Verification — ChatGPT
 
-*Pending.* No implementation exists yet (see Phase 1 in §3.9).
+*Pending.* No implementation has been deployed or exercised yet — see §3.10.
 
 ## 5. Product Validation — Gemini
 
@@ -322,11 +342,11 @@ All new specs should reuse the existing `.env`-driven credential pattern (`E2E_E
 
 ## 6. CEO Decision — Gustavo
 
-Decision: Not yet made.
-Reason: —
-Date: —
-Next action: Route through Value Gate (Gemini) and Definition Gate (ChatGPT) before Phase 2 implementation begins, per Full Gate Path (High risk — public access).
+Decision: GO — proceed to Phase 2 implementation now.
+Reason: Sections 1-3 are sound; Gustavo made the call directly rather than waiting for a formal Gemini Value Gate / ChatGPT Definition Gate pass. No real-role sign-off is on record — this is a CEO override of the Full Gate Path sequencing, not a substitute for those reviews.
+Date: 2026-08-28
+Next action: Build per §3.9 Phase 2 onward. Real Gemini/ChatGPT gate passes remain open — see carry items in `CLAUDE.md` Project State.
 
 ## Decision Log
 
-*(empty — populate as gates are actually run)*
+* **2026-08-28** — Gustavo: skip formal Value Gate / Definition Gate sign-off, proceed straight to implementation. Recorded here so the gap is traceable rather than silently absent.

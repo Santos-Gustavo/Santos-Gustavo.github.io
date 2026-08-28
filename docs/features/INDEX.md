@@ -4,6 +4,6 @@ One line per feature. Load this before touching any feature. Full detail lives i
 
 | ID | Status | Risk | Path | Priority |
 |---|---|---|---|---|
-| CLIENT-SHARE-LINK-001 | Design | High | `docs/features/CLIENT-SHARE-LINK-001.md` | Critical (drafted in §1, pending Gemini Value Gate sign-off) |
+| CLIENT-SHARE-LINK-001 | Built, not deployed | High | `docs/features/CLIENT-SHARE-LINK-001.md` | Critical — CEO GO 2026-08-28; needs deploy + real test run before Verification Gate |
 
 *Add a row when a feature is opened. Update Status/Risk as it moves through gates. Never write feature content directly in this file.*

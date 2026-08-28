@@ -597,3 +597,54 @@ h1, h2, h3, .mode-title, .project-card-name, .btn-generate, .btn-next {
 }
 
 .project-lifecycle-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+
+.report-history-card { cursor: default; }
+.report-history-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.report-history-actions { display: flex; flex-direction: column; gap: 6px; flex: 0 0 auto; }
+.report-history-actions .secondary {
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.report-history-actions .secondary:hover:not(:disabled) {
+  background: var(--brass-soft);
+  border-color: var(--brass);
+  color: var(--brass-deep);
+}
+.report-history-actions .secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.share-panel { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border); }
+.share-link-input {
+  width: 100%;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11.5px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+.share-panel-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.share-panel-actions .secondary,
+.share-panel-actions a.secondary {
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.share-panel-actions .secondary:hover,
+.share-panel-actions a.secondary:hover {
+  background: var(--brass-soft);
+  border-color: var(--brass);
+  color: var(--brass-deep);
+}
