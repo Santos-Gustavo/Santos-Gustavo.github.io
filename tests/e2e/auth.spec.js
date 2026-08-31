@@ -42,3 +42,30 @@ test("user can log in and reach the app", async ({ page }) => {
     )
     .toMatch(/projetos|novo projeto|relatório|relatorio|projeto|project/i);
 });
+
+test("user can log out and returns to the auth screen", async ({ page }) => {
+  if (!E2E_EMAIL || !E2E_PASSWORD) {
+    throw new Error(
+      "Missing E2E login credentials. Set E2E_EMAIL and E2E_PASSWORD in .env."
+    );
+  }
+
+  await page.goto("/");
+
+  await expect(page.locator("#authEmail")).toBeVisible({ timeout: 10000 });
+  await expect(page.locator("#authPassword")).toBeVisible({ timeout: 10000 });
+
+  await page.locator("#authEmail").fill(E2E_EMAIL);
+  await page.locator("#authPassword").fill(E2E_PASSWORD);
+
+  await page.getByRole("button", { name: /entrar|login|iniciar/i }).click();
+
+  await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, {
+    timeout: 15000,
+  });
+
+  await page.locator('[data-auth-action="sign-out"]').click();
+
+  await expect(page.locator("#authEmail")).toBeVisible({ timeout: 10000 });
+  await expect(page.locator("#appShell")).not.toBeVisible();
+});

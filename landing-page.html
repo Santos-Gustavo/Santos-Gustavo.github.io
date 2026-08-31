@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatórios de Obra por WhatsApp | Provas de Trabalho Simples</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Landing-only layout — reuses the shared paper/ink/brass/forest tokens
+       and grid background from styles.css; only page-specific classes live here. */
+
+    body { background-attachment: fixed; }
+
+    .landing-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 5%;
+      background: var(--card);
+      border-bottom: 1px solid var(--paper-line);
+    }
+    .logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .landing-header .btn-primary {
+      min-height: 40px;
+      padding: 0 18px;
+      font-size: 0.85rem;
+    }
+
+    .hero { max-width: 900px; margin: 0 auto; padding: 64px 20px 40px; text-align: center; }
+    .hero h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2.25rem;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.25;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 1.125rem;
+      color: var(--ink-soft);
+      margin-bottom: 32px;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-ctas { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+
+    .btn-primary {
+      font-family: 'Space Grotesk', sans-serif;
+      background-color: var(--brass-deep);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1rem;
+      min-height: 52px;
+      padding: 0 32px;
+      border-radius: 7px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover { background-color: var(--brass); }
+
+    .btn-secondary {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: var(--input-bg);
+      color: var(--ink);
+      font-weight: 700;
+      font-size: 1rem;
+      min-height: 52px;
+      padding: 0 28px;
+      border-radius: 7px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--paper-line);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .btn-secondary:hover { background: var(--brass-soft); border-color: var(--brass); }
+
+    /* 2-Panel Hero Mockup */
+    .mockup-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      max-width: 800px;
+      margin: 48px auto 0;
+      text-align: left;
+    }
+    .mockup-card {
+      background: var(--card);
+      border: 1px solid var(--paper-line);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 12px 30px rgba(22,38,58,0.08);
+      position: relative;
+    }
+    .mockup-header {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--brass-deep);
+      margin-bottom: 12px;
+    }
+
+    /* WhatsApp Panel */
+    .chat-bubble {
+      background: var(--forest-soft);
+      color: var(--ink);
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+      font-family: 'IBM Plex Sans', sans-serif;
+    }
+    .chat-link {
+      color: var(--brass-deep);
+      text-decoration: underline;
+      font-weight: 600;
+      display: block;
+      margin-top: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.85rem;
+    }
+
+    /* Telemetry Report Panel */
+    .report-card-preview { border-left: 4px solid var(--ink); padding-left: 12px; }
+    .report-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--ink);
+    }
+    .report-sub { font-size: 0.85rem; color: var(--ink-soft); margin-top: 4px; }
+    .report-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--ink-soft);
+      margin-top: 4px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--forest-soft);
+      color: var(--forest);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      margin-top: 12px;
+      border: 1px solid #bfe0cd;
+    }
+    .last-access {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--ink-soft);
+      margin-top: 8px;
+    }
+
+    /* Steps */
+    .steps {
+      background: var(--card);
+      border-top: 1px solid var(--paper-line);
+      border-bottom: 1px solid var(--paper-line);
+      padding: 48px 20px;
+      margin-top: 48px;
+    }
+    .steps-grid {
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+    }
+    .step-item h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+    .step-item p {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 0.9rem;
+      color: var(--ink-soft);
+    }
+
+    /* Mobile Sticky CTA */
+    .sticky-bottom-bar { display: none; }
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 1.75rem; }
+      .sticky-bottom-bar {
+        display: block;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--card);
+        padding: 12px 16px;
+        border-top: 1px solid var(--paper-line);
+        box-shadow: 0 -4px 12px rgba(22,38,58,0.1);
+        z-index: 100;
+      }
+      .sticky-bottom-bar .btn-primary { width: 100%; }
+      body { padding-bottom: 80px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="landing-header">
+    <div class="logo">RelatórioObra</div>
+    <a href="index.html" class="btn-primary">Entrar</a>
+  </header>
+
+  <main class="hero">
+    <h1>Relatórios de obra profissionais,<br>enviados por WhatsApp.</h1>
+    <p class="subtitle">Crie relatórios semanais com fotos da obra, envie ao cliente por link seguro e veja se o relatório foi visualizado.</p>
+
+    <div class="hero-ctas">
+      <a href="index.html" class="btn-primary">Testar grátis</a>
+      <a href="#exemplo" class="btn-secondary">Ver exemplo de relatório</a>
+    </div>
+
+    <!-- 2-Panel Concrete Mockup -->
+    <div class="mockup-container" id="exemplo">
+      <!-- Left Panel: WhatsApp -->
+      <div class="mockup-card document-card-signature">
+        <div class="mockup-header">1. Envio por WhatsApp</div>
+        <div class="chat-bubble">
+          Olá Sr. António, aqui está o relatório de progresso desta semana na remodelação.
+          <span class="chat-link">app.obra.pt/r/8f3a9d2</span>
+        </div>
+      </div>
+
+      <!-- Right Panel: Telemetry -->
+      <div class="mockup-card document-card-signature">
+        <div class="mockup-header">2. Confirmação no Seu Painel</div>
+        <div class="report-card-preview">
+          <div class="report-title">Obra Casa de Banho — Semana 2</div>
+          <div class="report-sub">Remodelação em Matosinhos</div>
+          <div class="report-meta">4 fotos anexadas</div>
+          <div class="status-badge">✓ Visualizado</div>
+          <div class="last-access">Último acesso: hoje, 14:32</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <section class="steps">
+    <div class="steps-grid">
+      <div class="step-item">
+        <h3>1. Tire fotos na obra</h3>
+        <p>Registe o progresso no telemóvel em menos de 2 minutos.</p>
+      </div>
+      <div class="step-item">
+        <h3>2. Envie por WhatsApp</h3>
+        <p>Gere um link limpo. O cliente não precisa de instalar nenhuma app.</p>
+      </div>
+      <div class="step-item">
+        <h3>3. Saiba se abriu</h3>
+        <p>Veja a confirmação de leitura e evite discussões no final da obra.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sticky Mobile Bottom Bar -->
+  <div class="sticky-bottom-bar">
+    <a href="index.html" class="btn-primary">Testar grátis</a>
+  </div>
+
+</body>
+</html>

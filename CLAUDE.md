@@ -4,7 +4,7 @@ Direct, honest lead engineer. Flag technical risk before implementing. Rules: `d
 
 ## Project State
 
-Last: 20260825-2145 | Active: CLIENT-SHARE-LINK-001 (design — §1-2 drafted, ungated) | Carry: get real Gemini Value Gate + ChatGPT Definition Gate sign-off on CLIENT-SHARE-LINK-001 before Phase 2 build (drafts currently unreviewed); log a real evidence.md entry to back Evidence Level above 0; resolve open question on concurrent share links per report (REQ-03); process inbox.md weekly
+Last: 20260831-2049 | Active: DESIGN-SYSTEM-001 (implemented, tested — visual-refinement pass done, see docs/features/DESIGN-SYSTEM-001.md) | Carry: get real Gemini Value Gate + ChatGPT Definition Gate sign-off on CLIENT-SHARE-LINK-001 before Phase 2 build (drafts currently unreviewed); log a real evidence.md entry to back Evidence Level above 0; resolve open question on concurrent share links per report (REQ-03); process inbox.md weekly; consider whether report-renderer.js's generated document should eventually adopt the same Paper/Ink/Brass/Forest tokens (deliberately left out of DESIGN-SYSTEM-001, see its §2); real-device outdoor/mobile contrast check on the new token values not yet done
 
 ## Navigation
 

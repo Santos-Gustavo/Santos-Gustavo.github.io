@@ -4,6 +4,11 @@ import { loadPrimaryCompanyIntoState } from "#company/company-profile.js";
 
 
 let currentUser = null;
+// Guards against a stale/in-flight onAuthStateChange event (e.g. a
+// background token refresh that was already scheduled) firing with a
+// truthy session in the middle of an explicit sign-out and re-showing the
+// app shell right after signOut() has already torn it down.
+let signingOut = false;
 
 export function getCurrentUser() {
   return currentUser;
@@ -31,6 +36,8 @@ export async function initAuth() {
 
   supabaseClient.auth.onAuthStateChange(async (event, session) => {
     console.log("Auth event:", event);
+
+    if (signingOut) return;
 
     currentUser = session?.user || null;
 
@@ -102,7 +109,10 @@ async function signUp() {
 
   currentUser = data.user;
   showAuthMessage("Conta criada com sucesso.", false);
-  await showLoggedInUI();
+  // showLoggedInUI() is not called here — the onAuthStateChange listener
+  // below already runs it for this same sign-up as part of Supabase's
+  // internal subscriber notification, and a second, redundant call here
+  // used to race a fast subsequent sign-out (see DESIGN-SYSTEM-001).
 }
 
 async function signIn() {
@@ -127,20 +137,24 @@ async function signIn() {
 
   currentUser = data.user;
   showAuthMessage("Login efetuado com sucesso.", false);
-  await showLoggedInUI();
+  // showLoggedInUI() is not called here — see the comment in signUp() above.
 }
 
 async function signOut() {
+  signingOut = true;
+
   const { error } = await supabaseClient.auth.signOut();
 
   if (error) {
     console.error("Sign out error:", error);
     alert("Erro ao sair: " + error.message);
+    signingOut = false;
     return;
   }
 
   currentUser = null;
   showLoggedOutUI();
+  signingOut = false;
 }
 
 async function resetPassword() {
@@ -176,7 +190,7 @@ function showAuthMessage(message, isError = false) {
   if (!el) return;
 
   el.textContent = message || "";
-  el.style.color = isError ? "#dc2626" : "#166534";
+  el.style.color = isError ? "var(--rust)" : "var(--forest)";
 }
 
 async function showLoggedInUI() {
@@ -222,12 +236,14 @@ function renderUserInfo() {
       top: 12px;
       right: 12px;
       z-index: 9999;
-      background: white;
-      border: 1px solid #e5e7eb;
+      background: var(--card);
+      border: 1px solid var(--paper-line);
       border-radius: 8px;
       padding: 8px 10px;
       font-size: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      font-family: 'IBM Plex Sans', sans-serif;
+      color: var(--ink);
+      box-shadow: 0 4px 12px rgba(22,38,58,0.08);
     `;
     document.body.appendChild(el);
   }
