@@ -7,6 +7,7 @@ import {
   canShowInHiddenProjectList,
   getProjectStatusLabel,
   isProjectCompleted,
+  isProjectVisible,
 } from "#projects/project-status-rules.js";
 
 function shouldShowProjectForCurrentFilter(project) {
@@ -21,7 +22,7 @@ function shouldShowProjectForCurrentFilter(project) {
   }
 
   if (filter === "completed") {
-    return isProjectCompleted(project) && !project.hidden_at && !project.hiddenAt;
+    return isProjectCompleted(project) && isProjectVisible(project);
   }
 
   if (filter === "archived") {

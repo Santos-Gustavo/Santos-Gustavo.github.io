@@ -57,7 +57,7 @@ async function handleProjectClick(event) {
   event.stopPropagation();
 
   if (action === "new-project") {
-    newProject();
+    await newProject();
     return;
   }
 

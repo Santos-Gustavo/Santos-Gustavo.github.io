@@ -6,6 +6,7 @@ import {
   getProjectNameForReport,
   missingShareLinkTestEnv,
 } from "./helpers/report-share-test-helper.js";
+import { tryReadFixtureState } from "./helpers/e2e-fixtures.js";
 
 // REPORT DELIVERY / CLIENT CONFIRMATION-001 — contractor-facing delivery telemetry on
 // the existing report-history/share-link UI. These specs cover the badge/text states
@@ -23,11 +24,14 @@ const E2E_PASSWORD =
   process.env.TEST_USER_PASSWORD ||
   process.env.PLAYWRIGHT_PASSWORD;
 
-const E2E_REPORT_ID = process.env.E2E_REPORT_ID;
+// E2E-FIXTURES-001 — report ids come from the fixture state file global setup
+// writes (tests/e2e/global-setup.js), not manually-set .env values.
+const fixtureState = tryReadFixtureState();
+const E2E_REPORT_ID = fixtureState?.reportId;
 // A second, independent report — used for the expiry test so a backdated created_at
 // (see forceExpireTestLink) can never be shadowed by a freshly-created link left over
 // from another test on the same report.
-const E2E_SECOND_REPORT_ID = process.env.E2E_SECOND_REPORT_ID;
+const E2E_SECOND_REPORT_ID = fixtureState?.secondReportId;
 
 const FORBIDDEN_WORDS =
   /Aprovado|Aprovação|Aceite|Assinado|Confirmado|Confirmação do cliente|Validado/i;
@@ -90,9 +94,9 @@ test.describe("share link delivery status (CLIENT-CONFIRMATION-001)", () => {
     page,
     context,
   }) => {
-    const missing = missingEnv(E2E_REPORT_ID, "E2E_REPORT_ID");
+    const missing = missingEnv(E2E_REPORT_ID, "fixture report id (run global setup)");
     if (missing.length > 0) {
-      test.skip(true, `Set ${missing.join(", ")} in .env.`);
+      test.skip(true, `Set ${missing.join(", ")}.`);
     }
 
     const projectName = await getProjectNameForReport(E2E_REPORT_ID);
@@ -163,9 +167,9 @@ test.describe("share link delivery status (CLIENT-CONFIRMATION-001)", () => {
   });
 
   test("an expired share link shows Expirado in the report history", async ({ page }) => {
-    const missing = missingEnv(E2E_SECOND_REPORT_ID, "E2E_SECOND_REPORT_ID");
+    const missing = missingEnv(E2E_SECOND_REPORT_ID, "fixture second report id (run global setup)");
     if (missing.length > 0) {
-      test.skip(true, `Set ${missing.join(", ")} in .env.`);
+      test.skip(true, `Set ${missing.join(", ")}.`);
     }
 
     const projectName = await getProjectNameForReport(E2E_SECOND_REPORT_ID);

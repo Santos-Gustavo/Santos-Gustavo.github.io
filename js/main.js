@@ -2,6 +2,8 @@
 
 import { initNavigation } from "#navigation/navigation.js";
 import { initProjects } from "#projects/project-index.js";
+import { initClients } from "#clients/client-index.js";
+import { initCompanyProfile } from "#company/company-index.js";
 import { initWorksSection } from "#projects/sections/works.js";
 import { initPhotosSection } from "#projects/sections/photos.js";
 import { initIncidentsSection } from "#projects/sections/incidents.js";
@@ -37,6 +39,12 @@ async function boot() {
 
   initProjects();
   console.info("[ESM boot] Projects initialized.");
+
+  initClients();
+  console.info("[ESM boot] Clients initialized.");
+
+  initCompanyProfile();
+  console.info("[ESM boot] Company profile initialized.");
 
   initUiControls();
   console.info("[ESM boot] UI controls initialized.");

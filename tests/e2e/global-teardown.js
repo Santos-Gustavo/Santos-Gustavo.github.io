@@ -1,7 +1,12 @@
+import dotenv from "dotenv";
 import { chromium, expect } from "@playwright/test";
-import { createClient } from "@supabase/supabase-js";
-import { APP_ENV } from "../../js/config/env.js";
-import { getServiceRoleClient, hasServiceRoleEnv } from "./helpers/supabase-admin.js";
+import { cleanupE2EData } from "./helpers/e2e-fixtures.js";
+
+// playwright.config.js already loads .env for the main process, but
+// globalTeardown is a separately-imported ESM module — this call is a no-op
+// when the vars are already set (dotenv never overrides an existing
+// process.env key) and a safety net when they aren't.
+dotenv.config();
 
 const E2E_EMAIL =
   process.env.E2E_EMAIL ||
@@ -13,42 +18,18 @@ const E2E_PASSWORD =
   process.env.TEST_USER_PASSWORD ||
   process.env.PLAYWRIGHT_PASSWORD;
 
-const E2E_USER_ID = process.env.E2E_USER_ID;
-
-// Same second-user env vars rls-isolation.spec.js already uses, plus an optional
-// direct-id override so cleanup doesn't have to sign in just to learn the id.
-const E2E_OTHER_USER_ID = process.env.E2E_OTHER_USER_ID;
-const E2E_OTHER_EMAIL = process.env.E2E_OTHER_EMAIL?.trim();
-const E2E_OTHER_PASSWORD = process.env.E2E_OTHER_PASSWORD;
-
-const ENABLE_PROJECT_CLEANUP = process.env.E2E_DELETE_ALL_PROJECTS === "true";
-
-const STORAGE_BUCKET = "project-photos";
-const STORAGE_DELETE_BATCH_SIZE = 50;
-
-// Test data created by these specs is always named with one of these markers — see
-// requirement 6: "E2E" prefix, or "Playwright"/"Teste" anywhere in the name. Matching
-// is deliberately case-sensitive and exact-substring, not a loose case-insensitive
-// scan, so this can never sweep up a real contractor's client just because their name
-// happens to contain "teste" in ordinary Portuguese.
-function isTestName(name) {
-  const value = String(name || "");
-  return value.startsWith("E2E") || value.includes("Playwright") || value.includes("Teste");
+// E2E-FIXTURES-001 — replaces the old positive opt-in flag
+// (E2E_DELETE_ALL_PROJECTS=true, easy to forget and easy to leave permanently
+// on in .env, both of which happened) with a safer negative escape hatch:
+// cleanup now runs by default on every `npm run test:e2e`, and this is only
+// set to skip it when deliberately inspecting failed-test data by hand.
+// Normalized instead of a strict `=== "true"` check so a value quoted,
+// padded, or differently-cased in .env still resolves correctly.
+function isSkipCleanup(value) {
+  return String(value || "").trim().toLowerCase() === "true";
 }
 
-function chunkArray(items, size) {
-  const chunks = [];
-
-  for (let i = 0; i < items.length; i += size) {
-    chunks.push(items.slice(i, i + size));
-  }
-
-  return chunks;
-}
-
-async function isVisible(page, selector) {
-  return page.locator(selector).filter({ visible: true }).count();
-}
+const SKIP_CLEANUP = isSkipCleanup(process.env.E2E_SKIP_CLEANUP);
 
 async function login(page) {
   if (!E2E_EMAIL || !E2E_PASSWORD) {
@@ -142,213 +123,15 @@ async function goToProjectList(page) {
   throw new Error("Could not navigate to Projetos screen before cleanup.");
 }
 
-// Resolves a Supabase auth user id for cleanup scoping. Prefers an explicit *_USER_ID
-// env var (no network round trip); otherwise signs in with the anon key using the same
-// email/password rls-isolation.spec.js already uses for its second user, purely to read
-// back `data.user.id`, then signs out again. Never uses the service-role key for this —
-// signing in is the same thing any test user's own browser session already does.
-async function resolveUserId(label, explicitId, email, password) {
-  if (explicitId) return explicitId;
-
-  if (!email || !password) return null;
-
-  const anonClient = createClient(APP_ENV.SUPABASE_URL, APP_ENV.SUPABASE_ANON_KEY);
-
-  const { data, error } = await anonClient.auth.signInWithPassword({ email, password });
-
-  if (error || !data?.user?.id) {
-    console.warn(
-      `[E2E cleanup] Could not resolve user id for ${label} (${email}): ${error?.message || "no user returned"}`
-    );
-    return null;
-  }
-
-  await anonClient.auth.signOut();
-
-  return data.user.id;
-}
-
-async function resolveTestUserIds() {
-  const primaryId = await resolveUserId("primary E2E user", E2E_USER_ID, E2E_EMAIL, E2E_PASSWORD);
-  const otherId = await resolveUserId(
-    "second E2E user",
-    E2E_OTHER_USER_ID,
-    E2E_OTHER_EMAIL,
-    E2E_OTHER_PASSWORD
-  );
-
-  return [primaryId, otherId].filter(Boolean);
-}
-
-// PostgREST encodes .in("col", ids) as a URL query param — with a few hundred UUIDs
-// (36 chars each) that URL can exceed the ~16KB request-header limit and the whole
-// request fails outright (HeadersOverflowError), not just returns fewer rows. Batching
-// every .in() call that scales with accumulated test data (there were 148+ stray
-// projects/clients the first time this ran) avoids that entirely.
-const ID_BATCH_SIZE = 100;
-
-async function selectInBatches(client, table, columns, column, ids, refine) {
-  const rows = [];
-
-  for (const batch of chunkArray(ids, ID_BATCH_SIZE)) {
-    if (batch.length === 0) continue;
-
-    let query = client.from(table).select(columns).in(column, batch);
-    if (refine) query = refine(query);
-
-    const { data, error } = await query;
-    if (error) throw error;
-
-    rows.push(...(data || []));
-  }
-
-  return rows;
-}
-
-async function deleteInBatches(client, table, column, ids, { ignoreErrorCode } = {}) {
-  let deletedCount = 0;
-
-  for (const batch of chunkArray(ids, ID_BATCH_SIZE)) {
-    if (batch.length === 0) continue;
-
-    const { error, count } = await client
-      .from(table)
-      .delete({ count: "exact" })
-      .in(column, batch);
-
-    if (error) {
-      if (ignoreErrorCode && error.code === ignoreErrorCode) continue;
-      throw error;
-    }
-
-    deletedCount += count ?? batch.length;
-  }
-
-  return deletedCount;
-}
-
-// Deletes exactly the rows a set of test projects owns, in FK-safe order, including the
-// Storage objects those projects' photos point at (plain row deletes never touch
-// Storage — only the app's delete-project Edge Function does that today, and this
-// cleanup path intentionally goes straight to the DB instead of driving that function).
-async function deleteProjectsDeep(client, projectIds) {
-  if (projectIds.length === 0) return 0;
-
-  const reports = await selectInBatches(client, "reports", "id", "project_id", projectIds);
-  const reportIds = reports.map((report) => report.id);
-
-  if (reportIds.length > 0) {
-    const photos = await selectInBatches(client, "photos", "storage_path", "report_id", reportIds);
-
-    const storagePaths = photos.map((photo) => photo.storage_path).filter(Boolean);
-
-    for (const batch of chunkArray(storagePaths, STORAGE_DELETE_BATCH_SIZE)) {
-      const { error: storageError } = await client.storage.from(STORAGE_BUCKET).remove(batch);
-
-      if (storageError) {
-        console.warn(`[E2E cleanup] Failed to remove ${batch.length} storage object(s): ${storageError.message}`);
-      }
-    }
-
-    // report_share_links only exists once CLIENT-SHARE-LINK-001's migration is
-    // deployed — treat "relation does not exist" (42P01) as nothing to clean up, not
-    // a teardown failure.
-    await deleteInBatches(client, "report_share_links", "report_id", reportIds, {
-      ignoreErrorCode: "42P01",
-    });
-
-    await deleteInBatches(client, "photos", "report_id", reportIds);
-    await deleteInBatches(client, "reports", "id", reportIds);
-  }
-
-  return deleteInBatches(client, "projects", "id", projectIds);
-}
-
-// Service-role, DB-level pass — this is the only thing that actually deletes
-// E2E-created *clients* (there is no app UI or Edge Function that deletes a client at
-// all). Also re-sweeps projects the browser-driven loop above can't reach (a different
-// filter tab, a second test user), since a project referencing a client blocks that
-// client's deletion (projects.client_id -> clients.id is ON DELETE RESTRICT).
-//
-// Scope is strictly: companies owned by the resolved test user id(s), clients under
-// those companies whose name matches isTestName(), and projects that point at one of
-// those clients. Never touches companies themselves (requirement 8), and never touches
-// a client that still has a project outside this scope pointing at it.
-async function cleanupTestClientsAndProjects(userIds) {
-  if (userIds.length === 0) {
-    console.log("[E2E cleanup] No test user id resolved — skipping client/project DB cleanup.");
-    return { deletedProjects: 0, deletedClients: 0 };
-  }
-
-  if (!hasServiceRoleEnv()) {
-    console.log(
-      "[E2E cleanup] SUPABASE_SERVICE_ROLE_KEY not set — skipping client/project DB cleanup."
-    );
-    return { deletedProjects: 0, deletedClients: 0 };
-  }
-
-  const client = getServiceRoleClient();
-
-  const { data: companies, error: companiesError } = await client
-    .from("companies")
-    .select("id")
-    .in("owner_id", userIds);
-
-  if (companiesError) throw companiesError;
-
-  const companyIds = (companies || []).map((company) => company.id);
-
-  if (companyIds.length === 0) {
-    console.log("[E2E cleanup] No companies found for the configured test user(s).");
-    return { deletedProjects: 0, deletedClients: 0 };
-  }
-
-  const clients = await selectInBatches(client, "clients", "id, name", "company_id", companyIds, (q) =>
-    q.is("deleted_at", null)
-  );
-
-  const testClientIds = clients
-    .filter((clientRow) => isTestName(clientRow.name))
-    .map((clientRow) => clientRow.id);
-
-  if (testClientIds.length === 0) {
-    console.log("[E2E cleanup] No E2E-named clients found for the configured test user(s).");
-    return { deletedProjects: 0, deletedClients: 0 };
-  }
-
-  const projects = await selectInBatches(client, "projects", "id", "client_id", testClientIds);
-  const projectIds = projects.map((project) => project.id);
-
-  const deletedProjects = await deleteProjectsDeep(client, projectIds);
-
-  // Re-check for any project still pointing at a candidate client (e.g. one outside
-  // this scope, or one deleteProjectsDeep couldn't remove) before deleting it — this
-  // mirrors the DB's own ON DELETE RESTRICT rather than fighting it.
-  const remainingProjects = await selectInBatches(client, "projects", "client_id", "client_id", testClientIds);
-
-  const stillReferenced = new Set(remainingProjects.map((project) => project.client_id));
-  const deletableClientIds = testClientIds.filter((id) => !stillReferenced.has(id));
-
-  const deletedClients = await deleteInBatches(client, "clients", "id", deletableClientIds);
-
-  const skipped = testClientIds.length - deletableClientIds.length;
-
-  if (skipped > 0) {
-    console.log(
-      `[E2E cleanup] Skipped ${skipped} test client(s) still referenced by a project outside this cleanup's scope.`
-    );
-  }
-
-  return { deletedProjects, deletedClients };
-}
-
 async function globalTeardown(config) {
-  if (!ENABLE_PROJECT_CLEANUP) {
-    console.log(
-      "[E2E cleanup] Skipped. Set E2E_DELETE_ALL_PROJECTS=true to delete all projects after tests."
-    );
+  if (SKIP_CLEANUP) {
+    console.log("[E2E cleanup] Skipped because E2E_SKIP_CLEANUP=true");
     return;
   }
+
+  // Non-secret status line — logs only the resolved boolean, never any env
+  // value or credential, so this is safe to leave permanently.
+  console.log("[E2E cleanup] Enabled: true");
 
   const baseURL =
     config.projects?.[0]?.use?.baseURL ||
@@ -422,17 +205,21 @@ async function globalTeardown(config) {
     );
   }
 
-  // Second pass: service-role, DB-level. Catches E2E-created *clients* (nothing above
-  // touches those — there's no UI or Edge Function that deletes a client), plus any
-  // test projects the UI pass above couldn't reach (a non-"Ativas" filter tab, or a
-  // second test user). Failure here is logged, not thrown — it must never turn a
-  // clean UI-pass run into a failed test run.
+  // Second pass: service-role, DB-level, via the shared e2e-fixtures helper (the same
+  // module global-setup.js uses to create this data, so creation and cleanup always
+  // agree on what counts as E2E test data). Catches E2E-created *clients* (the UI pass
+  // above only ever targets project cards — CLIENT-MANAGEMENT-001 did add a client
+  // "Eliminar" action, but it's blocked for any client with a linked project, which
+  // describes essentially every E2E-created client, so this DB pass remains the one
+  // that actually clears them), plus any test projects the UI pass couldn't reach (a
+  // non-"Ativas" filter tab, or a second test user), plus zero-use test companies once
+  // their clients/projects are gone. Failure here is logged, not thrown — it must
+  // never turn a clean UI-pass run into a failed test run.
   try {
-    const userIds = await resolveTestUserIds();
-    const { deletedProjects, deletedClients } = await cleanupTestClientsAndProjects(userIds);
+    const { deletedProjects, deletedClients, deletedCompanies } = await cleanupE2EData();
 
     console.log(
-      `[E2E cleanup] DB pass: deleted ${deletedProjects} project(s) and ${deletedClients} client(s).`
+      `[E2E cleanup] DB pass: deleted ${deletedProjects} project(s), ${deletedClients} client(s), and ${deletedCompanies} zero-use test compan${deletedCompanies === 1 ? "y" : "ies"}.`
     );
   } catch (error) {
     console.error(

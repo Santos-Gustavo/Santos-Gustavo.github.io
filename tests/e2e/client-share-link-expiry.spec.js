@@ -5,8 +5,11 @@ import {
   getFunctionUrl,
   missingShareLinkTestEnv,
 } from "./helpers/report-share-test-helper.js";
+import { tryReadFixtureState } from "./helpers/e2e-fixtures.js";
 
-const E2E_REPORT_ID = process.env.E2E_REPORT_ID;
+// E2E-FIXTURES-001 — report id comes from the fixture state file global
+// setup writes (tests/e2e/global-setup.js), not a manually-set .env value.
+const E2E_REPORT_ID = tryReadFixtureState()?.reportId;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
 test("an expired share link shows the generic unavailable state, not an error", async ({
@@ -18,7 +21,7 @@ test("an expired share link shows the generic unavailable state, not an error", 
   if (missingEnv.length > 0 || !E2E_REPORT_ID || !SUPABASE_ANON_KEY) {
     test.skip(
       true,
-      `Set ${[...missingEnv, !E2E_REPORT_ID && "E2E_REPORT_ID", !SUPABASE_ANON_KEY && "SUPABASE_ANON_KEY"].filter(Boolean).join(", ")} in .env.`,
+      `Set ${[...missingEnv, !E2E_REPORT_ID && "fixture report id (run global setup)", !SUPABASE_ANON_KEY && "SUPABASE_ANON_KEY"].filter(Boolean).join(", ")}.`,
     );
   }
 
