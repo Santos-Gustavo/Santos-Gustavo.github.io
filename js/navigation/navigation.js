@@ -16,7 +16,7 @@ import { renderNextSteps } from "#projects/sections/next-steps.js";
 import { getProjectStatusLabel, canCreateWeeklyReport, canCreateLegalFinancialReport } from "#projects/project-status-rules.js";
 import { renderProjectModePage } from "#projects/project-mode-page.js";
 import { openClientsPage } from "#clients/client-index.js";
-import { populateClientNameOptions } from "#clients/client-list.js";
+import { openCompanyProfilePage } from "#company/company-index.js";
 
 let initialized = false;
 
@@ -91,10 +91,15 @@ export function updateTopBar(id) {
     return;
   }
 
+  if (id === "company") {
+    fill.style.width = "0%";
+    label.textContent = "Dados da Empresa";
+    return;
+  }
+
   if (!state.flow) {
-    const pos = id === 1 ? 1 : 2;
-    fill.style.width = `${Math.round((pos / 2) * 100)}%`;
-    label.textContent = `Configuração ${pos} de 2 — ${id === 1 ? "Empresa" : "Projeto"}`;
+    fill.style.width = "50%";
+    label.textContent = "Dados do Projeto";
     return;
   }
 
@@ -148,23 +153,6 @@ export function selectMode(mode) {
 export async function goNext() {
   const state = getRuntimeState();
   const cur = state.currentStepId;
-
-  if (cur === 1) {
-    const companyName = document.getElementById("companyName")?.value.trim();
-
-    if (!companyName) {
-      alert("Preencha o nome da empresa antes de continuar.");
-      document.getElementById("companyName")?.focus();
-      return;
-    }
-
-    populateClientNameOptions().catch((error) => {
-      console.warn("Could not refresh client suggestions:", error);
-    });
-
-    goToStepId(2);
-    return;
-  }
 
   if (cur === 2) {
     console.log("Saving project data...");
@@ -238,14 +226,9 @@ export function goBack() {
   const state = getRuntimeState();
   const cur = state.currentStepId;
 
-  if (cur === 1) {
+  if (cur === 2) {
     goToStepId("projects");
     renderProjectList();
-    return;
-  }
-
-  if (cur === 2) {
-    goToStepId(1);
     return;
   }
 
@@ -256,6 +239,13 @@ export function goBack() {
   }
 
   if (cur === "clients") {
+    goToStepId("projects");
+    renderProjectList();
+    return;
+  }
+
+  if (cur === "company") {
+    appState.pendingNewProjectAfterCompanySetup = false;
     goToStepId("projects");
     renderProjectList();
     return;
@@ -426,6 +416,11 @@ function handleNavigationClick(event) {
   if (action === "open-clients") {
     goToStepId("clients");
     openClientsPage();
+    return;
+  }
+
+  if (action === "open-company-profile") {
+    openCompanyProfilePage();
     return;
   }
 

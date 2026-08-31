@@ -76,22 +76,7 @@ async function createProjectForClient(page, { projectName, clientName, contractN
     .click();
 
   await expect(page.locator("#stepLabel")).toHaveText(
-    /configuração 1 de 2|configuracao 1 de 2|empresa/i,
-    { timeout: 10000 }
-  );
-
-  await page.locator("#companyName").fill("E2E Client Mgmt Company");
-  await page.locator("#companyTagline").fill("Construção · Renovação · Remodelação");
-  await page.locator("#companyNif").fill("509123456");
-  await page.locator("#companyInci").fill("12345");
-  await page.locator("#responsible").fill("E2E Responsible");
-  await page.locator("#companyPhone").fill("+351 912 345 678");
-  await page.locator("#companyEmail").fill("e2e.company@example.com");
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /configuração 2 de 2|configuracao 2 de 2|projeto/i,
+    /dados do projeto/i,
     { timeout: 10000 }
   );
 

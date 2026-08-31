@@ -119,7 +119,8 @@ function clearSelectedProjectStateIfNeeded(projectId) {
   }
   appState.currentProjectId = null;
   appState.currentClientId = null;
-  appState.currentCompanyId = null;
+  // currentCompanyId deliberately left alone — it's the session-durable
+  // primary company (COMPANY-PROFILE-001), not per-project selection state.
   appState.mode = "";
   appState.flow = null;
   appState.isEditingProject = false;

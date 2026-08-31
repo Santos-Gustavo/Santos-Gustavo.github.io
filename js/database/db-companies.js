@@ -40,66 +40,40 @@ export async function loadCurrentUserCompanies() {
   return data || [];
 }
 
-export async function findOrCreateCompany(values) {
+// The user's single primary company profile for this MVP — the oldest company
+// row they own (loadCurrentUserCompanies orders by created_at ascending), or
+// null if they have none yet. See docs/features/COMPANY-PROFILE-001.md: one
+// primary company per user, project creation must never duplicate it.
+export async function loadPrimaryCompany() {
+  const companies = await loadCurrentUserCompanies();
+  return companies[0] || null;
+}
+
+// Straight insert, no name/nif matching — only ever called once, when
+// loadPrimaryCompany() has already confirmed the user has zero companies.
+// This replaces the old findOrCreateCompany, whose read-then-write match by
+// name-or-nif was not atomic and produced duplicate rows in practice (see
+// COMPANY-PROFILE-001 §2 — the live DB had 9 duplicates for one owner).
+export async function createCompanyProfile(values) {
   const user = await requireUser();
 
   const name = cleanText(values.companyName);
-  const nif = cleanText(values.companyNif);
 
   if (!name) {
     throw new Error("Nome da empresa é obrigatório.");
-  }
-
-  let query = supabaseClient
-    .from("companies")
-    .select("*")
-    .eq("owner_id", user.id)
-    .limit(1);
-
-  if (nif) {
-    query = query.eq("nif", nif);
-  } else {
-    query = query.eq("name", name);
-  }
-
-  const { data: existing, error: findError } = await query.maybeSingle();
-  throwIfDbError(findError, "Erro ao procurar empresa.");
-
-  const payload = {
-    name,
-    nif: nif || null,
-    impic: toNullableText(values.companyInci),
-    responsible: toNullableText(values.responsible),
-    phone: toNullableText(values.companyPhone),
-    email: toNullableText(values.companyEmail),
-    updated_at: new Date().toISOString(),
-  };
-
-  if (existing) {
-    const { data, error } = await supabaseClient
-      .from("companies")
-      .update({
-        ...payload,
-        nif: payload.nif || existing.nif,
-        impic: payload.impic || existing.impic,
-        responsible: payload.responsible || existing.responsible,
-        phone: payload.phone || existing.phone,
-        email: payload.email || existing.email,
-      })
-      .eq("id", existing.id)
-      .eq("owner_id", user.id)
-      .select()
-      .single();
-
-    throwIfDbError(error, "Erro ao atualizar empresa.");
-    return data;
   }
 
   const { data, error } = await supabaseClient
     .from("companies")
     .insert({
       owner_id: user.id,
-      ...payload,
+      name,
+      nif: toNullableText(values.companyNif),
+      impic: toNullableText(values.companyInci),
+      responsible: toNullableText(values.responsible),
+      phone: toNullableText(values.companyPhone),
+      email: toNullableText(values.companyEmail),
+      address: toNullableText(values.companyAddress),
       default_vat_rate: 23.0,
     })
     .select()
@@ -131,6 +105,7 @@ export async function updateCompanyById(companyId, values) {
       responsible: toNullableText(values.responsible),
       phone: toNullableText(values.companyPhone),
       email: toNullableText(values.companyEmail),
+      address: toNullableText(values.companyAddress),
       updated_at: new Date().toISOString(),
     })
     .eq("id", companyId)

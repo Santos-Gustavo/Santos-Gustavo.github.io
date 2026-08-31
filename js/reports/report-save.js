@@ -2,7 +2,6 @@
 
 import { appState } from "#state/app-state.js";
 import { getReportFormValues } from "#forms/form-values.js";
-import { findOrCreateCompany } from "#database/db-companies.js";
 import { findOrCreateClient } from "#database/db-clients.js";
 import { createProjectInDb } from "#database/db-projects.js";
 import {
@@ -26,7 +25,16 @@ export async function saveReportToSupabase() {
       client = { id: appState.currentClientId };
       project = { id: appState.currentProjectId };
     } else {
-      company = await findOrCreateCompany(values);
+      // Company creation is decoupled from report/project creation
+      // (COMPANY-PROFILE-001) — this only ever attaches to the already-loaded
+      // primary company, it never creates one.
+      if (!appState.primaryCompanyId) {
+        throw new Error(
+          "Nenhuma empresa configurada. Guarde os Dados da Empresa antes de criar um relatório."
+        );
+      }
+
+      company = { id: appState.primaryCompanyId };
       client = await findOrCreateClient(company.id, values);
 
       project = await createProjectInDb({

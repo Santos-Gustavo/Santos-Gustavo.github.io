@@ -1,5 +1,6 @@
 import { supabaseClient } from "#database/supabase-client.js";
 import { renderProjectList } from "#projects/project-list.js";
+import { loadPrimaryCompanyIntoState } from "#company/company-profile.js";
 
 
 let currentUser = null;
@@ -186,6 +187,14 @@ async function showLoggedInUI() {
   if (appShell) appShell.style.display = "flex";
 
   renderUserInfo();
+
+  // One primary company per user (COMPANY-PROFILE-001) — loaded once here so
+  // it's ready before the user ever touches project creation.
+  try {
+    await loadPrimaryCompanyIntoState();
+  } catch (error) {
+    console.error("Error loading company profile:", error);
+  }
 
   // Temporary bridge until project list is migrated to ESM.
   await renderProjectList();

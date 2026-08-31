@@ -4,6 +4,7 @@ const { defineConfig, devices } = require("@playwright/test");
 
 module.exports = defineConfig({
   testDir: "./tests/e2e",
+  globalSetup: "./tests/e2e/global-setup.js",
   globalTeardown: "./tests/e2e/global-teardown.js",
 
   fullyParallel: false,

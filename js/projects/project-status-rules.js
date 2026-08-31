@@ -76,7 +76,11 @@ export function isProjectArchived(project) {
 }
 
 export function isProjectHidden(project) {
-  return Boolean(project?.hidden_at);
+  // Mapped app objects (project-mapper.js) carry hiddenAt (camelCase); raw DB
+  // rows carry hidden_at. Accept either so this works for both, instead of
+  // silently always returning false for the mapped shape every real caller
+  // actually passes in.
+  return Boolean(project?.hidden_at || project?.hiddenAt);
 }
 
 export function isProjectVisible(project) {

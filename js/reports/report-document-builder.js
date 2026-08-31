@@ -24,15 +24,20 @@ export function buildCurrentReportDocument(options = {}) {
       generatedAt: new Date().toISOString(),
     },
 
+    // Sourced from the live company profile (COMPANY-PROFILE-001) so an edit
+    // to company data shows up in the next report generated, not from
+    // whatever happens to sit in the DOM form fields. tagline is the one
+    // exception — it was never persisted to the company row, it's a
+    // per-report free-text field read straight from the form.
     company: {
       id: state.currentCompanyId || null,
-      name: values.companyName || "",
+      name: state.currentCompany?.name || values.companyName || "",
       tagline: values.companyTagline || "",
-      nif: values.companyNif || "",
-      impic: values.companyInci || "",
-      responsible: values.responsible || "",
-      phone: values.companyPhone || "",
-      email: values.companyEmail || "",
+      nif: state.currentCompany?.nif || values.companyNif || "",
+      impic: state.currentCompany?.impic || values.companyInci || "",
+      responsible: state.currentCompany?.responsible || values.responsible || "",
+      phone: state.currentCompany?.phone || values.companyPhone || "",
+      email: state.currentCompany?.email || values.companyEmail || "",
     },
 
     project: {

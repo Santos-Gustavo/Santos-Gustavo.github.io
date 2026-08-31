@@ -1,14 +1,13 @@
 import { setValue } from "#forms/form-values.js";
 
 export function clearProjectForm() {
+  // Company fields (companyName, companyNif, ...) are deliberately NOT cleared
+  // here — they belong to the single company profile (COMPANY-PROFILE-001),
+  // not to per-project state, and stay populated from appState.currentCompany
+  // (see project-selection.js's newProject()). companyTagline is the one
+  // exception: it's per-report/ephemeral, never persisted to the company row.
   [
-    "companyName",
     "companyTagline",
-    "companyNif",
-    "companyInci",
-    "responsible",
-    "companyPhone",
-    "companyEmail",
     "projectName",
     "clientName",
     "location",

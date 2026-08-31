@@ -1,10 +1,6 @@
 import { appState } from "#state/app-state.js";
 import { getProjectFormValues } from "#forms/form-values.js";
 import {
-  findOrCreateCompany,
-  updateCompanyById,
-} from "#database/db-companies.js";
-import {
   findOrCreateClient,
   updateClientById,
 } from "#database/db-clients.js";
@@ -15,57 +11,59 @@ import {
 import { applyDefaultReportFields } from "#projects/project-form.js";
 import { renderProjectList } from "#projects/project-list.js";
 
+// Company creation/editing is fully decoupled from project creation
+// (COMPANY-PROFILE-001) — this only ever attaches to the already-loaded
+// primary company (appState.primaryCompanyId/currentCompanyId), never
+// creates or updates a company row itself.
 export async function saveCurrentProjectFromForm() {
 
   const values = getProjectFormValues();
 
   try {
-    let company;
     let client;
     let project;
 
+    const companyId = appState.isEditingProject
+      ? appState.currentCompanyId
+      : appState.primaryCompanyId;
+
+    if (!companyId) {
+      throw new Error(
+        "Nenhuma empresa configurada. Guarde os Dados da Empresa antes de criar um projeto."
+      );
+    }
+
     if (appState.isEditingProject) {
-      if (
-        !appState.currentCompanyId ||
-        !appState.currentClientId ||
-        !appState.currentProjectId
-      ) {
+      if (!appState.currentClientId || !appState.currentProjectId) {
         throw new Error(
-          "Modo edição ativo, mas faltam IDs da empresa, cliente ou projeto."
+          "Modo edição ativo, mas faltam IDs do cliente ou do projeto."
         );
       }
 
-      company = await updateCompanyById(appState.currentCompanyId, values);
-
       client = await updateClientById(
         appState.currentClientId,
-        company.id,
+        companyId,
         values
       );
 
-      
       project = await updateProjectInDb(
         appState.currentProjectId,
-        company.id,
+        companyId,
         client.id,
         values
       );
 
     } else {
-      company = await findOrCreateCompany(values);
-
-      client = await findOrCreateClient(company.id, values);
+      client = await findOrCreateClient(companyId, values);
 
       project = await createProjectInDb({
-        companyId: company.id,
+        companyId,
         clientId: client.id,
         values,
       });
     }
 
-    if (!company?.id) {
-      throw new Error("Empresa não foi guardada corretamente.");
-    }
+    const company = { id: companyId };
 
     if (!client?.id) {
       throw new Error("Cliente não foi guardado corretamente.");

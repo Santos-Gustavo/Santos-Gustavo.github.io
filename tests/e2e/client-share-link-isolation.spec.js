@@ -4,9 +4,13 @@ import {
   getFunctionUrl,
   missingShareLinkTestEnv,
 } from "./helpers/report-share-test-helper.js";
+import { tryReadFixtureState } from "./helpers/e2e-fixtures.js";
 
-const E2E_REPORT_ID = process.env.E2E_REPORT_ID;
-const E2E_SECOND_REPORT_ID = process.env.E2E_SECOND_REPORT_ID;
+// E2E-FIXTURES-001 — report ids come from the fixture state file global
+// setup writes (tests/e2e/global-setup.js), not manually-set .env values.
+const fixtureState = tryReadFixtureState();
+const E2E_REPORT_ID = fixtureState?.reportId;
+const E2E_SECOND_REPORT_ID = fixtureState?.secondReportId;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
 const INTERNAL_ID_KEYS = ["report_id", "project_id", "company_id", "client_id", "owner_id"];
@@ -17,16 +21,13 @@ test("a share link's response never contains another report's data or any intern
   const missingEnv = missingShareLinkTestEnv();
   const missing = [
     ...missingEnv,
-    !E2E_REPORT_ID && "E2E_REPORT_ID",
-    !E2E_SECOND_REPORT_ID && "E2E_SECOND_REPORT_ID",
+    !E2E_REPORT_ID && "fixture report id (run global setup)",
+    !E2E_SECOND_REPORT_ID && "fixture second report id (run global setup)",
     !SUPABASE_ANON_KEY && "SUPABASE_ANON_KEY",
   ].filter(Boolean);
 
   if (missing.length > 0) {
-    test.skip(
-      true,
-      `Set ${missing.join(", ")} in .env — both report ids must be saved reports (with snapshot_json) owned by E2E_USER_ID.`,
-    );
+    test.skip(true, `Set ${missing.join(", ")}.`);
   }
 
   const linkA = await createTestShareLink(E2E_REPORT_ID);

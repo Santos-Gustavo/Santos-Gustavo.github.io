@@ -19,6 +19,7 @@ Load only when unsure of a library/convention/version in use. Durable structure 
 - Playwright E2E only, under `tests/e2e/`. Two established styles: page-driven UI assertions (e.g. `payments-readonly-boundary.spec.js`) and direct API/DB assertions via `@supabase/supabase-js` with the anon key (e.g. `rls-security.spec.js`).
 - Credentials via `.env`: `E2E_EMAIL`/`E2E_PASSWORD`, `SUPABASE_URL`/`SUPABASE_ANON_KEY`.
 - `npm run test:e2e` (+ `:ui`, `:headed`, `:debug`, `:mobile` variants).
+- E2E-FIXTURES-001: the suite is self-seeding and self-cleaning. `tests/e2e/global-setup.js` seeds baseline fixtures (company/client/project/report) via `tests/e2e/helpers/e2e-fixtures.js`; `tests/e2e/global-teardown.js` deletes everything it created after every run, scoped to `E2E_USER_ID` + E2E/test name patterns. Set `E2E_SKIP_CLEANUP=true` only to inspect failed-test data by hand — never keep it on in `.env`. The old `E2E_DELETE_ALL_PROJECTS` opt-in flag is gone.
 
 ## Local dev
 - `npx serve . -l 3000` (or `http-server`) — static file serving, no build step.

@@ -1,23 +1,16 @@
 // js/clients/client-list.js
 
 import { loadClientDirectoryForCompany, loadClientsForCompany } from "#database/db-clients.js";
-import { loadCurrentUserCompanies } from "#database/db-companies.js";
 import { mapClientRowToAppClient } from "#mappers/client-mapper.js";
 import { appState } from "#state/app-state.js";
+import { resolvePrimaryCompanyId } from "#company/company-profile.js";
 
+// Delegates to the single primary-company resolver (COMPANY-PROFILE-001) —
+// kept as a re-export here so client-actions.js/client-index.js don't need
+// to know the client directory and the company profile now share one source
+// of truth for "which company".
 export async function resolveActiveCompanyId() {
-  if (appState.currentCompanyId) {
-    return appState.currentCompanyId;
-  }
-
-  const companies = await loadCurrentUserCompanies();
-
-  if (companies.length === 0) {
-    return null;
-  }
-
-  appState.currentCompanyId = companies[0].id;
-  return appState.currentCompanyId;
+  return resolvePrimaryCompanyId();
 }
 
 function shouldShowClientForCurrentFilter(client) {
