@@ -15,6 +15,8 @@ import { renderExtras } from "#projects/sections/extras.js";
 import { renderNextSteps } from "#projects/sections/next-steps.js";
 import { getProjectStatusLabel, canCreateWeeklyReport, canCreateLegalFinancialReport } from "#projects/project-status-rules.js";
 import { renderProjectModePage } from "#projects/project-mode-page.js";
+import { openClientsPage } from "#clients/client-index.js";
+import { populateClientNameOptions } from "#clients/client-list.js";
 
 let initialized = false;
 
@@ -74,6 +76,12 @@ export function updateTopBar(id) {
   if (id === "projects") {
     fill.style.width = "0%";
     label.textContent = "Projetos";
+    return;
+  }
+
+  if (id === "clients") {
+    fill.style.width = "0%";
+    label.textContent = "Clientes";
     return;
   }
 
@@ -149,6 +157,10 @@ export async function goNext() {
       document.getElementById("companyName")?.focus();
       return;
     }
+
+    populateClientNameOptions().catch((error) => {
+      console.warn("Could not refresh client suggestions:", error);
+    });
 
     goToStepId(2);
     return;
@@ -238,6 +250,12 @@ export function goBack() {
   }
 
   if (cur === "mode") {
+    goToStepId("projects");
+    renderProjectList();
+    return;
+  }
+
+  if (cur === "clients") {
     goToStepId("projects");
     renderProjectList();
     return;
@@ -402,6 +420,12 @@ function handleNavigationClick(event) {
 
   if (action === "home") {
     goHome();
+    return;
+  }
+
+  if (action === "open-clients") {
+    goToStepId("clients");
+    openClientsPage();
     return;
   }
 

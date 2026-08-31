@@ -575,6 +575,25 @@ h1, h2, h3, .mode-title, .project-card-name, .btn-generate, .btn-next {
 
 .project-card-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
+/* ---------- CLIENT DIRECTORY ---------- */
+.client-status-badge {
+  flex: 0 0 auto;
+  font-family: 'IBM Plex Mono', monospace;
+  padding: 4px 9px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.client-status-badge--archived { background: var(--rust-soft); color: var(--rust); border: 1px solid #ecc3ba; }
+
+.client-form-panel { display: none; margin-bottom: 18px; }
+.client-form-panel.active { display: block; }
+.client-form-panel h3 { margin-bottom: 16px; }
+.client-form-actions { display: flex; gap: 12px; margin-top: 4px; }
+
 .project-status-badge {
   flex: 0 0 auto;
   font-family: 'IBM Plex Mono', monospace;

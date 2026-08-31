@@ -5,6 +5,7 @@ export const appState = {
   alertOn: false,
   incidentsOn: false,
   projectListFilter: "active",
+  clientListFilter: "active",
 
   works: [],
   photos: [],
@@ -24,7 +25,9 @@ export const appState = {
   currentProject: null,
 
   projectsCache: [],
-  
+  clientsCache: [],
+  editingClientId: null,
+
 };
 
 export function resetReportDraftState() {
