@@ -14,13 +14,13 @@ export const JOB_TYPES = Object.freeze([
   "Isolamento Acústico",
   "Isolamento Térmico",
   "Jardim / Arranjos Exteriores",
-  "Outro",
   "Pavimento / Betonilha",
   "Pintura Exterior",
   "Pintura Interior",
   "Reboco / Estuque",
   "Serralharia / Estruturas Metálicas",
   "Vãos / Portas / Janelas",
+  "Outro",
 ]);
 
 export const AREAS = Object.freeze([
