@@ -205,7 +205,7 @@ export function bindClientSearch() {
 }
 
 // Populates the <datalist> the project-creation "Cliente" field autocompletes
-// against (index.html #clientNameOptions). Text input stays the source of
+// against (app.html #clientNameOptions). Text input stays the source of
 // truth (findOrCreateClient matches by name) — this only surfaces active
 // clients as suggestions so picking an existing one doesn't require retyping
 // it exactly, and archived clients don't show up as a suggestion.

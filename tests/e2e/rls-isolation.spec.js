@@ -18,6 +18,9 @@ const E2E_OTHER_PASSWORD = process.env.E2E_OTHER_PASSWORD;
 async function login(page, email, password) {
   await page.goto("/");
 
+  await page.getByRole("link", { name: "Entrar" }).click();
+  await page.waitForLoadState("load");
+
   await expect(page.locator("#authEmail")).toBeVisible({ timeout: 10000 });
   await expect(page.locator("#authPassword")).toBeVisible({ timeout: 10000 });
 

@@ -19,6 +19,9 @@ async function login(page) {
 
   await page.goto("/");
 
+  await page.getByRole("link", { name: "Entrar" }).click();
+  await page.waitForLoadState("load");
+
   await expect(page.locator("#authEmail")).toBeVisible({ timeout: 10000 });
   await expect(page.locator("#authPassword")).toBeVisible({ timeout: 10000 });
 
@@ -103,6 +106,9 @@ async function createProjectForClient(page, { projectName, clientName, contractN
 test.describe("CLIENT-MANAGEMENT-001 — directory", () => {
   test("logged-out user cannot see the client directory", async ({ page }) => {
     await page.goto("/");
+
+    await page.getByRole("link", { name: "Entrar" }).click();
+    await page.waitForLoadState("load");
 
     await expect(page.locator("#authScreen")).toBeVisible({ timeout: 10000 });
 

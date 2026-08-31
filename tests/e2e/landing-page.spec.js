@@ -12,7 +12,7 @@ test.describe("landing page (DESIGN-SYSTEM-001)", () => {
   test("shows the marketing headline and primary CTA, with no app shell", async ({
     page,
   }) => {
-    await page.goto("/landing-page.html");
+    await page.goto("/");
 
     await expect(
       page.getByRole("heading", {
@@ -29,14 +29,14 @@ test.describe("landing page (DESIGN-SYSTEM-001)", () => {
   });
 
   test("has no payment UI or wording", async ({ page }) => {
-    await page.goto("/landing-page.html");
+    await page.goto("/");
 
     await expect(page.locator("[data-payment-action]")).toHaveCount(0);
     await expect(page.locator("body")).not.toContainText(PAYMENT_WORDING);
   });
 
   test("does not overclaim who viewed the report", async ({ page }) => {
-    await page.goto("/landing-page.html");
+    await page.goto("/");
 
     await expect(page.locator("body")).toContainText("Visualizado");
     await expect(page.locator("body")).not.toContainText("Visualizado pelo cliente");

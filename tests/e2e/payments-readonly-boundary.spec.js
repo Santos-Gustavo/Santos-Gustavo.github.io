@@ -29,6 +29,9 @@ async function login(page) {
 
   await page.goto("/");
 
+  await page.getByRole("link", { name: "Entrar" }).click();
+  await page.waitForLoadState("load");
+
   await expect(page.locator("#authEmail")).toBeVisible({ timeout: 10000 });
   await expect(page.locator("#authPassword")).toBeVisible({ timeout: 10000 });
 
@@ -45,6 +48,9 @@ async function login(page) {
 test("logged-out screen has no payment affordance", async ({ page }) => {
   await page.goto("/");
 
+  await page.getByRole("link", { name: "Entrar" }).click();
+  await page.waitForLoadState("load");
+
   await expect(page.locator("#authEmail")).toBeVisible({ timeout: 10000 });
 
   await expect(page.locator("[data-payment-action]")).toHaveCount(0);
@@ -58,7 +64,7 @@ test("payment UI exposes no client-side action anywhere in the logged-in app", a
 
   // No element anywhere renders a payment-initiation affordance. The two
   // EuPago buttons that used to exist here are HTML-commented out in
-  // index.html — this asserts that stays true, not just that it happens to
+  // app.html — this asserts that stays true, not just that it happens to
   // be true today. Locator counts include the whole DOM regardless of which
   // wizard step is currently active, so this covers every step at once.
   await expect(page.locator("[data-payment-action]")).toHaveCount(0);

@@ -8,7 +8,7 @@
 // The ensureE2E* functions talk to the DB directly with the service-role
 // client rather than importing the app's js/database/*.js modules — those
 // modules resolve `#database/...` specifiers through the browser-only import
-// map in index.html, which plain Node ESM cannot resolve without a bundler.
+// map in app.html, which plain Node ESM cannot resolve without a bundler.
 // Field shapes below are kept in sync by hand with js/database/db-*.js and
 // js/mappers/report-mapper.js — see the comments at each insert.
 

@@ -19,6 +19,9 @@ test("user can log in and reach the app", async ({ page }) => {
 
   await page.goto("/");
 
+  await page.getByRole("link", { name: "Entrar" }).click();
+  await page.waitForLoadState("load");
+
   const emailInput = page.locator("#authEmail");
   const passwordInput = page.locator("#authPassword");
 
@@ -51,6 +54,10 @@ test("user can log out and returns to the auth screen", async ({ page }) => {
   }
 
   await page.goto("/");
+
+  await page.getByRole("link", { name: "Entrar" }).click();
+  await page.waitForLoadState("load");
+  await page.waitForLoadState("load");
 
   await expect(page.locator("#authEmail")).toBeVisible({ timeout: 10000 });
   await expect(page.locator("#authPassword")).toBeVisible({ timeout: 10000 });

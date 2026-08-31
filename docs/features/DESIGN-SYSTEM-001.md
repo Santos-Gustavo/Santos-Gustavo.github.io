@@ -21,7 +21,7 @@ The app already carried most of the "Site Document / Technical Drawing" vernacul
 
 ## 2. Scope decisions (confirmed with the user, or made and documented below)
 
-- **`landing-page.html` stays a separate, standalone page** — confirmed via clarifying question. `index.html` remains the root at `/` and keeps showing the login form directly; no routing change. The existing `auth.spec.js`/`payments-readonly-boundary.spec.js` assumptions about `goto("/")` were preserved untouched.
+- **Superseded in §6**: `landing-page.html` initially stayed a separate, standalone page with no routing change (confirmed via clarifying question at the time). The user later asked for the landing page to become the actual site root — see §6 for that follow-up and why the reasoning below no longer reflects current routing.
 - **`js/reports/report-renderer.js`** (the generated client-facing report/PDF document) was left untouched. It already has its own deliberate navy/gold/green stamped-document aesthetic; re-skinning it to the exact same hex tokens is a separate, larger, riskier task — it's the actual deliverable sent to clients over WhatsApp — and wasn't required to satisfy the app-UI/landing-page ask. Flagged here as a follow-up candidate, not done silently.
 - **`reset-password.html`** — currently bare/unstyled, not named in the original scope list. Left alone; new scope, not requested.
 - **"Aprovado"/"Aceite" wording in `extras.js`, `review.js`, `report-renderer.js`** — this is the separate "Trabalhos Extra" contract-change-approval feature (a real, legitimate status), not the Visualizado/share-status overclaiming guardrail. Not touched.
@@ -47,3 +47,21 @@ This was a scope judgment call, made with the user: an explicit choice was offer
 
 - `report-renderer.js`'s generated document was intentionally left on its own navy/gold/green palette (see §2) — a visible, if minor, inconsistency between the in-app UI/landing page and the actual document contractors send clients.
 - New token values (slightly darker/more saturated brass and ink-soft) were not device-tested for outdoor/direct-sunlight mobile contrast — worth a real-device check before wide rollout, per the original brief's own callout.
+
+## 6. Follow-up: landing page promoted to site root
+
+Requested directly by the user, after §2 above had deliberately kept routing unchanged: make `landing-page.html` the page served at `/`, matching how `index.html` worked before, and fix the E2E suite to click through "Entrar" instead of assuming the login form is the first thing shown.
+
+**File swap** (no routing/rewrite logic — plain static-file rename, since this is a GitHub Pages / static-server site where `/` always resolves to whatever file is literally named `index.html`):
+- `index.html` (the wizard app) → `git mv`'d to `app.html`.
+- `landing-page.html` → moved to `index.html`.
+- The landing page's three `href="index.html"` links (header "Entrar", hero CTA, sticky-bar CTA) updated to `href="app.html"`.
+- `reset-password.html`'s post-reset redirect and `scripts/check-esm-migration.js`'s `filesOnly` targets (which specifically scan the wizard app's markup for legacy inline handlers) updated from `index.html` to `app.html`. A few comments referencing `index.html` (`client-list.js`, `e2e-fixtures.js`, `payments-readonly-boundary.spec.js`) updated for accuracy.
+
+**E2E updates**: every spec that used to `page.goto("/")` and immediately assume the login form (22 occurrences across 18 files) now clicks the landing page's "Entrar" link first. `global-teardown.js`'s *own* mid-cleanup `goto("/")` fallback (inside its retry loop, used when already authenticated) was pointed at `/app.html` directly instead — that one isn't a fresh login, so it shouldn't go through the marketing page at all. New `tests/e2e/landing-page.spec.js` (from earlier in this feature) already asserted `/` itself, so its `goto()` target flipped from `/landing-page.html` to `/`.
+
+**A real bug this surfaced, and the actual fix**: adding the "Entrar" click broke 26–27 of 44 E2E tests, reproducibly, at first. Root cause (confirmed by instrumenting a live run, not guessed): `page.goto()` waits for the destination's `load` event; a `.click()` on a link that triggers navigation does not wait the same way. So after clicking "Entrar," the test could reach `app.html` and see `#authEmail`/`#authPassword` (present in raw static HTML, no JS required) *before* `js/main.js`'s module script had actually run — meaning `bindAuthEvents()` hadn't registered its click handler yet when the test clicked the login submit button, so the click did nothing. Confirmed directly: console output showed the `[ESM boot]` log lines printing *after* the submit click, not before. This wasn't Supabase rate-limiting or leftover test-data buildup — both were checked and ruled out directly (5 rapid sequential logins outside the test runner all succeeded in under 500ms each; the E2E test user had 0 leftover projects at the time).
+
+Fix: `await page.waitForLoadState("load");` added immediately after every `.click()` on the "Entrar" link, before any interaction with the destination page. Verified: full suite went from 26–27 failures to **44/44 passing in 1.8 minutes** (faster than the pre-change baseline), confirmed on two separate clean runs.
+
+**A process note for future sessions**: several `npm run test:e2e` background runs in this session appeared to "complete" (wrapper exited, notification fired) while the underlying `npm`/`playwright`/Chromium process tree kept running independently in the background — Windows/git-bash does not reliably kill backgrounded child processes when the wrapping shell exits. This caused real, confusing test contamination (multiple suites hammering the same port and Supabase test account concurrently) before it was diagnosed. When a background E2E run's timing looks anomalous, check `Get-CimInstance Win32_Process -Filter "Name='node.exe'"` for orphans before trusting the result.
