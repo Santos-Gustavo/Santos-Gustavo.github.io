@@ -8,5 +8,7 @@ One line per feature. Load this before touching any feature. Full detail lives i
 | CLIENT-MANAGEMENT-001 | Implemented, Tested | Low | `docs/features/CLIENT-MANAGEMENT-001.md` | Trial-readiness — client directory + archive/delete guardrails, no CRM scope; no migration needed, schema was already in place |
 | COMPANY-PROFILE-001 | Implemented, Tested | Low | `docs/features/COMPANY-PROFILE-001.md` | Trial-readiness/bugfix — one primary company per user; project creation no longer duplicates companies (live DB had 9 dupes for one owner pre-fix); no migration needed |
 | DESIGN-SYSTEM-001 | Implemented, Tested | Low | `docs/features/DESIGN-SYSTEM-001.md` | Visual-refinement pass — locked Paper/Ink/Brass/Forest tokens + landing-page.html restyle; incidental fix for a real logout race condition found while adding E2E coverage |
+| UX-FIXES-002 | Implemented, Tested | Low | `docs/features/UX-FIXES-002.md` | 8-fix UX/security batch — confirm password, password reveal, client email governance, client-edit isolation, project client-dropdown race fix, progress fill, report-screen nav confirmation |
+| LIVE-SITE-FETCH-001 | Investigated, No code defect found — added regression coverage | Low | `docs/features/LIVE-SITE-FETCH-001.md` | Live-site verification — root `/` confirmed serving 200 with correct content; external "cache miss" report was not reproducible, likely a transient/stale fetch on the auditor's side |
 
 *Add a row when a feature is opened. Update Status/Risk as it moves through gates. Never write feature content directly in this file.*

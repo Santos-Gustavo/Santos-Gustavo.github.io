@@ -14,6 +14,7 @@ export function openNewClientForm() {
   appState.editingClientId = null;
   clearClientForm();
   setFormTitle("Novo Cliente");
+  setSaveButtonLabel("Guardar");
   showFormPanel();
 }
 
@@ -28,7 +29,8 @@ export function openEditClientForm(client) {
   setValue("clientFormNif", client.nif || "");
   setValue("clientFormAddress", client.address || "");
 
-  setFormTitle("Editar Cliente");
+  setFormTitle(`Editar cliente: ${client.name}`);
+  setSaveButtonLabel("Guardar alterações");
   showFormPanel();
 }
 
@@ -57,9 +59,16 @@ function setFormTitle(title) {
   if (el) el.textContent = title;
 }
 
+function setSaveButtonLabel(label) {
+  const btn = document.querySelector('#clientFormPanel [data-client-action="save"]');
+  if (btn) btn.textContent = label;
+}
+
 function showFormPanel() {
   const panel = document.getElementById("clientFormPanel");
   if (panel) panel.classList.add("active");
+
+  document.getElementById("step-clients")?.classList.add("client-form-open");
 
   document.getElementById("clientFormName")?.focus();
 }
@@ -67,6 +76,8 @@ function showFormPanel() {
 function hideFormPanel() {
   const panel = document.getElementById("clientFormPanel");
   if (panel) panel.classList.remove("active");
+
+  document.getElementById("step-clients")?.classList.remove("client-form-open");
 }
 
 function getValue(id) {

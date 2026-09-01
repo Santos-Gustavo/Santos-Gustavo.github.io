@@ -192,6 +192,24 @@ h1, h2, h3, .mode-title, .project-card-name, .btn-generate, .btn-next {
 }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
+.password-input-wrap { position: relative; }
+.password-input-wrap input { padding-right: 46px; }
+.password-toggle-btn {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 46px;
+  min-width: 44px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--ink-soft);
+}
+.password-toggle-btn:hover { color: var(--ink); }
+
 /* ---------- TOGGLES ---------- */
 .toggle-field {
   display: flex;
@@ -226,6 +244,40 @@ h1, h2, h3, .mode-title, .project-card-name, .btn-generate, .btn-next {
   box-shadow: 0 1px 3px rgba(0,0,0,0.25);
 }
 .toggle-switch.on::after { left: 23px; }
+
+#progressSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 12px;
+  border-radius: 6px;
+  outline: none;
+  background: linear-gradient(to right,
+    var(--forest) var(--fill, 0%), var(--paper-line) var(--fill, 0%));
+}
+#progressSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--brass);
+  cursor: pointer;
+}
+#progressSlider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid var(--paper);
+  cursor: pointer;
+}
+#progressSlider::-moz-range-track {
+  height: 12px;
+  border-radius: 6px;
+  background: transparent;
+}
 
 .slider-value {
   text-align: center;
@@ -325,6 +377,53 @@ h1, h2, h3, .mode-title, .project-card-name, .btn-generate, .btn-next {
   flex: 1;
 }
 .btn-home:active { background: var(--forest-soft); border-color: var(--forest); color: var(--forest); }
+
+.step-header-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.btn-home-top {
+  background: var(--input-bg);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 44px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-home-top:active { background: var(--forest-soft); border-color: var(--forest); color: var(--forest); }
+
+.confirm-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(22,28,38,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 500;
+}
+.confirm-dialog-overlay[hidden] { display: none; }
+.confirm-dialog-card {
+  background: var(--card);
+  border: 1px solid var(--paper-line);
+  border-radius: 10px;
+  padding: 22px;
+  max-width: 360px;
+  width: 100%;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+}
+.confirm-dialog-card h3 { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+.confirm-dialog-card p { font-size: 14px; color: var(--ink-soft); margin-bottom: 18px; line-height: 1.4; }
+.confirm-dialog-actions { display: flex; gap: 12px; }
+.confirm-dialog-actions .btn { flex: 1; }
 
 /* ---------- PHOTOS ---------- */
 .photo-input-area {
@@ -594,6 +693,12 @@ h1, h2, h3, .mode-title, .project-card-name, .btn-generate, .btn-next {
 .client-form-panel.active { display: block; }
 .client-form-panel h3 { margin-bottom: 16px; }
 .client-form-actions { display: flex; gap: 12px; margin-top: 4px; }
+
+#step-clients.client-form-open .client-search-field,
+#step-clients.client-form-open #clientList,
+#step-clients.client-form-open [data-client-action="new"] {
+  display: none;
+}
 
 .project-status-badge {
   flex: 0 0 auto;

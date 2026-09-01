@@ -216,6 +216,186 @@ test.describe("CLIENT-MANAGEMENT-001 — directory", () => {
     await searchInput.fill("");
   });
 
+  test("creating a client with a .com email succeeds", async ({ page }) => {
+    const timestamp = Date.now();
+    const name = `E2E Client Email Valid ${timestamp}`;
+
+    await login(page);
+    await openClientsPage(page);
+
+    const card = await createClient(page, {
+      name,
+      email: "cliente@empresa.com",
+    });
+
+    await expect(card).toContainText("cliente@empresa.com");
+  });
+
+  test("creating a client with a .pt email succeeds", async ({ page }) => {
+    const timestamp = Date.now();
+    const name = `E2E Client Email PT ${timestamp}`;
+
+    await login(page);
+    await openClientsPage(page);
+
+    const card = await createClient(page, {
+      name,
+      email: "cliente@empresa.pt",
+    });
+
+    await expect(card).toContainText("cliente@empresa.pt");
+  });
+
+  test("creating a client with a malformed email is blocked", async ({
+    page,
+  }) => {
+    const timestamp = Date.now();
+    const name = `E2E Client Email Malformed ${timestamp}`;
+
+    await login(page);
+    await openClientsPage(page);
+
+    await page.locator('[data-client-action="new"]').filter({ visible: true }).click();
+
+    await expect(page.locator("#clientFormPanel")).toHaveClass(/active/, {
+      timeout: 5000,
+    });
+
+    await page.locator("#clientFormName").fill(name);
+    await page.locator("#clientFormEmail").fill("cliente@semdominio");
+
+    let dialogMessage = "";
+    page.once("dialog", async (dialog) => {
+      dialogMessage = dialog.message();
+      await dialog.accept();
+    });
+
+    await page.locator('[data-client-action="save"]').click();
+
+    await expect.poll(() => dialogMessage).toBe(
+      "O email do cliente é inválido."
+    );
+
+    // Client must not have been created.
+    await expect(
+      page.locator("#clientList .project-card").filter({ hasText: name })
+    ).toHaveCount(0);
+  });
+
+  test("editing a client to a malformed email is blocked", async ({ page }) => {
+    const timestamp = Date.now();
+    const name = `E2E Client Email Edit Invalid ${timestamp}`;
+
+    await login(page);
+    await openClientsPage(page);
+
+    const card = await createClient(page, {
+      name,
+      email: "valid@empresa.com",
+    });
+
+    await card.locator('[data-client-action="edit"]').click();
+
+    await expect(page.locator("#clientFormPanel")).toHaveClass(/active/, {
+      timeout: 5000,
+    });
+
+    await page.locator("#clientFormEmail").fill("invalid@semdominio");
+
+    let dialogMessage = "";
+    page.once("dialog", async (dialog) => {
+      dialogMessage = dialog.message();
+      await dialog.accept();
+    });
+
+    await page.locator('[data-client-action="save"]').click();
+
+    await expect.poll(() => dialogMessage).toBe(
+      "O email do cliente é inválido."
+    );
+
+    // Original email must be unchanged.
+    await expect(page.locator("#clientFormEmail")).toHaveValue(
+      "invalid@semdominio"
+    );
+  });
+
+  test("empty client email remains allowed", async ({ page }) => {
+    const timestamp = Date.now();
+    const name = `E2E Client Email Empty ${timestamp}`;
+
+    await login(page);
+    await openClientsPage(page);
+
+    const card = await createClient(page, { name });
+
+    await expect(card).toBeVisible();
+  });
+
+  test("editing a client hides the list and isolates the form", async ({
+    page,
+  }) => {
+    const timestamp = Date.now();
+    const name = `E2E Client Edit Isolation ${timestamp}`;
+
+    await login(page);
+    await openClientsPage(page);
+
+    const card = await createClient(page, { name, phone: "955555555" });
+
+    await card.locator('[data-client-action="edit"]').click();
+
+    await expect(page.locator("#clientFormPanel")).toHaveClass(/active/, {
+      timeout: 5000,
+    });
+
+    await expect(page.locator("#clientFormTitle")).toContainText(
+      /editar cliente/i
+    );
+    await expect(page.locator("#clientFormTitle")).toContainText(name);
+
+    await expect(page.locator("#clientList")).not.toBeVisible();
+    await expect(page.locator(".client-search-field")).not.toBeVisible();
+    await expect(
+      page.locator('[data-client-action="new"]').filter({ visible: true })
+    ).toHaveCount(0);
+
+    await page.locator('[data-client-action="cancel-form"]').click();
+
+    await expect(page.locator("#clientFormPanel")).not.toHaveClass(/active/);
+    await expect(page.locator("#clientList")).toBeVisible();
+    await expect(
+      page.locator("#clientList .project-card").filter({ hasText: name })
+    ).toBeVisible();
+  });
+
+  test("saving an edited client returns to the refreshed client list", async ({
+    page,
+  }) => {
+    const timestamp = Date.now();
+    const originalName = `E2E Client Save Refresh ${timestamp}`;
+    const updatedName = `E2E Client Save Refreshed ${timestamp}`;
+
+    await login(page);
+    await openClientsPage(page);
+
+    const card = await createClient(page, { name: originalName });
+
+    await card.locator('[data-client-action="edit"]').click();
+    await expect(page.locator("#clientFormPanel")).toHaveClass(/active/, {
+      timeout: 5000,
+    });
+
+    await page.locator("#clientFormName").fill(updatedName);
+    await page.locator('[data-client-action="save"]').click();
+
+    await expect(page.locator("#clientFormPanel")).not.toHaveClass(/active/);
+    await expect(page.locator("#clientList")).toBeVisible();
+    await expect(
+      page.locator("#clientList .project-card").filter({ hasText: updatedName })
+    ).toBeVisible({ timeout: 15000 });
+  });
+
   test("linked project count appears on the client card", async ({ page }) => {
     const timestamp = Date.now();
     const clientName = `E2E Client ProjectCount ${timestamp}`;

@@ -9,6 +9,10 @@ let currentUser = null;
 // truthy session in the middle of an explicit sign-out and re-showing the
 // app shell right after signOut() has already torn it down.
 let signingOut = false;
+// The auth screen has no separate sign-up view — Confirmar Palavra-passe
+// only makes sense once the user has actually chosen "Criar conta", so it
+// stays hidden until then instead of cluttering the login form.
+let signUpMode = false;
 
 export function getCurrentUser() {
   return currentUser;
@@ -51,22 +55,35 @@ export async function initAuth() {
 
 function bindAuthEvents() {
   document.addEventListener("click", async (event) => {
+    const toggleEl = event.target.closest("[data-toggle-password]");
+    if (toggleEl) {
+      togglePasswordVisibility(toggleEl);
+      return;
+    }
+
     const actionEl = event.target.closest("[data-auth-action]");
     if (!actionEl) return;
 
     const action = actionEl.dataset.authAction;
 
     if (action === "sign-in") {
+      exitSignUpMode();
       await signIn();
       return;
     }
 
     if (action === "sign-up") {
+      if (!signUpMode) {
+        enterSignUpMode();
+        return;
+      }
+
       await signUp();
       return;
     }
 
     if (action === "reset-password") {
+      exitSignUpMode();
       await resetPassword();
       return;
     }
@@ -91,6 +108,11 @@ async function signUp() {
     return;
   }
 
+  if (password !== getAuthPasswordConfirm()) {
+    showAuthMessage("As palavras-passe não coincidem.", true);
+    return;
+  }
+
   const { data, error } = await supabaseClient.auth.signUp({
     email,
     password,
@@ -104,11 +126,13 @@ async function signUp() {
 
   if (!data.session) {
     showAuthMessage("Conta criada. Confirme o email antes de entrar.", false);
+    exitSignUpMode();
     return;
   }
 
   currentUser = data.user;
   showAuthMessage("Conta criada com sucesso.", false);
+  exitSignUpMode();
   // showLoggedInUI() is not called here — the onAuthStateChange listener
   // below already runs it for this same sign-up as part of Supabase's
   // internal subscriber notification, and a second, redundant call here
@@ -185,6 +209,50 @@ function getAuthPassword() {
   return document.getElementById("authPassword")?.value || "";
 }
 
+function getAuthPasswordConfirm() {
+  return document.getElementById("authPasswordConfirm")?.value || "";
+}
+
+function enterSignUpMode() {
+  signUpMode = true;
+
+  document.getElementById("authPasswordConfirmField")?.classList.remove("hidden");
+
+  const signUpBtn = document.querySelector('[data-auth-action="sign-up"]');
+  if (signUpBtn) signUpBtn.textContent = "Confirmar Criação";
+
+  showAuthMessage("", false);
+}
+
+function exitSignUpMode() {
+  signUpMode = false;
+
+  document.getElementById("authPasswordConfirmField")?.classList.add("hidden");
+
+  const confirmInput = document.getElementById("authPasswordConfirm");
+  if (confirmInput) confirmInput.value = "";
+
+  const signUpBtn = document.querySelector('[data-auth-action="sign-up"]');
+  if (signUpBtn) signUpBtn.textContent = "Criar conta";
+}
+
+function togglePasswordVisibility(button) {
+  const targetId = button.dataset.togglePassword;
+  const input = document.getElementById(targetId);
+  if (!input) return;
+
+  const isCurrentlyHidden = input.type === "password";
+  input.type = isCurrentlyHidden ? "text" : "password";
+
+  const label = isCurrentlyHidden
+    ? "Esconder palavra-passe"
+    : "Mostrar palavra-passe";
+
+  button.setAttribute("aria-label", label);
+  button.title = label;
+  button.textContent = isCurrentlyHidden ? "🙈" : "👁";
+}
+
 function showAuthMessage(message, isError = false) {
   const el = document.getElementById("authMessage");
   if (!el) return;
@@ -223,6 +291,8 @@ function showLoggedOutUI() {
 
   const userInfo = document.getElementById("userInfo");
   if (userInfo) userInfo.remove();
+
+  exitSignUpMode();
 }
 
 function renderUserInfo() {
