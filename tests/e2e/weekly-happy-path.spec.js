@@ -19,6 +19,9 @@ const E2E_PASSWORD =
 
   await page.goto("/");
 
+  await page.getByRole("link", { name: "Entrar" }).click();
+  await page.waitForLoadState("load");
+
   const emailInput = page.locator("#authEmail");
   const passwordInput = page.locator("#authPassword");
 

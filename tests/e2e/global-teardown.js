@@ -40,6 +40,9 @@ async function login(page) {
 
   await page.goto("/");
 
+  await page.getByRole("link", { name: "Entrar" }).click();
+  await page.waitForLoadState("load");
+
   await expect(page.locator("#authEmail")).toBeVisible({ timeout: 10000 });
   await expect(page.locator("#authPassword")).toBeVisible({ timeout: 10000 });
 
@@ -116,7 +119,7 @@ async function goToProjectList(page) {
       continue;
     }
 
-    await page.goto("/");
+    await page.goto("/app.html");
     await page.waitForTimeout(1000);
   }
 

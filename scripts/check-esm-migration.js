@@ -15,9 +15,9 @@ const BLOCKED_PATTERNS = [
     pattern: /window\.(goNext|goBack|goHome|selectMode|renderProjectList|saveAndGenerateReport|setWork|setPhoto|setExtra|setInc|setStep|buildReview|selectPhase|toggleAlert|toggleIncidents)\b/,
   },
   {
-    label: "Legacy inline handler in index.html",
+    label: "Legacy inline handler in app.html",
     pattern: /\s(onclick|oninput|onchange)=/i,
-    filesOnly: ["index.html"],
+    filesOnly: ["app.html"],
   },
   {
     label: "Legacy bridge reference",
@@ -26,7 +26,7 @@ const BLOCKED_PATTERNS = [
   {
     label: "Old numbered script reference",
     pattern: /js\/(?:0[2-9]|1[0-9])-|js\/02-database|js\/04-projects/i,
-    filesOnly: ["index.html"],
+    filesOnly: ["app.html"],
   },
 ];
 

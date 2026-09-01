@@ -19,6 +19,9 @@ async function login(page) {
 
   await page.goto("/");
 
+  await page.getByRole("link", { name: "Entrar" }).click();
+  await page.waitForLoadState("load");
+
   const emailInput = page.locator("#authEmail");
   const passwordInput = page.locator("#authPassword");
 

@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm",
+        "#config/": "./js/config/",
+        "#auth/": "./js/auth/",
+        "#state/": "./js/state/",
+        "#database/": "./js/database/",
+        "#mappers/": "./js/mappers/",
+        "#projects/": "./js/projects/",
+        "#clients/": "./js/clients/",
+        "#company/": "./js/company/",
+        "#forms/": "./js/forms/",
+        "#navigation/": "./js/navigation/",
+        "#ui/": "./js/ui/",
+        "#utils/": "./js/utils/",
+        "#reports/": "./js/reports/",
+        "#payments/": "./js/payments/"
+      }
+    }
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Relatório de Projeto</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <section id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <h1>Entrar</h1>
+    <p>Entre para guardar relatórios, projetos e fotografias.</p>
+
+    <div class="field">
+      <label>Email</label>
+      <input id="authEmail" type="email" placeholder="email@empresa.pt" autocomplete="email">
+    </div>
+
+    <div class="field">
+      <label>Password</label>
+      <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password">
+    </div>
+
+    <div class="auth-actions">
+      <button type="button" data-auth-action="sign-in">Entrar</button>
+      <button type="button" data-auth-action="sign-up" class="secondary">Criar conta</button>
+      <button type="button" data-auth-action="reset-password" class="secondary">Esqueci password</button>
+    </div>
+
+    <p id="authMessage" class="auth-message"></p>
+  </div>
+</section>
+
+<div id="appShell" class="app-shell" style="display:none;">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-title">Relatório de Projeto</div>
+    <div class="topbar-step" id="stepLabel">Projetos</div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <!-- LAYER 0: PROJECT LIST -->
+  <div class="step active" id="step-projects">
+    <div class="step-content">
+      <!-- <button type="button" data-payment-action="create-eupago-payment" data-payment-method="multibanco">
+        Multibanco
+      </button>
+
+      <button type="button" data-payment-action="create-eupago-payment" data-payment-method="mbway">
+        MB WAY
+      </button> -->
+
+      <div class="project-list-filters" role="tablist" aria-label="Filtro de projetos">
+      <button type="button" class="project-filter-btn is-active" data-project-filter="active">
+        Ativas
+      </button>
+
+      <button type="button" class="project-filter-btn" data-project-filter="completed" >
+        Concluídas
+      </button>
+
+      <button type="button" class="project-filter-btn" data-project-filter="archived" >
+        Arquivadas
+      </button>
+    </div>
+      <div class="step-header">
+        <h2>Projetos</h2>
+        <p>Selecione um projeto ou crie uma nova</p>
+      </div>
+      <div id="projectList"></div>
+      <button class="btn-add" type="button" data-project-action="new-project" style="margin-top:12px">+ Novo Projeto</button>
+      <button class="btn-add" type="button" data-nav-action="open-clients" style="margin-top:12px">👤 Clientes</button>
+      <button class="btn-add" type="button" data-nav-action="open-company-profile" style="margin-top:12px">🏢 Dados da Empresa</button>
+    </div>
+  </div>
+
+  <!-- LAYER 0b: CLIENT DIRECTORY -->
+  <div class="step" id="step-clients">
+    <div class="step-content">
+      <div class="project-list-filters" role="tablist" aria-label="Filtro de clientes">
+        <button type="button" class="project-filter-btn is-active" data-client-filter="active">
+          Ativos
+        </button>
+
+        <button type="button" class="project-filter-btn" data-client-filter="archived">
+          Arquivados
+        </button>
+      </div>
+
+      <div class="step-header">
+        <h2>Clientes</h2>
+        <p>Diretório de clientes — trial-readiness, sem CRM: sem notas, mensagens ou histórico de faturação</p>
+      </div>
+
+      <div class="field">
+        <label>Pesquisar</label>
+        <input type="text" id="clientSearchInput" placeholder="Pesquisar por nome ou telefone..." />
+      </div>
+
+      <div id="clientFormPanel" class="card client-form-panel">
+        <h3 id="clientFormTitle">Novo Cliente</h3>
+
+        <div class="field"><label>Nome *</label><input type="text" id="clientFormName" placeholder="Ex: Sr. e Sra. Monteiro" /></div>
+        <div class="field-row">
+          <div class="field"><label>Telefone</label><input type="tel" id="clientFormPhone" placeholder="+351 912 345 678" /></div>
+          <div class="field"><label>Email</label><input type="email" id="clientFormEmail" placeholder="cliente@email.pt" /></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>NIF</label><input type="text" id="clientFormNif" placeholder="509 123 456" /></div>
+          <div class="field"><label>Morada</label><input type="text" id="clientFormAddress" placeholder="Rua das Acácias 14, Sintra" /></div>
+        </div>
+
+        <div class="client-form-actions">
+          <button type="button" class="btn btn-back" data-client-action="cancel-form">Cancelar</button>
+          <button type="button" class="btn btn-next" data-client-action="save">Guardar</button>
+        </div>
+      </div>
+
+      <div id="clientList"></div>
+      <button class="btn-add" type="button" data-client-action="new" style="margin-top:12px">+ Novo Cliente</button>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" data-nav-action="back">← Projetos</button>
+    </div>
+  </div>
+
+  <!-- LAYER 1: MODE PICKER -->
+  <div class="step" id="step-mode">
+    <div class="step-content">
+      <div class="step-header">
+        <h2>Tipo de Relatório</h2>
+        <p id="modeProjectLabel"></p>
+        <p id="modeProjectStatus" class="mode-project-status"></p>
+        <div
+          id="projectLifecycleActions"
+          class="project-lifecycle-actions"
+          aria-label="Ações da projeto"
+        ></div>
+      </div>
+      <div class="mode-picker">
+        <div class="mode-card" data-nav-action="select-mode" data-mode="weekly">
+          <div class="mode-icon">📋</div>
+          <div class="mode-title">Relatório Semanal</div>
+          <div class="mode-desc">Progresso do projeto, trabalhos realizados, fotos, alertas e próximos passos. Ideal para comunicação regular com o cliente.</div>
+        </div>
+        <div class="mode-card" data-nav-action="select-mode" data-mode="legal">
+          <div class="mode-icon">⚖️</div>
+          <div class="mode-title">Legal / Financeiro</div>
+          <div class="mode-desc">Trabalhos extra, alterações ao contrato, resumo financeiro acumulado e acuse de recibo com assinatura do cliente.</div>
+        </div>
+
+        
+        <div class="card">
+          <h3>Relatórios guardados</h3>
+          <div id="reportHistoryList">
+            <p class="empty-hint">Selecione um projeto para ver relatórios anteriores.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" data-nav-action="back">← Projetos</button>
+    </div>
+  </div>
+
+  <!-- LAYER 0c: COMPANY PROFILE (COMPANY-PROFILE-001) — one company per user,
+       edited here only. Never part of the project-creation flow. -->
+  <div class="step" id="step-company">
+    <div class="step-content">
+      <div class="step-header">
+        <h2>Dados da Empresa</h2>
+        <p>Perfil único da sua empresa — usado em todos os projetos e relatórios</p>
+      </div>
+
+      <p id="companyFirstTimeNotice" class="empty-hint" style="display:none; margin-bottom:18px;">
+        Configure os dados da sua empresa para começar. Isto só é necessário uma vez —
+        todos os projetos futuros vão usar esta mesma empresa.
+      </p>
+
+      <div class="field"><label>Nome da Empresa *</label><input type="text" id="companyName" placeholder="Ex: Construções Santos &amp; Filhos" /></div>
+      <div class="field"><label>Slogan / Especialidade</label><input type="text" id="companyTagline" placeholder="Ex: Construção · Renovação · Remodelação" /></div>
+      <div class="field-row">
+        <div class="field"><label>NIF</label><input type="text" id="companyNif" placeholder="509 123 456" /></div>
+        <div class="field"><label>IMPIC / Alvará</label><input type="text" id="companyInci" placeholder="12345" /></div>
+      </div>
+      <div class="field"><label>Responsável</label><input type="text" id="responsible" placeholder="Ex: João Santos" /></div>
+      <div class="field-row">
+        <div class="field"><label>Telefone</label><input type="tel" id="companyPhone" placeholder="+351 912 345 678" /></div>
+        <div class="field"><label>Email</label><input type="email" id="companyEmail" placeholder="joao@empresa.pt" /></div>
+      </div>
+      <div class="field"><label>Morada</label><input type="text" id="companyAddress" placeholder="Rua das Acácias 14, Sintra" /></div>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" data-company-action="cancel">Cancelar</button>
+      <button class="btn btn-next" data-company-action="save">Guardar</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: PROJETO -->
+  <div class="step" id="step2">
+    <div class="step-content">
+      <div class="step-header"><h2>Dados do Projeto</h2><p>Identificação do projeto — guardados para uso futuro</p></div>
+      <div class="field"><label>Nome do Projeto *</label><input type="text" id="projectName" placeholder="Ex: Moradia dos Pinheiros" /></div>
+      <div class="field">
+        <label>Cliente *</label>
+        <input type="text" id="clientName" list="clientNameOptions" placeholder="Ex: Sr. e Sra. Monteiro" autocomplete="off" />
+        <datalist id="clientNameOptions"></datalist>
+      </div>
+      <div class="field"><label>Localização / Morada *</label><input type="text" id="location" placeholder="Ex: Rua das Acácias 14, Sintra" /></div>
+      <div class="field"><label>N.º Contrato</label><input type="text" id="contractNum" placeholder="CONT-2026-0014" /></div>
+      <div class="field"><label>Distribuído a</label><input type="text" id="distributedTo" placeholder="Ex: Cliente · Arquiteto · Arquivo" /></div>
+      <div class="field"><label>Enviado via</label>
+        <select id="sentVia">
+          <option value="Email">Email</option>
+          <option value="WhatsApp" selected>WhatsApp</option>
+          <option value="Impresso">Impresso</option>
+        </select>
+      </div>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" data-nav-action="back">← Projetos</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
+    </div>
+  </div>
+
+  <!-- STEP: PERIOD (per-report dates — always shown before content) -->
+  <div class="step" id="step-period">
+    <div class="step-content">
+      <div class="step-header"><h2>Período do Relatório</h2><p>Datas e identificação deste relatório</p></div>
+      <div class="field-row">
+        <div class="field"><label>N.º Relatório *</label><input type="number" id="p-reportNum" placeholder="1" min="1" /></div>
+        <div class="field"><label>Data do Relatório</label><input type="date" id="p-reportDate" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Período — Início</label><input type="date" id="p-periodStart" /></div>
+        <div class="field"><label>Período — Fim</label><input type="date" id="p-periodEnd" /></div>
+      </div>
+      <div class="field"><label>Distribuído a</label><input type="text" id="p-distributedTo" placeholder="Ex: Cliente · Arquiteto · Arquivo" /></div>
+      <div class="field"><label>Enviado via</label>
+        <select id="p-sentVia">
+          <option value="Email">Email</option>
+          <option value="WhatsApp" selected>WhatsApp</option>
+          <option value="Portal">Portal</option>
+          <option value="Impresso">Impresso</option>
+        </select>
+      </div>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: PROGRESSO -->
+  <div class="step" id="step3">
+    <div class="step-content">
+      <div class="step-header"><h2>Progresso Global</h2><p>Estado atual do projeto</p></div>
+      <div class="field">
+        <label>Fase Atual</label>
+        <div class="phase-picker" id="phasePicker">
+          <div class="phase-option" data-phase="Fundações">Fundações</div>
+          <div class="phase-option" data-phase="Estrutura e Alvenaria">Estrutura e Alvenaria</div>
+          <div class="phase-option" data-phase="Impermeabilização">Impermeabilização</div>
+          <div class="phase-option" data-phase="Cobertura">Cobertura</div>
+          <div class="phase-option" data-phase="Instalações">Instalações</div>
+          <div class="phase-option" data-phase="Acabamentos">Acabamentos</div>
+          <div class="phase-option" data-phase="Arranjos Exteriores">Arranjos Exteriores</div>
+          <div class="phase-option" data-phase="Concluído">Concluído ✓</div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:20px;">
+        <label>Percentagem Global Concluída</label>
+        <div class="slider-value" id="progressPct">0%</div>
+        <input type="range" id="progressSlider" min="0" max="100" value="0" style="width:100%; height:36px; padding:0; border:none; background:none;" data-ui-action="progress-slider" />      </div>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: RESUMO -->
+  <div class="step" id="step4">
+    <div class="step-content">
+      <div class="step-header"><h2>Resumo da Semana</h2><p>Descreva em texto livre o que aconteceu neste período</p></div>
+      <div class="field"><label>Resumo *</label><textarea id="weekSummary" placeholder="Ex: Esta semana registámos avanços significativos na construção das paredes..."></textarea></div>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
+    </div>
+  </div>
+
+  <!-- STEP 5: TRABALHOS -->
+  <div class="step" id="step5">
+    <div class="step-content">
+      <div class="step-header"><h2>Trabalhos</h2><p>Adicione os trabalhos do período — concluídos, em curso e pendentes</p></div>
+      <div id="workList"></div>
+      <button type="button" class="btn-add" data-work-action="add">+ Adicionar trabalho</button>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
+    </div>
+  </div>
+
+  <!-- STEP 6: FOTOS -->
+  <div class="step" id="step6">
+    <div class="step-content">
+      <div class="step-header"><h2>Registo Fotográfico</h2><p>Adicione as fotos do período (opcional)</p></div>
+      <div id="photoList"></div>
+      <button type="button" data-photo-action="add">Adicionar Foto</button>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
+    </div>
+  </div>
+
+  <!-- STEP 7: ALERTA -->
+  <div class="step" id="step7">
+    <div class="step-content">
+      <div class="step-header"><h2>Decisão Pendente</h2><p>Há alguma decisão urgente que o cliente precise tomar?</p></div>
+      <div class="toggle-field" data-ui-action="toggle-alert">
+        <div><div class="toggle-label">Há decisão pendente</div><div class="toggle-sub">Será destacada como alerta no relatório</div></div>
+        <div class="toggle-switch" id="alertToggle"></div>
+      </div>
+      <div id="alertFields" class="hidden">
+        <div class="field"><label>Título da Decisão</label><input type="text" id="alertTitle" placeholder="Ex: Decisão necessária — Vão P2 (Fachada Sul)" /></div>
+        <div class="field"><label>Descrição</label><textarea id="alertDesc" placeholder="Explique a decisão necessária..."></textarea></div>
+        <div class="field"><label>Prazo de Resposta</label><input type="date" id="alertDeadline" /></div>
+        <div class="field"><label>Consequência se não responder</label><input type="text" id="alertConsequence" placeholder="Ex: Execução avança conforme planta original" /></div>
+      </div>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
+    </div>
+  </div>
+
+  <!-- STEP 8: INCIDENTES -->
+  <div class="step" id="step8">
+    <div class="step-content">
+      <div class="step-header"><h2>Incidentes</h2><p>Não-conformidades, acidentes ou ocorrências a registar</p></div>
+      <div class="toggle-field" data-ui-action="toggle-incidents">
+        <div><div class="toggle-label">Há incidentes a registar</div><div class="toggle-sub">Se não houver, o relatório assinala "sem ocorrências"</div></div>
+        <div class="toggle-switch" id="incidentsToggle"></div>
+      </div>
+      <div id="incidentFields" class="hidden">
+        <div id="incidentList"></div>
+        <button type="button" class="btn-add" data-incident-action="add">+ Adicionar incidente</button>
+      </div>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
+    </div>
+  </div>
+
+  <!-- STEP 9: EXTRAS -->
+  <div class="step" id="step9">
+    <div class="step-content">
+      <div class="step-header"><h2>Trabalhos Extra</h2><p>Alterações ao contrato, trabalhos adicionais e aprovações</p></div>
+      <div id="extrasList"></div>
+      <button type="button" class="btn-add" data-extra-action="add">+ Adicionar trabalho extra</button>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
+    </div>
+  </div>
+
+  <!-- STEP 10: FINANCEIRO -->
+  <div class="step" id="step10">
+    <div class="step-content">
+      <div class="step-header"><h2>Resumo Financeiro</h2><p>Os extras são calculados automaticamente a partir do passo anterior</p></div>
+      <div class="field"><label>Valor do Contrato Base (€, s/ IVA)</label><input type="number" id="contractValue" placeholder="48500" step="0.01" min="0" data-financial-action="update-preview" /></div>
+      <div class="field"><label>Nota adicional (opcional)</label><textarea id="financialNote" placeholder="Ex: Valores s/ IVA. Extras pendentes não incluídos até aprovação formal." style="min-height:60px;"></textarea></div>
+      <div id="financialPreview" style="margin-top:16px;"></div>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
+    </div>
+  </div>
+
+  <!-- STEP 11: PRÓXIMOS PASSOS -->
+  <div class="step" id="step11">
+    <div class="step-content">
+      <div class="step-header"><h2>Próximos Passos</h2><p>O que está previsto para o próximo período</p></div>
+      <div id="nextStepsList"></div>
+      <button type="button" class="btn-add" data-next-step-action="add">+ Adicionar próximo passo</button>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
+    </div>
+  </div>
+
+  <!-- STEP 12: REVISÃO -->
+  <div class="step" id="step12">
+    <div class="step-content">
+      <div class="step-header"><h2>Revisão</h2><p>Confirme os dados antes de gerar o relatório</p></div>
+      <div id="reviewContent"></div>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" data-nav-action="back">←</button>
+      <button class="btn btn-generate" data-report-action="save-and-generate">Gerar Relatório</button>
+      <button class="btn btn-home" data-nav-action="home">Voltar ao Início</button>
+    </div>
+  </div>
+
+</div>
+</div>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
