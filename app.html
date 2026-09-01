@@ -51,7 +51,7 @@
     <div class="auth-actions">
       <button type="button" data-auth-action="sign-in">Entrar</button>
       <button type="button" data-auth-action="sign-up" class="secondary">Criar conta</button>
-      <button type="button" data-auth-action="reset-password" class="secondary">Esqueci password</button>
+      <button type="button" data-auth-action="reset-password" class="secondary">Esqueci a palavra-passe</button>
     </div>
 
     <p id="authMessage" class="auth-message"></p>
@@ -428,13 +428,18 @@
   <!-- STEP 12: REVISÃO -->
   <div class="step" id="step12">
     <div class="step-content">
-      <div class="step-header"><h2>Revisão</h2><p>Confirme os dados antes de gerar o relatório</p></div>
+      <div class="step-header step-header-with-action">
+        <div>
+          <h2>Revisão</h2>
+          <p>Confirme os dados antes de gerar o relatório</p>
+        </div>
+        <button type="button" class="btn-home-top" data-nav-action="home">Voltar ao Início</button>
+      </div>
       <div id="reviewContent"></div>
     </div>
     <div class="nav-bar">
       <button class="btn btn-back" data-nav-action="back">←</button>
       <button class="btn btn-generate" data-report-action="save-and-generate">Gerar Relatório</button>
-      <button class="btn btn-home" data-nav-action="home">Voltar ao Início</button>
     </div>
   </div>
 

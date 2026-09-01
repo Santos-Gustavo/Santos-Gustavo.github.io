@@ -17,9 +17,14 @@ Last: 20260831-2312 | Active: DESIGN-SYSTEM-001 (implemented, tested — landing
 - New decision made → write it before ending session
 - If the user pastes output from a Gemini or ChatGPT session, commit it to the relevant file yourself — don't just acknowledge it in chat
 
+## Working Preferences (token efficiency)
+
+- **Brain docs are opt-in, not automatic.** Skip session logs / feature docs / INDEX updates for small fixes and tweaks. Only do the Wrap Up below when the user explicitly says "wrap up", or the work is a genuinely new/large feature (new FEATURE-ID scope).
+- **Don't run the full E2E suite after changes.** Run only the Playwright spec file(s) covering the changed area, e.g. `npx playwright test tests/e2e/<file>.spec.js`. The user runs the full suite themselves and will report back if something breaks. Only run the full suite if explicitly asked, or the change plausibly has cross-cutting blast radius (e.g. shared nav/auth/teardown helpers).
+
 ## Wrap Up
 
-Triggered: "wrap up" OR before context gets heavy (~15-20 exchanges).
+Triggered: user says "wrap up" OR the work just completed was a new/large feature (not a small fix).
 
 1. Rewrite Project State line above.
 2. Append `docs/brain/sessions/yyyyMMdd-HHmm.md` (what changed, why, what's next).

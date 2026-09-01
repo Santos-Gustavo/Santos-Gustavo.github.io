@@ -9,6 +9,9 @@ export function renderReportHtml(report) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>${escapeHtml(buildTitle(report))}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
   ${renderStyles()}
 </head>
 
@@ -99,10 +102,16 @@ function renderHeader(report) {
 }
 
 function renderSummary(report) {
+  const summary = report.progress.weekSummary;
+
   return `
     <section class="summary-banner">
       <strong>Resumo da Semana</strong>
-      ${escapeHtml(report.progress.weekSummary || "—")}
+      ${
+        summary
+          ? escapeHtml(summary)
+          : `<span class="empty-state">Sem resumo registado para este período.</span>`
+      }
     </section>
   `;
 }
@@ -117,9 +126,9 @@ function renderWeeklyReport(report) {
       <div class="section-title">Estado Geral do Projeto</div>
 
       <div class="status-grid">
-        ${statusCard("done", "✓", done, "Concluídas")}
-        ${statusCard("progress", "●", progress, "Em Curso")}
-        ${statusCard("blocked", "!", blocked, "Pendentes")}
+        ${statusCard("done", done, "Concluídas")}
+        ${statusCard("progress", progress, "Em Curso")}
+        ${statusCard("blocked", blocked, "Pendentes")}
       </div>
     </section>
 
@@ -144,14 +153,20 @@ function renderWeeklyReport(report) {
       <section class="section">
         <div class="section-title">Trabalhos Concluídos</div>
         <ul class="work-list">
-          ${renderWorkList(report.works.filter((work) => work.status === "done"))}
+          ${renderWorkList(
+            report.works.filter((work) => work.status === "done"),
+            "Sem trabalhos concluídos registados.",
+          )}
         </ul>
       </section>
 
       <section class="section">
         <div class="section-title">Em Curso e Pendentes</div>
         <ul class="work-list">
-          ${renderWorkList(report.works.filter((work) => work.status !== "done"))}
+          ${renderWorkList(
+            report.works.filter((work) => work.status !== "done"),
+            "Sem trabalhos em curso ou pendentes registados.",
+          )}
         </ul>
       </section>
     </div>
@@ -280,12 +295,11 @@ function renderPhoto(photo) {
   `;
 }
 
-function renderWorkList(works) {
+function renderWorkList(works, emptyMessage) {
   if (!works.length) {
     return `
       <li class="work-item">
-        <div class="work-dot progress"></div>
-        <div class="work-text muted">—</div>
+        <div class="work-text empty-state">${escapeHtml(emptyMessage)}</div>
       </li>
     `;
   }
@@ -375,8 +389,7 @@ function renderNextSteps(nextSteps) {
   if (!nextSteps.length) {
     return `
       <li class="next-step-item">
-        <div class="step-number">1</div>
-        <div class="step-text muted">—</div>
+        <div class="step-text empty-state">Sem próximos passos registados.</div>
       </li>
     `;
   }
@@ -549,110 +562,114 @@ function renderStyles() {
   return `
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1a1a1a;background:#f5f5f0}
-.page{width:210mm;min-height:297mm;margin:0 auto;background:white}
+body{font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;font-size:13px;color:#16263a;background:#f4f1e8}
+.page{position:relative;width:210mm;min-height:297mm;margin:0 auto;background:#ffffff}
 @media print{body{background:white}.page{margin:0;box-shadow:none}@page{margin:0}.no-print{display:none}}
-.header{background:#1c2b3a;color:white;padding:28px 36px 24px}
+.page::before,.page::after{content:"";position:absolute;top:10mm;width:10mm;height:10mm;pointer-events:none;z-index:1}
+.page::before{left:10mm;border-left:1px solid #d7ccb3;border-top:1px solid #d7ccb3}
+.page::after{right:10mm;border-right:1px solid #d7ccb3;border-top:1px solid #d7ccb3}
+.header{background:#f4f1e8;color:#16263a;padding:28px 36px 24px;border-bottom:1px solid #d7ccb3}
 .header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
 .logo-area{display:flex;align-items:center;gap:14px}
-.logo-placeholder{width:44px;height:44px;border:2px solid #2e4158;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#8faabe;text-align:center}
-.company-name{font-size:20px;font-weight:700}
-.company-tagline{font-size:11px;color:#8faabe;margin-top:2px}
+.logo-placeholder{width:44px;height:44px;border:2px solid #d7ccb3;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#3f5368;text-align:center;background:#ffffff}
+.company-name{font-family:'Space Grotesk',Arial,sans-serif;font-size:20px;font-weight:700;color:#16263a}
+.company-tagline{font-size:11px;color:#3f5368;margin-top:2px}
 .report-badge{text-align:right}
-.report-badge .label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#8faabe}
-.report-badge .number{font-size:22px;font-weight:700;color:#b88a3a}
-.report-badge .report-id{font-size:10px;color:#6a8aab;font-family:"Courier New",monospace}
-.header-info{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;border-top:1px solid #2e4158;padding-top:16px}
-.info-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#8faabe;margin-bottom:3px}
-.info-value{font-size:12px;font-weight:500;color:white}
-.info-value.mono{font-family:"Courier New",monospace;font-size:11px;color:#c8d8e8}
-.summary-banner{background:#f0f4f0;border-left:4px solid #3d8b5e;padding:16px 36px;font-size:13px;line-height:1.6;color:#2d4a3a}
-.summary-banner strong{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#3d8b5e;margin-bottom:6px}
+.report-badge .label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#6f4f1b;font-family:'IBM Plex Mono',monospace}
+.report-badge .number{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:700;color:#6f4f1b}
+.report-badge .report-id{font-size:10px;color:#94651f;font-family:'IBM Plex Mono',monospace}
+.header-info{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;border-top:1px solid #d7ccb3;padding-top:16px}
+.info-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#6f4f1b;margin-bottom:3px;font-family:'IBM Plex Mono',monospace}
+.info-value{font-size:12px;font-weight:500;color:#16263a}
+.info-value.mono{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#3f5368}
+.summary-banner{background:#ffffff;border-left:4px solid #94651f;padding:16px 36px;font-size:13px;line-height:1.6;color:#16263a}
+.summary-banner strong{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#6f4f1b;margin-bottom:6px;font-family:'IBM Plex Mono',monospace}
+.summary-banner .empty-state{color:#3f5368;font-style:italic}
 .content{padding:28px 36px}
 .section{margin-bottom:28px}
-.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:14px}
+.section-title{font-family:'Space Grotesk',Arial,sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#16263a;border-bottom:1px solid #d7ccb3;padding-bottom:6px;margin-bottom:14px}
 .status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.status-card{border-radius:8px;padding:14px 16px;text-align:center}
-.status-card.done{background:#f0faf4;border:1px solid #b7e4c7}
-.status-card.progress{background:#fff8f0;border:1px solid #fcd9a8}
-.status-card.blocked{background:#fff5f5;border:1px solid #fecaca}
-.status-icon{font-size:16px;font-weight:700;margin-bottom:4px}
-.status-number{font-size:24px;font-weight:700}
-.status-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.status-card{border-radius:4px;padding:12px 16px;text-align:left;background:#ffffff;border:1px solid #d7ccb3;border-left-width:3px}
+.status-card.done{border-left-color:#2f6b48}
+.status-card.progress{border-left-color:#9a5a0d}
+.status-card.blocked{border-left-color:#9c3b28}
+.status-number{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:700;color:#16263a}
+.status-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#3f5368;margin-top:2px}
 .photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
-.photo-card{border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;background:#fff;break-inside:avoid;page-break-inside:avoid}
-.photo-frame{width:100%;height:220px;background:#f3f4f6;overflow:hidden}
+.photo-card{border:1px solid #d7ccb3;border-radius:4px;overflow:hidden;background:#fff;break-inside:avoid;page-break-inside:avoid}
+.photo-frame{width:100%;height:220px;background:#f4f1e8;overflow:hidden}
 .photo-frame img{width:100%;height:100%;display:block;object-fit:cover;object-position:center}
-.photo-caption{padding:10px 12px;font-size:12px;color:#374151;line-height:1.4}
-.photo-caption strong{display:block;color:#111827;margin-bottom:4px}
+.photo-caption{padding:10px 12px;font-size:12px;color:#3f5368;line-height:1.4}
+.photo-caption strong{display:block;color:#16263a;margin-bottom:4px}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .work-list{list-style:none}
-.work-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #f3f4f6}
+.work-item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #ece6d6}
 .work-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
-.work-dot.done{background:#16a34a}
-.work-dot.progress{background:#d97706}
-.work-dot.blocked{background:#dc2626}
-.work-text{flex:1;font-size:12px;line-height:1.5}
-.work-area{font-size:10px;color:#9ca3af;font-weight:500}
-.work-tag{font-size:10px;padding:1px 7px;border-radius:4px;font-weight:600}
-.work-tag.done{background:#dcfce7;color:#166534}
-.work-tag.progress{background:#fef9c3;color:#854d0e}
-.work-tag.blocked{background:#fee2e2;color:#991b1b}
-.progress-section{background:#f9fafb;border-radius:8px;padding:14px 16px}
-.progress-label{display:flex;justify-content:space-between;font-size:11px;font-weight:600;margin-bottom:6px}
-.progress-bar-track{background:#e5e7eb;border-radius:99px;height:8px;overflow:hidden}
-.progress-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#3d8b5e,#5cb884)}
-.alert{background:#fff8f0;border:1px solid #fcd9a8;border-left:4px solid #d97706;border-radius:8px;padding:12px 14px;font-size:11px;color:#78350f;line-height:1.5}
-.alert strong{color:#92400e;font-size:12px}
-.alert-deadline{margin-top:8px;font-size:10px;color:#a16207;font-weight:600}
-.incidents-empty{background:#f9fafb;border:1px dashed #e5e7eb;border-radius:8px;padding:14px 16px;font-size:11px;color:#9ca3af;text-align:center}
-.incidents-check{font-size:14px;font-weight:700;color:#16a34a;margin-bottom:4px}
-.incident-row{padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:12px}
+.work-dot.done{background:#2f6b48}
+.work-dot.progress{background:#9a5a0d}
+.work-dot.blocked{background:#9c3b28}
+.work-text{flex:1;font-size:12px;line-height:1.5;color:#16263a}
+.work-area{font-size:10px;color:#3f5368;font-weight:500}
+.work-tag{font-size:10px;padding:1px 7px;border-radius:3px;font-weight:600;font-family:'IBM Plex Mono',monospace}
+.work-tag.done{background:#e5f1ea;color:#2f6b48}
+.work-tag.progress{background:#faf0da;color:#9a5a0d}
+.work-tag.blocked{background:#fbe9e4;color:#9c3b28}
+.empty-state{color:#3f5368;font-style:italic;font-size:12px}
+.progress-section{background:#f4f1e8;border-radius:4px;padding:14px 16px;border:1px solid #d7ccb3}
+.progress-label{display:flex;justify-content:space-between;font-size:11px;font-weight:600;margin-bottom:6px;color:#16263a}
+.progress-bar-track{background:#e2dac2;border-radius:99px;height:8px;overflow:hidden}
+.progress-bar-fill{height:100%;border-radius:99px;background:#2f6b48}
+.alert{background:#faf0da;border:1px solid #e2c98a;border-left:4px solid #9a5a0d;border-radius:4px;padding:12px 14px;font-size:11px;color:#16263a;line-height:1.5}
+.alert strong{color:#9a5a0d;font-size:12px}
+.alert-deadline{margin-top:8px;font-size:10px;color:#9a5a0d;font-weight:600}
+.incidents-empty{background:#e5f1ea;border:1px solid #cfe4d9;border-radius:4px;padding:14px 16px;font-size:11px;color:#3f5368;text-align:center}
+.incidents-check{font-size:14px;font-weight:700;color:#2f6b48;margin-bottom:4px}
+.incident-row{padding:10px 0;border-bottom:1px solid #ece6d6;font-size:12px;color:#16263a}
 .next-steps-list{list-style:none}
-.next-step-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f3f4f6}
-.step-number{width:20px;height:20px;border-radius:50%;background:#1c2b3a;color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.step-text{font-size:12px;line-height:1.5;flex:1}
-.step-date{font-size:10px;color:#9ca3af}
-.extras-card{border-radius:8px;padding:14px 16px;margin-bottom:10px}
-.extras-card.approved-card{background:#f8fdf9;border:1px solid #b7e4c7}
-.extras-card.pending-card{background:#fffbf0;border:1px solid #fcd9a8}
+.next-step-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #ece6d6}
+.step-number{width:20px;height:20px;border-radius:50%;background:#16263a;color:#f4f1e8;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'IBM Plex Mono',monospace}
+.step-text{font-size:12px;line-height:1.5;flex:1;color:#16263a}
+.step-date{font-size:10px;color:#3f5368}
+.extras-card{border-radius:4px;padding:14px 16px;margin-bottom:10px;background:#ffffff;border:1px solid #d7ccb3}
+.extras-card.approved-card{border-left:3px solid #2f6b48}
+.extras-card.pending-card{border-left:3px solid #9a5a0d}
 .extras-header{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px}
 .extras-title-area{flex:1}
-.extras-ref{font-size:10px;color:#9ca3af;font-family:"Courier New",monospace;margin-bottom:2px}
-.extras-title{font-size:12px;font-weight:600;color:#1a1a1a}
-.extras-status{font-size:10px;font-weight:700;padding:3px 10px;border-radius:4px;white-space:nowrap}
-.extras-status.pending{background:#fef3c7;color:#92400e}
-.extras-status.approved{background:#dcfce7;color:#166534}
-.extras-desc{font-size:11px;color:#374151;line-height:1.5;margin-bottom:10px}
-.extras-approval{background:#f0faf4;border-radius:6px;padding:8px 10px;margin-bottom:8px;font-size:10px;color:#374151;line-height:1.7}
-.extras-approval.waiting{background:#fffbf0}
-.approval-label{font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.5px;font-size:10px}
-.extras-approval.waiting .approval-label{color:#92400e}
-.extras-footer{display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:8px}
-.extras-cost{font-weight:700;font-size:13px;color:#1a1a1a}
+.extras-ref{font-size:10px;color:#3f5368;font-family:'IBM Plex Mono',monospace;margin-bottom:2px}
+.extras-title{font-size:12px;font-weight:600;color:#16263a}
+.extras-status{font-size:10px;font-weight:700;padding:3px 10px;border-radius:3px;white-space:nowrap;font-family:'IBM Plex Mono',monospace}
+.extras-status.pending{background:#faf0da;color:#9a5a0d}
+.extras-status.approved{background:#e5f1ea;color:#2f6b48}
+.extras-desc{font-size:11px;color:#3f5368;line-height:1.5;margin-bottom:10px}
+.extras-approval{background:#e5f1ea;border-radius:4px;padding:8px 10px;margin-bottom:8px;font-size:10px;color:#16263a;line-height:1.7}
+.extras-approval.waiting{background:#faf0da}
+.approval-label{font-weight:700;color:#2f6b48;text-transform:uppercase;letter-spacing:.5px;font-size:10px;font-family:'IBM Plex Mono',monospace}
+.extras-approval.waiting .approval-label{color:#9a5a0d}
+.extras-footer{display:flex;justify-content:space-between;font-size:10px;color:#3f5368;border-top:1px solid #d7ccb3;padding-top:8px}
+.extras-cost{font-weight:700;font-size:13px;color:#16263a;font-family:'IBM Plex Mono',monospace}
 .financial-table{width:100%;border-collapse:collapse;font-size:12px}
-.financial-table td{padding:7px 10px;border-bottom:1px solid #f3f4f6}
-.ft-value{text-align:right;font-family:"Courier New",monospace}
-.ft-total td{background:#f9fafb;font-weight:700;font-size:13px;border-top:2px solid #e5e7eb}
-.ft-positive{color:#d97706}
-.ft-pending{color:#9ca3af;font-style:italic}
-.financial-note{font-size:11px;color:#6b7280;margin-top:10px;line-height:1.5}
-.ack-section{border:1px solid #d1d5db;border-radius:8px;overflow:hidden}
-.ack-header{background:#1c2b3a;color:white;padding:10px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.financial-table td{padding:7px 10px;border-bottom:1px solid #ece6d6;color:#16263a}
+.ft-value{text-align:right;font-family:'IBM Plex Mono',monospace}
+.ft-total td{background:#f4f1e8;font-weight:700;font-size:13px;border-top:2px solid #d7ccb3}
+.ft-positive{color:#9a5a0d}
+.ft-pending{color:#3f5368;font-style:italic}
+.financial-note{font-size:11px;color:#3f5368;margin-top:10px;line-height:1.5}
+.ack-section{border:1px solid #d7ccb3;border-radius:4px;overflow:hidden}
+.ack-header{background:#16263a;color:#f4f1e8;padding:10px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;font-family:'IBM Plex Mono',monospace}
 .ack-body{padding:16px}
-.ack-notice{font-size:11px;color:#374151;line-height:1.6;margin-bottom:14px;background:#f9fafb;padding:10px 12px;border-radius:6px;border-left:3px solid #9ca3af}
+.ack-notice{font-size:11px;color:#3f5368;line-height:1.6;margin-bottom:14px;background:#f4f1e8;padding:10px 12px;border-radius:4px;border-left:3px solid #d7ccb3}
 .ack-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .ack-field{display:flex;flex-direction:column;gap:4px}
-.ack-field label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;font-weight:700}
-.ack-line{border-bottom:1px solid #374151;height:24px;width:100%}
-.legal-strip{background:#f9fafb;border-top:1px solid #e5e7eb;padding:12px 36px;font-size:9.5px;color:#9ca3af;line-height:1.7;text-align:justify}
-.footer{background:#f9fafb;border-top:1px solid #e5e7eb;padding:16px 36px;display:flex;justify-content:space-between;align-items:center}
-.footer-company{font-size:11px;color:#6b7280}
-.footer-company strong{display:block;color:#374151;font-size:12px}
-.footer-center{text-align:center;font-size:10px;color:#d1d5db}
-.footer-contact{text-align:right;font-size:10px;color:#9ca3af;line-height:1.6}
-.print-btn{position:fixed;bottom:24px;right:24px;background:#1c2b3a;color:white;border:none;border-radius:8px;padding:14px 20px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:999}
-.muted{color:#9ca3af}
+.ack-field label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#6f4f1b;font-weight:700;font-family:'IBM Plex Mono',monospace}
+.ack-line{border-bottom:1px solid #3f5368;height:24px;width:100%}
+.legal-strip{background:#f4f1e8;border-top:1px solid #d7ccb3;padding:12px 36px;font-size:9.5px;color:#3f5368;line-height:1.7;text-align:justify}
+.footer{background:#f4f1e8;border-top:1px solid #d7ccb3;padding:16px 36px;display:flex;justify-content:space-between;align-items:center}
+.footer-company{font-size:11px;color:#3f5368}
+.footer-company strong{display:block;color:#16263a;font-size:12px}
+.footer-center{text-align:center;font-size:10px;color:#a99b6f}
+.footer-contact{text-align:right;font-size:10px;color:#3f5368;line-height:1.6}
+.print-btn{position:fixed;bottom:24px;right:24px;background:#16263a;color:#f4f1e8;border:none;border-radius:6px;padding:14px 20px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:999}
+.muted{color:#3f5368}
 </style>`;
 }
 
@@ -665,10 +682,9 @@ function infoItem(label, value, mono = false) {
   `;
 }
 
-function statusCard(type, icon, number, label) {
+function statusCard(type, number, label) {
   return `
     <div class="status-card ${escapeHtml(type)}">
-      <div class="status-icon">${escapeHtml(icon)}</div>
       <div class="status-number">${Number(number || 0)}</div>
       <div class="status-label">${escapeHtml(label)}</div>
     </div>

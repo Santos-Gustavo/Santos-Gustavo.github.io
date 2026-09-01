@@ -38,6 +38,7 @@
   --input-bg: #fbfaf6;
 }
 
+
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
 }
@@ -177,6 +178,15 @@ h1, h2, h3, .mode-title, .project-card-name, .btn-generate, .btn-next {
   font-family: inherit;
   transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
+
+/* input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px var(--input-bg, #fbfaf6) inset !important;
+  -webkit-text-fill-color: var(--ink, #16263a) !important;
+  transition: background-color 5000s ease-in-out 0s;
+} */
+
 .field input:focus, .field select:focus, .field textarea:focus {
   outline: none;
   border-color: var(--ink);
@@ -325,6 +335,27 @@ h1, h2, h3, .mode-title, .project-card-name, .btn-generate, .btn-next {
   flex: 1;
 }
 .btn-home:active { background: var(--forest-soft); border-color: var(--forest); color: var(--forest); }
+.step-header-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.btn-home-top {
+  background: var(--input-bg);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 44px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-home-top:active { background: var(--forest-soft); border-color: var(--forest); color: var(--forest); }
 
 /* ---------- PHOTOS ---------- */
 .photo-input-area {
