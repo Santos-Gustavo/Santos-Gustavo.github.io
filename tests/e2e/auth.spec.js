@@ -76,3 +76,130 @@ test("user can log out and returns to the auth screen", async ({ page }) => {
   await expect(page.locator("#authEmail")).toBeVisible({ timeout: 10000 });
   await expect(page.locator("#appShell")).not.toBeVisible();
 });
+
+test("confirm password field is hidden until Criar conta is clicked", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Entrar" }).click();
+  await page.waitForLoadState("load");
+
+  await expect(page.locator("#authPassword")).toBeVisible({ timeout: 10000 });
+  await expect(page.locator("#authPasswordConfirm")).not.toBeVisible();
+
+  await page.locator('[data-auth-action="sign-up"]').click();
+
+  await expect(page.locator("#authPasswordConfirm")).toBeVisible({
+    timeout: 5000,
+  });
+});
+
+test("switching back to Entrar hides the confirm password field again", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Entrar" }).click();
+  await page.waitForLoadState("load");
+
+  await page.locator('[data-auth-action="sign-up"]').click();
+  await expect(page.locator("#authPasswordConfirm")).toBeVisible({
+    timeout: 5000,
+  });
+
+  await page.locator('[data-auth-action="sign-in"]').click();
+
+  await expect(page.locator("#authPasswordConfirm")).not.toBeVisible();
+});
+
+test("mismatched passwords block sign-up before calling Supabase", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Entrar" }).click();
+  await page.waitForLoadState("load");
+
+  let signupRequested = false;
+  await page.route("**/auth/v1/signup*", async (route) => {
+    signupRequested = true;
+    await route.abort();
+  });
+
+  const timestamp = Date.now();
+
+  await page.locator('[data-auth-action="sign-up"]').click();
+  await expect(page.locator("#authPasswordConfirm")).toBeVisible({
+    timeout: 5000,
+  });
+
+  await page.locator("#authEmail").fill(`e2e-signup-${timestamp}@example.com`);
+  await page.locator("#authPassword").fill("Password123");
+  await page.locator("#authPasswordConfirm").fill("Different123");
+
+  await page.locator('[data-auth-action="sign-up"]').click();
+
+  await expect(page.locator("#authMessage")).toHaveText(
+    "As palavras-passe não coincidem.",
+    { timeout: 5000 }
+  );
+
+  expect(signupRequested).toBe(false);
+  await expect(page.locator("#authScreen")).toBeVisible();
+});
+
+test("matching passwords proceed to the sign-up flow", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Entrar" }).click();
+  await page.waitForLoadState("load");
+
+  let signupRequested = false;
+  await page.route("**/auth/v1/signup*", async (route) => {
+    signupRequested = true;
+    await route.fulfill({
+      status: 400,
+      contentType: "application/json",
+      body: JSON.stringify({ msg: "E2E intercepted — not a real signup." }),
+    });
+  });
+
+  const timestamp = Date.now();
+
+  await page.locator('[data-auth-action="sign-up"]').click();
+  await expect(page.locator("#authPasswordConfirm")).toBeVisible({
+    timeout: 5000,
+  });
+
+  await page.locator("#authEmail").fill(`e2e-signup-${timestamp}@example.com`);
+  await page.locator("#authPassword").fill("Password123");
+  await page.locator("#authPasswordConfirm").fill("Password123");
+
+  await page.locator('[data-auth-action="sign-up"]').click();
+
+  await expect
+    .poll(() => signupRequested, { timeout: 5000 })
+    .toBe(true);
+});
+
+test("password reveal toggle shows and hides the password without submitting", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Entrar" }).click();
+  await page.waitForLoadState("load");
+
+  const passwordInput = page.locator("#authPassword");
+  const toggleBtn = page.locator('[data-toggle-password="authPassword"]');
+
+  await passwordInput.fill("SomePassword123");
+  await expect(passwordInput).toHaveAttribute("type", "password");
+
+  await toggleBtn.click();
+  await expect(passwordInput).toHaveAttribute("type", "text");
+  await expect(toggleBtn).toHaveAttribute("aria-label", "Esconder palavra-passe");
+
+  await toggleBtn.click();
+  await expect(passwordInput).toHaveAttribute("type", "password");
+  await expect(toggleBtn).toHaveAttribute("aria-label", "Mostrar palavra-passe");
+
+  // Toggling must not submit/navigate away from the auth screen.
+  await expect(page.locator("#authScreen")).toBeVisible();
+});

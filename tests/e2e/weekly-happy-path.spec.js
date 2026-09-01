@@ -144,6 +144,15 @@ test("user can create and generate a weekly report", async ({ page }) => {
 
   await page.locator("#progressSlider").fill("35");
 
+  await expect(page.locator("#progressPct")).toHaveText("35%");
+  await expect
+    .poll(() =>
+      page
+        .locator("#progressSlider")
+        .evaluate((el) => el.style.getPropertyValue("--fill"))
+    )
+    .toBe("35%");
+
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
   await expect(page.locator("#stepLabel")).toHaveText(
@@ -267,7 +276,44 @@ test("user can create and generate a weekly report", async ({ page }) => {
   );
 
   await expect(generateButton).toBeVisible();
-  await expect(
-    page.locator('[data-nav-action="home"]').filter({ visible: true })
-  ).toBeVisible();
+
+  const homeButton = page
+    .locator('[data-nav-action="home"]')
+    .filter({ visible: true });
+
+  await expect(homeButton).toBeVisible();
+
+  // FIX 7 — "Voltar ao Início" lives in the step header, not the nav-bar
+  // next to "Gerar Relatório".
+  await expect(page.locator(".step-header-with-action")).toContainText(
+    "Voltar ao Início"
+  );
+  await expect(page.locator("#step12 .nav-bar")).not.toContainText(
+    "Voltar ao Início"
+  );
+
+  // FIX 8 — clicking home asks for confirmation; Cancel keeps the user here.
+  await homeButton.click();
+
+  await expect(page.locator("#confirmDialogTitle")).toHaveText(
+    "Voltar ao início?"
+  );
+  await expect(page.locator("#confirmDialogMessage")).toHaveText(
+    "Pode perder alterações que ainda não foram guardadas. Quer continuar?"
+  );
+
+  await page.locator('[data-confirm-action="cancel"]').click();
+
+  await expect(page.locator("#confirmDialog")).toBeHidden();
+  await expect(page.locator("#stepLabel")).toHaveText(
+    /passo 9 de 9|revisão|revisao/i,
+    { timeout: 5000 }
+  );
+
+  await homeButton.click();
+  await page.locator('[data-confirm-action="confirm"]').click();
+
+  await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, {
+    timeout: 10000,
+  });
 });

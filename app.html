@@ -45,7 +45,18 @@
 
     <div class="field">
       <label>Password</label>
-      <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password">
+      <div class="password-input-wrap">
+        <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password">
+        <button type="button" class="password-toggle-btn" data-toggle-password="authPassword" aria-label="Mostrar palavra-passe" title="Mostrar palavra-passe">👁</button>
+      </div>
+    </div>
+
+    <div class="field hidden" id="authPasswordConfirmField">
+      <label>Confirmar Palavra-passe</label>
+      <div class="password-input-wrap">
+        <input id="authPasswordConfirm" type="password" placeholder="Confirmar palavra-passe" autocomplete="new-password">
+        <button type="button" class="password-toggle-btn" data-toggle-password="authPasswordConfirm" aria-label="Mostrar palavra-passe" title="Mostrar palavra-passe">👁</button>
+      </div>
     </div>
 
     <div class="auth-actions">
@@ -119,7 +130,7 @@
         <p>Diretório de clientes — trial-readiness, sem CRM: sem notas, mensagens ou histórico de faturação</p>
       </div>
 
-      <div class="field">
+      <div class="field client-search-field">
         <label>Pesquisar</label>
         <input type="text" id="clientSearchInput" placeholder="Pesquisar por nome ou telefone..." />
       </div>
@@ -130,7 +141,7 @@
         <div class="field"><label>Nome *</label><input type="text" id="clientFormName" placeholder="Ex: Sr. e Sra. Monteiro" /></div>
         <div class="field-row">
           <div class="field"><label>Telefone</label><input type="tel" id="clientFormPhone" placeholder="+351 912 345 678" /></div>
-          <div class="field"><label>Email</label><input type="email" id="clientFormEmail" placeholder="cliente@email.pt" /></div>
+          <div class="field"><label>Email</label><input type="email" id="clientFormEmail" placeholder="cliente@empresa.pt" /></div>
         </div>
         <div class="field-row">
           <div class="field"><label>NIF</label><input type="text" id="clientFormNif" placeholder="509 123 456" /></div>
@@ -445,6 +456,18 @@
 
 </div>
 </div>
+
+<div id="confirmDialog" class="confirm-dialog-overlay" hidden>
+  <div class="confirm-dialog-card">
+    <h3 id="confirmDialogTitle"></h3>
+    <p id="confirmDialogMessage"></p>
+    <div class="confirm-dialog-actions">
+      <button type="button" class="btn btn-back" data-confirm-action="cancel"></button>
+      <button type="button" class="btn btn-next" data-confirm-action="confirm"></button>
+    </div>
+  </div>
+</div>
+
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>

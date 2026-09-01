@@ -105,6 +105,15 @@ async function goToProjectList(page) {
 
     if ((await homeButtons.count()) > 0) {
       await homeButtons.first().click();
+
+      const confirmHomeButton = page
+        .locator('[data-confirm-action="confirm"]')
+        .filter({ visible: true });
+
+      if ((await confirmHomeButton.count()) > 0) {
+        await confirmHomeButton.click();
+      }
+
       await page.waitForTimeout(700);
       continue;
     }

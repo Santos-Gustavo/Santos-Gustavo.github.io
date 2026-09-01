@@ -245,6 +245,7 @@ test("photo evidence attached to a report remains preserved after the project is
   await generateWeeklyReportWithPhoto(page);
 
   await page.locator('[data-nav-action="home"]').filter({ visible: true }).click();
+  await page.locator('[data-confirm-action="confirm"]').click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, {
     timeout: 10000,
