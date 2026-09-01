@@ -566,8 +566,8 @@ body{font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;font-size:13px;color
 .page{position:relative;width:210mm;min-height:297mm;margin:0 auto;background:#ffffff}
 @media print{body{background:white}.page{margin:0;box-shadow:none}@page{margin:0}.no-print{display:none}}
 .page::before,.page::after{content:"";position:absolute;top:10mm;width:10mm;height:10mm;pointer-events:none;z-index:1}
-.page::before{left:10mm;border-left:1px solid #d7ccb3;border-top:1px solid #d7ccb3}
-.page::after{right:10mm;border-right:1px solid #d7ccb3;border-top:1px solid #d7ccb3}
+.page::before{left:10mm}
+.page::after{right:10mm}
 .header{background:#f4f1e8;color:#16263a;padding:28px 36px 24px;border-bottom:1px solid #d7ccb3}
 .header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
 .logo-area{display:flex;align-items:center;gap:14px}
