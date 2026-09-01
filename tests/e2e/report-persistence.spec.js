@@ -215,6 +215,7 @@ test("generated weekly report appears in saved reports", async ({ page }) => {
   await dialog.accept();
 
   await page.locator('[data-nav-action="home"]').filter({ visible: true }).click();
+  await page.locator('[data-confirm-action="confirm"]').click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, {
     timeout: 10000,

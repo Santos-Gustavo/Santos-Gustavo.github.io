@@ -67,7 +67,7 @@ async function handleProjectClick(event) {
   }
 
   if (action === "edit") {
-    editProject(projectId);
+    await editProject(projectId);
     return;
   }
 

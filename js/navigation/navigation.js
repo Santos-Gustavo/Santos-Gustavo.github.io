@@ -17,6 +17,7 @@ import { getProjectStatusLabel, canCreateWeeklyReport, canCreateLegalFinancialRe
 import { renderProjectModePage } from "#projects/project-mode-page.js";
 import { openClientsPage } from "#clients/client-index.js";
 import { openCompanyProfilePage } from "#company/company-index.js";
+import { confirmAction } from "#ui/confirm-dialog.js";
 
 let initialized = false;
 
@@ -371,7 +372,7 @@ function showPrefillNotice() {
   alert("Último relatório encontrado. Os dados foram pré-preenchidos. Atualize apenas o que mudou esta semana.");
 }
 
-function handleNavigationClick(event) {
+async function handleNavigationClick(event) {
   const trigger = event.target.closest("[data-nav-action]");
 
   if (!trigger) {
@@ -409,7 +410,14 @@ function handleNavigationClick(event) {
   }
 
   if (action === "home") {
-    goHome();
+    const confirmed = await confirmAction({
+      title: "Voltar ao início?",
+      message: "Pode perder alterações que ainda não foram guardadas. Quer continuar?",
+      confirmLabel: "Voltar ao início",
+      cancelLabel: "Cancelar",
+    });
+
+    if (confirmed) goHome();
     return;
   }
 

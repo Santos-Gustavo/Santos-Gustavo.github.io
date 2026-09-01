@@ -215,4 +215,85 @@ test.describe("CLIENT-MANAGEMENT-001 — evidence & archive guardrails", () => {
       page.locator(`#clientNameOptions option[value="${clientName}"]`)
     ).toHaveCount(0);
   });
+
+  test("project client dropdown shows only active clients and reuses the selected one", async ({
+    page,
+  }) => {
+    const timestamp = Date.now();
+    const activeNameA = `E2E Dropdown Active A ${timestamp}`;
+    const activeNameB = `E2E Dropdown Active B ${timestamp}`;
+    const archivedName = `E2E Dropdown Archived ${timestamp}`;
+
+    await login(page);
+    await openClientsPage(page);
+
+    await createClient(page, { name: activeNameA });
+    await createClient(page, { name: activeNameB });
+    const archivedCard = await createClient(page, { name: archivedName });
+
+    page.once("dialog", async (dialog) => {
+      await dialog.accept();
+    });
+
+    await archivedCard.locator('[data-client-action="archive"]').click();
+
+    await expect(
+      page.locator("#clientList .project-card").filter({ hasText: archivedName })
+    ).toHaveCount(0, { timeout: 15000 });
+
+    await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
+    await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, { timeout: 10000 });
+
+    await page
+      .locator('[data-project-action="new-project"]')
+      .filter({ visible: true })
+      .click();
+
+    await expect(page.locator("#stepLabel")).toHaveText(/dados do projeto/i, {
+      timeout: 10000,
+    });
+
+    await expect(
+      page.locator(`#clientNameOptions option[value="${activeNameA}"]`)
+    ).toHaveCount(1);
+    await expect(
+      page.locator(`#clientNameOptions option[value="${activeNameB}"]`)
+    ).toHaveCount(1);
+    await expect(
+      page.locator(`#clientNameOptions option[value="${archivedName}"]`)
+    ).toHaveCount(0);
+
+    const projectName = `E2E Dropdown Project ${timestamp}`;
+    const contractNum = `DROPDOWN-${timestamp}`;
+
+    await page.locator("#projectName").fill(projectName);
+    await page.locator("#clientName").fill(activeNameA);
+    await page.locator("#location").fill("Rua Dropdown 1, Porto");
+    await page.locator("#contractNum").fill(contractNum);
+    await page.locator("#distributedTo").fill("Cliente · Arquivo");
+    await page.locator("#sentVia").selectOption({ label: "WhatsApp" });
+
+    await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
+
+    await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
+      timeout: 20000,
+    });
+
+    await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
+    await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, { timeout: 10000 });
+
+    await openClientsPage(page);
+
+    const searchInput = page.locator("#clientSearchInput");
+    await searchInput.fill(activeNameA);
+
+    const linkedCard = page
+      .locator("#clientList .project-card")
+      .filter({ hasText: activeNameA });
+
+    await expect(linkedCard).toBeVisible({ timeout: 15000 });
+    // Selecting an existing client from the dropdown must reuse it, not
+    // create a duplicate — the project count lands on this same card.
+    await expect(linkedCard).toContainText(/1 obra associada/i);
+  });
 });

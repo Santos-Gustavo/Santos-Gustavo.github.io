@@ -11,8 +11,18 @@ import { appState } from "#state/app-state.js";
 import { resolveActiveCompanyId, renderClientList, getClientById } from "#clients/client-list.js";
 import { closeClientForm, getClientFormValues } from "#clients/client-form.js";
 
+// Deliberately loose — "something@something.something" — so real Portuguese
+// client domains (.pt, .com.pt, etc.) are never blocked. Only catches
+// obviously malformed input (no "@", no domain, no TLD, more than one "@").
+const CLIENT_EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
 export async function saveClientFromForm() {
   const values = getClientFormValues();
+
+  if (values.email && !CLIENT_EMAIL_PATTERN.test(values.email)) {
+    alert("O email do cliente é inválido.");
+    return false;
+  }
 
   try {
     const companyId = await resolveActiveCompanyId();

@@ -2,7 +2,7 @@
 
 import { appState } from "#state/app-state.js";
 import { setValue } from "#forms/form-values.js";
-import { updatePhaseUI, updateAlertUI, updateIncidentsUI } from "#ui/ui-controls.js";
+import { updatePhaseUI, updateAlertUI, updateIncidentsUI, syncProgressSlider } from "#ui/ui-controls.js";
 import { renderWorks } from "#projects/sections/works.js";
 import { renderPhotos } from "#projects/sections/photos.js";
 import { renderIncidents } from "#projects/sections/incidents.js";
@@ -48,6 +48,7 @@ export function applyPreviousReportToForm(previousReport) {
 
   setValue("weekSummary", previousReport.week_summary || "");
   setValue("progressSlider", previousReport.progress_pct || 0);
+  syncProgressSlider();
 
   setValue("alertTitle", previousReport.alert_title || "");
   setValue("alertDesc", previousReport.alert_desc || "");

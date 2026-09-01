@@ -39,7 +39,7 @@ export async function newProject() {
   clearProjectForm();
   populateCompanyForm(appState.currentCompany);
 
-  populateClientNameOptions().catch((error) => {
+  await populateClientNameOptions().catch((error) => {
     console.warn("Could not load client name suggestions:", error);
   });
 
@@ -70,7 +70,7 @@ export function selectProject(projectId) {
   renderProjectModePage(project);
 }
 
-export function editProject(projectId) {
+export async function editProject(projectId) {
   const project = getProjectById(projectId);
 
   if (!project) {
@@ -92,7 +92,7 @@ export function editProject(projectId) {
 
   loadProjectIntoForm(project);
 
-  populateClientNameOptions().catch((error) => {
+  await populateClientNameOptions().catch((error) => {
     console.warn("Could not load client name suggestions:", error);
   });
 

@@ -12,6 +12,7 @@ import { initNextStepsSection } from "#projects/sections/next-steps.js";
 import { initFinancialSection } from "#projects/sections/financial.js";
 import { initReviewSection } from "#projects/sections/review.js";
 import { initUiControls } from "#ui/ui-controls.js";
+import { initConfirmDialog } from "#ui/confirm-dialog.js";
 import { initPayments } from "#payments/payment.js";
 import { initAuth } from "#auth/auth.js";
 import { appState } from "#state/app-state.js";
@@ -48,6 +49,9 @@ async function boot() {
 
   initUiControls();
   console.info("[ESM boot] UI controls initialized.");
+
+  initConfirmDialog();
+  console.info("[ESM boot] Confirm dialog initialized.");
 
   initWorksSection();
   console.info("[ESM boot] Works initialized.");

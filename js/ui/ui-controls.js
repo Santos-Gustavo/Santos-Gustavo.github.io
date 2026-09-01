@@ -11,6 +11,20 @@ export function initUiControls() {
   document.addEventListener("click", handleUiControlClick, true);
   document.addEventListener("input", handleUiInput, true);
 
+  syncProgressSlider();
+}
+
+export function syncProgressSlider() {
+  const slider = document.getElementById("progressSlider");
+  const progressPct = document.getElementById("progressPct");
+
+  if (!slider) return;
+
+  slider.style.setProperty("--fill", `${slider.value}%`);
+
+  if (progressPct) {
+    progressPct.textContent = `${slider.value}%`;
+  }
 }
 
 export function selectPhase(el, phase) {
@@ -124,9 +138,5 @@ function handleUiInput(event) {
     return;
   }
 
-  const progressPct = document.getElementById("progressPct");
-
-  if (progressPct) {
-    progressPct.textContent = `${target.value}%`;
-  }
+  syncProgressSlider();
 }
