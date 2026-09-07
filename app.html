@@ -202,6 +202,51 @@
     </div>
   </div>
 
+  <!-- LAYER 0d: ESTADO DA OBRA (PROJECT-MASTER-SHEET-001) — single-page master
+       sheet per project: consolidated Pendentes/Em curso/Concluídas/Incidentes
+       from existing reports, with a quick-tap status control. Not a task board —
+       no drag-and-drop, no multi-column layout, stays inside the mobile frame. -->
+  <div class="step" id="step-estado-obra">
+    <div class="step-content">
+      <div class="step-header">
+        <h2>Estado da Obra</h2>
+        <p id="workStatusProjectLabel"></p>
+        <p id="workStatusClientLabel" class="mode-project-status"></p>
+      </div>
+
+      <div class="card work-status-progress-card">
+        <h3>Progresso geral</h3>
+        <div class="work-status-progress-track">
+          <div class="work-status-progress-fill" id="workStatusProgressFill" style="width:0%"></div>
+        </div>
+        <div class="work-status-progress-pct" id="workStatusProgressPct">0%</div>
+      </div>
+
+      <div class="work-status-section">
+        <h3 class="work-status-section-title">Pendentes</h3>
+        <div id="workStatusPendingList"></div>
+      </div>
+
+      <div class="work-status-section">
+        <h3 class="work-status-section-title">Em curso</h3>
+        <div id="workStatusProgressList"></div>
+      </div>
+
+      <div class="work-status-section">
+        <h3 class="work-status-section-title">Concluídas</h3>
+        <div id="workStatusDoneList"></div>
+      </div>
+
+      <div class="work-status-section">
+        <h3 class="work-status-section-title work-status-section-title--incidents">Incidentes</h3>
+        <div id="workStatusIncidentsList"></div>
+      </div>
+    </div>
+    <div class="nav-bar">
+      <button class="btn btn-back" data-nav-action="back">← Voltar</button>
+    </div>
+  </div>
+
   <!-- LAYER 0c: COMPANY PROFILE (COMPANY-PROFILE-001) — one company per user,
        edited here only. Never part of the project-creation flow. -->
   <div class="step" id="step-company">

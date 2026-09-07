@@ -35,6 +35,11 @@ export const appState = {
   currentReportId: null,
   currentProject: null,
 
+  // PROJECT-MASTER-SHEET-001 — project currently open on the "Estado da Obra"
+  // screen. Separate from currentProjectId because that screen can be opened
+  // straight from a project card without going through selectProject().
+  currentWorkStatusProjectId: null,
+
   projectsCache: [],
   clientsCache: [],
   editingClientId: null,

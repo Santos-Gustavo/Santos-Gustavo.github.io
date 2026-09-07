@@ -13,6 +13,8 @@ import { renderPhotos } from "#projects/sections/photos.js";
 import { renderIncidents } from "#projects/sections/incidents.js";
 import { renderExtras } from "#projects/sections/extras.js";
 import { renderNextSteps } from "#projects/sections/next-steps.js";
+import { updateIncidentsUI } from "#ui/ui-controls.js";
+import { getOpenWorkItemsForPrefill } from "#projects/project-work-items.js";
 import { getProjectStatusLabel, canCreateWeeklyReport, canCreateLegalFinancialReport } from "#projects/project-status-rules.js";
 import { renderProjectModePage } from "#projects/project-mode-page.js";
 import { openClientsPage } from "#clients/client-index.js";
@@ -92,6 +94,12 @@ export function updateTopBar(id) {
     return;
   }
 
+  if (id === "estado-obra") {
+    fill.style.width = "0%";
+    label.textContent = "Estado da Obra";
+    return;
+  }
+
   if (id === "company") {
     fill.style.width = "0%";
     label.textContent = "Dados da Empresa";
@@ -112,7 +120,7 @@ export function updateTopBar(id) {
   label.textContent = `Passo ${pos} de ${total} — ${STEP_NAMES[id] || String(id)}`;
 }
 
-export function selectMode(mode) {
+export async function selectMode(mode) {
   const state = getRuntimeState();
 
   if (mode !== "weekly" && mode !== "legal") {
@@ -147,6 +155,10 @@ export function selectMode(mode) {
   if (!Array.isArray(state.flow) || state.flow.length === 0) {
     console.error("Invalid navigation flow for mode:", mode, state.flow);
     return;
+  }
+
+  if (mode === "weekly") {
+    await prepareWeeklyReportFromMasterSheet(appState.currentProjectId);
   }
 
   goToStepId(state.flow[0]);
@@ -234,6 +246,12 @@ export function goBack() {
   }
 
   if (cur === "mode") {
+    goToStepId("projects");
+    renderProjectList();
+    return;
+  }
+
+  if (cur === "estado-obra") {
     goToStepId("projects");
     renderProjectList();
     return;
@@ -368,6 +386,47 @@ export function prepareBlankWeeklyReport() {
   rerenderLegacySections();
 }
 
+// PROJECT-MASTER-SHEET-001 — pre-fill priority for "Criar Relatório Semanal":
+//   1. Estado da Obra open items (Pendentes + Em curso) — the current, consolidated
+//      picture of what's outstanding across every report so far.
+//   2. Latest report fallback (prepareWeeklyReportFromPrevious) — carries forward
+//      period/summary/alert/financial fields either way, since master-sheet items
+//      only cover work items, not the rest of the report.
+// Concluídas and incidents are never carried forward into a new report by default
+// (see docs task PROJECT-MASTER-SHEET-001 §5) — incidents in particular have no
+// "resolved" concept in the data today, so the safe default is to always start a
+// new report with a clean incidents section.
+export async function prepareWeeklyReportFromMasterSheet(projectId) {
+  const state = getRuntimeState();
+  const resolvedProjectId = projectId || state.currentProjectId || appState.currentProjectId;
+
+  let openItems = [];
+
+  if (resolvedProjectId) {
+    try {
+      openItems = await getOpenWorkItemsForPrefill(resolvedProjectId);
+    } catch (error) {
+      console.error("Error loading Estado da Obra items for prefill:", error);
+    }
+  }
+
+  await prepareWeeklyReportFromPrevious();
+
+  if (openItems.length > 0) {
+    state.works = openItems;
+    appState.works = openItems;
+    renderWorks();
+  }
+
+  state.incidents = [];
+  appState.incidents = [];
+  state.incidentsOn = false;
+  appState.incidentsOn = false;
+
+  updateIncidentsUI();
+  renderIncidents();
+}
+
 function showPrefillNotice() {
   alert("Último relatório encontrado. Os dados foram pré-preenchidos. Atualize apenas o que mudou esta semana.");
 }
@@ -395,7 +454,7 @@ async function handleNavigationClick(event) {
       return;
     }
 
-    selectMode(mode);
+    await selectMode(mode);
     return;
   }
 

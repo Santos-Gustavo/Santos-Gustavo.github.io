@@ -14,6 +14,8 @@ import {
   editProject,
 } from "#projects/project-selection.js";
 
+import { openProjectMasterSheet } from "#projects/project-work-items-ui.js";
+
 import {
   clearProjectForm,
   loadProjectIntoForm,
@@ -73,6 +75,11 @@ async function handleProjectClick(event) {
 
   if (action === "archive-hide") {
     await archiveOrHideProject(projectId);
+    return;
+  }
+
+  if (action === "view-work-status") {
+    await openProjectMasterSheet(projectId);
   }
 }
 

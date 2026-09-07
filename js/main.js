@@ -19,6 +19,7 @@ import { appState } from "#state/app-state.js";
 import { initReportGenerator } from "#reports/report-generator.js";
 import { initReportHistory } from "#reports/report-history.js";
 import { initReportDefaults } from "#reports/report-defaults.js";
+import { initProjectWorkItemsUi } from "#projects/project-work-items-ui.js";
 import { JOB_TYPES, AREAS, CONTENT_STEPS } from "#config/app-options.js";
 
 async function boot() {
@@ -40,6 +41,9 @@ async function boot() {
 
   initProjects();
   console.info("[ESM boot] Projects initialized.");
+
+  initProjectWorkItemsUi();
+  console.info("[ESM boot] Estado da Obra initialized.");
 
   initClients();
   console.info("[ESM boot] Clients initialized.");

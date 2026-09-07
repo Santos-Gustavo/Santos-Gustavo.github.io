@@ -747,9 +747,85 @@ input:-webkit-autofill:focus {
   transition: background 0.15s, border-color 0.15s;
 }
 .btn-project-edit { flex: 1; border: 1px solid var(--border); background: var(--input-bg); color: var(--muted); }
+.btn-project-work-status { flex: 1; border: 1px solid var(--border); background: var(--input-bg); color: var(--muted); }
 .btn-project-archive { flex: 0 0 auto; min-width: 4.4rem; border: 1px solid #ecc3ba; background: var(--rust-soft); color: var(--rust); }
-.btn-project-edit:hover, .btn-project-edit:active { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
+.btn-project-edit:hover, .btn-project-edit:active,
+.btn-project-work-status:hover, .btn-project-work-status:active { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
 .btn-project-archive:active { background: #f4cfc5; }
+
+/* ---------- ESTADO DA OBRA (PROJECT-MASTER-SHEET-001) ---------- */
+.work-status-progress-card { margin-bottom: 22px; }
+.work-status-progress-track {
+  background: var(--paper-line);
+  border-radius: 99px;
+  height: 14px;
+  overflow: hidden;
+}
+.work-status-progress-fill {
+  height: 100%;
+  background: var(--brass);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+.work-status-progress-pct {
+  margin-top: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.work-status-section { margin-bottom: 26px; }
+.work-status-section-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--brass-deep);
+  margin-bottom: 12px;
+}
+.work-status-section-title--incidents { color: var(--rust); }
+
+.work-status-item-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 10px;
+  background: var(--input-bg);
+}
+.work-status-incident-card { border-color: #ecc3ba; background: var(--rust-soft); }
+.work-status-item-title { font-size: 14.5px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+.work-status-item-desc { font-size: 13.5px; color: var(--text); line-height: 1.5; margin-bottom: 6px; }
+.work-status-item-meta {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.work-status-segmented {
+  display: flex;
+  gap: 6px;
+}
+.work-status-seg-btn {
+  flex: 1;
+  min-height: 48px;
+  padding: 8px 6px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: white;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.work-status-seg-btn:disabled { cursor: default; }
+.work-status-seg-btn:not(:disabled):hover { border-color: var(--brass); color: var(--brass-deep); }
+.work-status-seg-btn.is-active.is-blocked { background: var(--rust-soft); border-color: var(--rust); color: var(--rust); }
+.work-status-seg-btn.is-active.is-progress { background: var(--amber-soft); border-color: var(--amber); color: var(--amber); }
+.work-status-seg-btn.is-active.is-done { background: var(--forest-soft); border-color: var(--forest); color: var(--forest); }
 
 .project-card-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
