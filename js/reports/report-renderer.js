@@ -563,12 +563,13 @@ function renderStyles() {
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;font-size:13px;color:#16263a;background:#f4f1e8}
-.page{position:relative;width:210mm;min-height:297mm;margin:0 auto;background:#ffffff}
-@media print{body{background:white}.page{margin:0;box-shadow:none}@page{margin:0}.no-print{display:none}}
+.page{position:relative;width:210mm;margin:0 auto;background:#ffffff}
+@media screen{.page{min-height:297mm}}
+@media print{body{background:white}.page{margin:0;min-height:0;box-shadow:none}@page{size:A4;margin:0}.no-print{display:none}}
 .page::before,.page::after{content:"";position:absolute;top:10mm;width:10mm;height:10mm;pointer-events:none;z-index:1}
 .page::before{left:10mm}
 .page::after{right:10mm}
-.header{background:#f4f1e8;color:#16263a;padding:28px 36px 24px;border-bottom:1px solid #d7ccb3}
+.header{background:#fbfaf6;color:#16263a;padding:28px 36px 24px;border:1px solid #d7ccb3;border-bottom:2px solid #94651f}
 .header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
 .logo-area{display:flex;align-items:center;gap:14px}
 .logo-placeholder{width:44px;height:44px;border:2px solid #d7ccb3;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#3f5368;text-align:center;background:#ffffff}
@@ -586,6 +587,7 @@ body{font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;font-size:13px;color
 .summary-banner strong{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#6f4f1b;margin-bottom:6px;font-family:'IBM Plex Mono',monospace}
 .summary-banner .empty-state{color:#3f5368;font-style:italic}
 .content{padding:28px 36px}
+.content>:last-child{margin-bottom:0}
 .section{margin-bottom:28px}
 .section-title{font-family:'Space Grotesk',Arial,sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#16263a;border-bottom:1px solid #d7ccb3;padding-bottom:6px;margin-bottom:14px}
 .status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
@@ -662,11 +664,11 @@ body{font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;font-size:13px;color
 .ack-field{display:flex;flex-direction:column;gap:4px}
 .ack-field label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#6f4f1b;font-weight:700;font-family:'IBM Plex Mono',monospace}
 .ack-line{border-bottom:1px solid #3f5368;height:24px;width:100%}
-.legal-strip{background:#f4f1e8;border-top:1px solid #d7ccb3;padding:12px 36px;font-size:9.5px;color:#3f5368;line-height:1.7;text-align:justify}
-.footer{background:#f4f1e8;border-top:1px solid #d7ccb3;padding:16px 36px;display:flex;justify-content:space-between;align-items:center}
+.legal-strip{background:#fbfaf6;border:1px solid #d7ccb3;border-left:3px solid #94651f;border-radius:4px;margin:0 36px 16px;padding:12px 14px;font-size:9.5px;color:#3f5368;line-height:1.7;text-align:justify}
+.footer{background:#fbfaf6;border-top:1px solid #d7ccb3;padding:16px 36px;display:flex;justify-content:space-between;align-items:center}
 .footer-company{font-size:11px;color:#3f5368}
 .footer-company strong{display:block;color:#16263a;font-size:12px}
-.footer-center{text-align:center;font-size:10px;color:#a99b6f}
+.footer-center{text-align:center;font-size:10px;color:#3f5368}
 .footer-contact{text-align:right;font-size:10px;color:#3f5368;line-height:1.6}
 .print-btn{position:fixed;bottom:24px;right:24px;background:#16263a;color:#f4f1e8;border:none;border-radius:6px;padding:14px 20px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:999}
 .muted{color:#3f5368}
