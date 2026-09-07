@@ -7,14 +7,16 @@
 import { appState } from "#state/app-state.js";
 import { getProjectById } from "#projects/project-list.js";
 import { goToStepId } from "#navigation/navigation.js";
-import { canEditProject } from "#projects/project-status-rules.js";
+import { canEditProject, canCreateWeeklyReport } from "#projects/project-status-rules.js";
 import { loadProjectWorkState, setWorkItemStatus } from "#projects/project-work-items.js";
 
-const STATUS_OPTIONS = [
-  { value: "blocked", label: "Pendente" },
-  { value: "progress", label: "Em curso" },
-  { value: "done", label: "Concluída" },
-];
+// One action per item, not a 3-way picker — an open item (Pendente or Em curso)
+// only ever offers "Marcar como concluída"; a completed item only ever offers
+// "Reabrir" (back to Em curso — a reopened item is being worked on again, not
+// back to untouched). Keeps the tap surface to a single obvious choice instead
+// of asking the contractor to pick from three states every time.
+const REOPEN_STATUS = "progress";
+const COMPLETE_STATUS = "done";
 
 let initialized = false;
 
@@ -34,9 +36,20 @@ export async function openProjectMasterSheet(projectId) {
   }
 
   appState.currentWorkStatusProjectId = project.id;
+  // The "Gerar relatório semanal" shortcut on this screen calls the same
+  // selectMode("weekly") every other entry point uses, which reads these —
+  // set them here too so opening Estado da Obra straight from a project card
+  // (skipping selectProject()) still lets that shortcut work.
+  appState.currentProjectId = project.id;
+  appState.currentProject = project;
 
   renderHeader(project);
   goToStepId("estado-obra");
+
+  const generateReportBtn = document.getElementById("workStatusGenerateReportBtn");
+  if (generateReportBtn) {
+    generateReportBtn.hidden = !canCreateWeeklyReport(project);
+  }
 
   await renderMasterSheet(project);
 }
@@ -69,21 +82,30 @@ async function renderMasterSheet(project) {
 
     renderWorkList({
       containerId: "workStatusPendingList",
+      headingId: "workStatusPendingHeading",
+      headingLabel: "Pendentes",
       items: state.pendentes,
+      accent: "pending",
       editable,
       emptyMessage: "Sem trabalhos pendentes registados.",
     });
 
     renderWorkList({
       containerId: "workStatusProgressList",
+      headingId: "workStatusProgressHeading",
+      headingLabel: "Em curso",
       items: state.emCurso,
+      accent: "progress",
       editable,
       emptyMessage: "Sem trabalhos em curso registados.",
     });
 
     renderWorkList({
       containerId: "workStatusDoneList",
+      headingId: "workStatusDoneHeading",
+      headingLabel: "Concluídas",
       items: state.concluidas,
+      accent: "done",
       editable,
       emptyMessage: "Sem trabalhos concluídos registados.",
     });
@@ -116,7 +138,12 @@ function renderProgress(progressPct) {
   }
 }
 
-function renderWorkList({ containerId, items, editable, emptyMessage }) {
+function renderWorkList({ containerId, headingId, headingLabel, items, accent, editable, emptyMessage }) {
+  const heading = document.getElementById(headingId);
+  if (heading) {
+    heading.textContent = `${headingLabel} (${items.length})`;
+  }
+
   const el = document.getElementById(containerId);
   if (!el) return;
 
@@ -125,48 +152,47 @@ function renderWorkList({ containerId, items, editable, emptyMessage }) {
     return;
   }
 
-  el.innerHTML = items.map((item) => renderWorkItemCard(item, editable)).join("");
+  el.innerHTML = items.map((item) => renderWorkItemCard(item, accent, editable)).join("");
 }
 
-function renderWorkItemCard(item, editable) {
+function renderWorkItemCard(item, accent, editable) {
   const title = [item.type, item.area].filter(Boolean).join(" · ") || "Trabalho";
   const meta = item.sourceReportNum
     ? `Relatório #${escapeHtml(item.sourceReportNum)} · ${escapeHtml(formatShortDate(item.sourceReportDate))}`
     : "";
 
+  const isDone = item.status === COMPLETE_STATUS;
+  const actionLabel = isDone ? "Reabrir" : "Marcar como concluída";
+  const actionStatus = isDone ? REOPEN_STATUS : COMPLETE_STATUS;
+  const actionClass = isDone ? "work-status-item-action--reopen" : "work-status-item-action--complete";
+
   return `
-    <div class="work-status-item-card">
+    <div class="work-status-item-card work-status-item-card--${accent}">
       <div class="work-status-item-title">${escapeHtml(title)}</div>
       ${item.desc ? `<div class="work-status-item-desc">${escapeHtml(item.desc)}</div>` : ""}
       ${meta ? `<div class="work-status-item-meta">${meta}</div>` : ""}
 
-      <div class="work-status-segmented" role="group" aria-label="Estado do trabalho">
-        ${STATUS_OPTIONS.map((option) => renderStatusButton(item, option, editable)).join("")}
-      </div>
+      <button
+        type="button"
+        class="work-status-item-action ${actionClass}"
+        data-work-status-action="set-status"
+        data-item-id="${escapeHtml(item.id)}"
+        data-status="${escapeHtml(actionStatus)}"
+        data-source-report-id="${escapeHtml(item.sourceReportId || "")}"
+        ${editable ? "" : "disabled"}
+      >
+        ${escapeHtml(actionLabel)}
+      </button>
     </div>
   `;
 }
 
-function renderStatusButton(item, option, editable) {
-  const isActive = item.status === option.value;
-  const stateClass = isActive ? ` is-active is-${option.value}` : "";
-
-  return `
-    <button
-      type="button"
-      class="work-status-seg-btn${stateClass}"
-      data-work-status-action="set-status"
-      data-item-id="${escapeHtml(item.id)}"
-      data-status="${escapeHtml(option.value)}"
-      data-source-report-id="${escapeHtml(item.sourceReportId || "")}"
-      ${!editable || isActive ? "disabled" : ""}
-    >
-      ${escapeHtml(option.label)}
-    </button>
-  `;
-}
-
 function renderIncidentsList(incidents) {
+  const heading = document.getElementById("workStatusIncidentsHeading");
+  if (heading) {
+    heading.textContent = `Incidentes (${incidents.length})`;
+  }
+
   const el = document.getElementById("workStatusIncidentsList");
   if (!el) return;
 
@@ -214,10 +240,7 @@ async function handleWorkStatusClick(event) {
   const status = button.dataset.status;
   const sourceReportId = button.dataset.sourceReportId || null;
 
-  const segmentedGroup = button.closest(".work-status-segmented");
-  segmentedGroup?.querySelectorAll("button").forEach((btn) => {
-    btn.disabled = true;
-  });
+  button.disabled = true;
 
   try {
     await setWorkItemStatus({ projectId, itemId, status, sourceReportId });
@@ -226,9 +249,7 @@ async function handleWorkStatusClick(event) {
     console.error("Error saving work item status:", error);
     alert("Erro ao guardar alteração: " + error.message);
 
-    segmentedGroup?.querySelectorAll("button").forEach((btn) => {
-      btn.disabled = false;
-    });
+    button.disabled = false;
   }
 }
 

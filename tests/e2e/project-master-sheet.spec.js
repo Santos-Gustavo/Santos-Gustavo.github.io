@@ -191,6 +191,11 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
     await expect(page.locator("#workStatusIncidentsList")).toContainText(
       "Sem incidentes registados."
     );
+
+    // Section headings surface a count, and the report shortcut is available
+    // for an active project (Estado da Obra as project home, not a dead end).
+    await expect(page.locator("#workStatusPendingHeading")).toHaveText("Pendentes (0)");
+    await expect(page.locator("#workStatusGenerateReportBtn")).toBeVisible();
   });
 
   test("consolidates work items and incidents across reports, quick-tap status persists, and weekly report prefills open items", async ({
@@ -254,17 +259,28 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
     await expect(page.locator("#workStatusIncidentsList")).toContainText("Atraso na entrega de material — E2E i1");
     await expect(page.locator("#workStatusIncidentsList")).toContainText("Fissura na parede exterior — E2E i2");
 
-    // Quick-tap: mark w3 (currently Pendente) as Concluída.
+    // Quick-tap: mark w3 (currently Pendente) as concluída — a single action
+    // button per item ("Marcar como concluída" / "Reabrir"), not a 3-way picker.
     const w3Card = page
       .locator(".work-status-item-card")
       .filter({ hasText: "Isolamento da cobertura — E2E w3" });
 
-    await w3Card.getByRole("button", { name: "Concluída" }).click();
+    await w3Card.getByRole("button", { name: "Marcar como concluída" }).click();
 
     await expect(page.locator("#workStatusPendingList")).toContainText(
       "Sem trabalhos pendentes registados."
     );
     await expect(page.locator("#workStatusDoneList")).toContainText("Isolamento da cobertura — E2E w3");
+
+    // Once done, the same item offers "Reabrir" instead — never both actions at once.
+    const w3CardAfterComplete = page
+      .locator("#workStatusDoneList .work-status-item-card")
+      .filter({ hasText: "Isolamento da cobertura — E2E w3" });
+
+    await expect(w3CardAfterComplete.getByRole("button", { name: "Reabrir" })).toBeVisible();
+    await expect(
+      w3CardAfterComplete.getByRole("button", { name: "Marcar como concluída" })
+    ).toHaveCount(0);
 
     // Leave the screen and come back to prove the status change persisted server-side
     // (Estado da Obra never caches this client-side — reopening always re-queries the
@@ -423,10 +439,13 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
       .filter({ hasText: "Pintura E2E arquivado" })
       .getByRole("button");
 
-    await expect(statusButtons).toHaveCount(3);
+    await expect(statusButtons).toHaveCount(1);
 
     for (const button of await statusButtons.all()) {
       await expect(button).toBeDisabled();
     }
+
+    // Archived project: no new weekly report can be started from here either.
+    await expect(page.locator("#workStatusGenerateReportBtn")).toBeHidden();
   });
 });

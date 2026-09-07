@@ -458,6 +458,14 @@ async function handleNavigationClick(event) {
     return;
   }
 
+  // Shortcut button on Estado da Obra — deliberately its own action (not
+  // select-mode/weekly) so it doesn't collide with the mode-picker tile's
+  // identical data-mode="weekly" selector while both sit in the DOM at once.
+  if (action === "generate-weekly-report") {
+    await selectMode("weekly");
+    return;
+  }
+
   if (action === "next") {
     goNext();
     return;

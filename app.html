@@ -223,27 +223,34 @@
       </div>
 
       <div class="work-status-section">
-        <h3 class="work-status-section-title">Pendentes</h3>
+        <h3 class="work-status-section-title" id="workStatusPendingHeading">Pendentes</h3>
         <div id="workStatusPendingList"></div>
       </div>
 
       <div class="work-status-section">
-        <h3 class="work-status-section-title">Em curso</h3>
+        <h3 class="work-status-section-title" id="workStatusProgressHeading">Em curso</h3>
         <div id="workStatusProgressList"></div>
       </div>
 
       <div class="work-status-section">
-        <h3 class="work-status-section-title">Concluídas</h3>
+        <h3 class="work-status-section-title" id="workStatusDoneHeading">Concluídas</h3>
         <div id="workStatusDoneList"></div>
       </div>
 
       <div class="work-status-section">
-        <h3 class="work-status-section-title work-status-section-title--incidents">Incidentes</h3>
+        <h3 class="work-status-section-title work-status-section-title--incidents" id="workStatusIncidentsHeading">Incidentes</h3>
         <div id="workStatusIncidentsList"></div>
       </div>
     </div>
     <div class="nav-bar">
-      <button class="btn btn-back" data-nav-action="back">← Voltar</button>
+      <button class="btn btn-back" data-nav-action="back">Voltar às obras</button>
+      <button
+        class="btn btn-generate"
+        data-nav-action="generate-weekly-report"
+        id="workStatusGenerateReportBtn"
+      >
+        Gerar relatório semanal
+      </button>
     </div>
   </div>
 

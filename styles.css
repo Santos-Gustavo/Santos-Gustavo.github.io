@@ -747,10 +747,12 @@ input:-webkit-autofill:focus {
   transition: background 0.15s, border-color 0.15s;
 }
 .btn-project-edit { flex: 1; border: 1px solid var(--border); background: var(--input-bg); color: var(--muted); }
-.btn-project-work-status { flex: 1; border: 1px solid var(--border); background: var(--input-bg); color: var(--muted); }
+/* Slightly more prominent than Editar/Arquivar — this is the main way into a
+   project's status now, not just another secondary card action. */
+.btn-project-work-status { flex: 1.3; border: 1px solid var(--brass); background: var(--brass-soft); color: var(--brass-deep); }
 .btn-project-archive { flex: 0 0 auto; min-width: 4.4rem; border: 1px solid #ecc3ba; background: var(--rust-soft); color: var(--rust); }
-.btn-project-edit:hover, .btn-project-edit:active,
-.btn-project-work-status:hover, .btn-project-work-status:active { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
+.btn-project-edit:hover, .btn-project-edit:active { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
+.btn-project-work-status:hover, .btn-project-work-status:active { background: var(--brass); color: white; }
 .btn-project-archive:active { background: #f4cfc5; }
 
 /* ---------- ESTADO DA OBRA (PROJECT-MASTER-SHEET-001) ---------- */
@@ -788,12 +790,18 @@ input:-webkit-autofill:focus {
 
 .work-status-item-card {
   border: 1px solid var(--border);
+  border-left-width: 4px;
   border-radius: 8px;
   padding: 14px;
   margin-bottom: 10px;
   background: var(--input-bg);
 }
-.work-status-incident-card { border-color: #ecc3ba; background: var(--rust-soft); }
+/* Pendente is a neutral "not started yet", never rust — rust is reserved for
+   incidents/blocked/destructive, not ordinary pending work. */
+.work-status-item-card--pending { border-left-color: var(--ink-soft); }
+.work-status-item-card--progress { border-left-color: var(--amber); }
+.work-status-item-card--done { border-left-color: var(--forest); }
+.work-status-incident-card { border-color: #ecc3ba; border-left-color: var(--rust); background: var(--rust-soft); }
 .work-status-item-title { font-size: 14.5px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
 .work-status-item-desc { font-size: 13.5px; color: var(--text); line-height: 1.5; margin-bottom: 6px; }
 .work-status-item-meta {
@@ -804,28 +812,24 @@ input:-webkit-autofill:focus {
   margin-bottom: 10px;
 }
 
-.work-status-segmented {
-  display: flex;
-  gap: 6px;
-}
-.work-status-seg-btn {
-  flex: 1;
+/* One action per item — "Marcar como concluída" (open items) or "Reabrir"
+   (completed items), never a 3-way state picker. */
+.work-status-item-action {
+  width: 100%;
   min-height: 48px;
-  padding: 8px 6px;
+  padding: 8px 12px;
   border-radius: 7px;
   border: 1px solid var(--border);
-  background: white;
-  color: var(--muted);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.work-status-seg-btn:disabled { cursor: default; }
-.work-status-seg-btn:not(:disabled):hover { border-color: var(--brass); color: var(--brass-deep); }
-.work-status-seg-btn.is-active.is-blocked { background: var(--rust-soft); border-color: var(--rust); color: var(--rust); }
-.work-status-seg-btn.is-active.is-progress { background: var(--amber-soft); border-color: var(--amber); color: var(--amber); }
-.work-status-seg-btn.is-active.is-done { background: var(--forest-soft); border-color: var(--forest); color: var(--forest); }
+.work-status-item-action:disabled { cursor: default; opacity: 0.6; }
+.work-status-item-action--complete { background: var(--forest-soft); border-color: var(--forest); color: var(--forest); }
+.work-status-item-action--complete:not(:disabled):hover { background: var(--forest); color: white; }
+.work-status-item-action--reopen { background: var(--input-bg); border-color: var(--border); color: var(--muted); }
+.work-status-item-action--reopen:not(:disabled):hover { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
 
 .project-card-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
