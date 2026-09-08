@@ -88,7 +88,9 @@ async function selectProjectFromCurrentList(page, projectName) {
 
   await expect(projectCard).toHaveCount(1, { timeout: 15000 });
 
-  await projectCard.first().click();
+  // PROJECT-HUB-INTEGRATION-001 — the card itself now opens Estado da Obra;
+  // "Mais opções" is where the mode picker (and lifecycle actions) moved to.
+  await projectCard.first().getByRole("button", { name: /mais opções/i }).click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
     timeout: 10000,

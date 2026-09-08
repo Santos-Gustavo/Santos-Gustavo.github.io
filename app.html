@@ -220,11 +220,44 @@
           <div class="work-status-progress-fill" id="workStatusProgressFill" style="width:0%"></div>
         </div>
         <div class="work-status-progress-pct" id="workStatusProgressPct">0%</div>
+        <input
+          type="range"
+          id="workStatusProgressSlider"
+          min="0"
+          max="100"
+          value="0"
+          class="work-status-progress-slider"
+        />
+
+        <h3 class="work-status-field-title">Fase atual</h3>
+        <div class="work-status-phase-picker" id="workStatusPhasePicker"></div>
+
+        <h3 class="work-status-field-title">Resumo da obra</h3>
+        <textarea
+          id="workStatusSummary"
+          class="work-status-summary"
+          placeholder="Ex: Obra em fase de acabamentos, sem atrasos face ao previsto..."
+        ></textarea>
+
+        <div class="work-status-save-row">
+          <button type="button" class="btn-add" data-work-status-action="save" id="workStatusSaveBtn">
+            Guardar alterações
+          </button>
+          <span class="work-status-save-hint" id="workStatusSaveHint"></span>
+        </div>
       </div>
 
       <div class="work-status-section">
         <h3 class="work-status-section-title" id="workStatusPendingHeading">Pendentes</h3>
         <div id="workStatusPendingList"></div>
+        <button
+          type="button"
+          class="btn-add"
+          data-work-status-action="add-work-item"
+          id="workStatusAddWorkItemBtn"
+        >
+          + Adicionar trabalho
+        </button>
       </div>
 
       <div class="work-status-section">

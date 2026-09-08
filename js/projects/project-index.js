@@ -64,7 +64,11 @@ async function handleProjectClick(event) {
   }
 
   if (action === "select") {
-    selectProject(projectId);
+    // PROJECT-HUB-INTEGRATION-001 — Estado da Obra is now the hub: clicking a
+    // project opens it directly instead of the old mode-picker page. The mode
+    // picker (Legal/Financeiro report, histórico, ações do projeto) is still
+    // reachable via "Mais opções" below.
+    await openProjectMasterSheet(projectId);
     return;
   }
 
@@ -78,8 +82,8 @@ async function handleProjectClick(event) {
     return;
   }
 
-  if (action === "view-work-status") {
-    await openProjectMasterSheet(projectId);
+  if (action === "more-options") {
+    selectProject(projectId);
   }
 }
 

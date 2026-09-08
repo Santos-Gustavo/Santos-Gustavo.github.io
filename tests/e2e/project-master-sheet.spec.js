@@ -126,6 +126,9 @@ async function insertTestReport(client, {
   return data;
 }
 
+// PROJECT-HUB-INTEGRATION-001 — Estado da Obra is the project hub now:
+// clicking the card itself opens it directly (no dedicated card button
+// anymore — that slot is "Mais opções", which goes to the old mode picker).
 async function openMasterSheetFromProjectList(page, projectName) {
   const projectCard = page
     .locator("#projectList .project-card")
@@ -133,10 +136,7 @@ async function openMasterSheetFromProjectList(page, projectName) {
 
   await expect(projectCard).toHaveCount(1, { timeout: 15000 });
 
-  await projectCard
-    .first()
-    .getByRole("button", { name: /ver estado da obra/i })
-    .click();
+  await projectCard.first().click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 10000,
@@ -173,12 +173,16 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
 
     await expect(projectCard).toHaveCount(1, { timeout: 15000 });
     await expect(
-      projectCard.first().getByRole("button", { name: /ver estado da obra/i })
+      projectCard.first().getByRole("button", { name: /mais opções/i })
     ).toBeVisible();
 
     await openMasterSheetFromProjectList(page, projectName);
 
     await expect(page.locator("#workStatusProgressPct")).toHaveText("0%");
+    // Editable panel: 8 phase options, nothing selected yet, save disabled
+    // (nothing edited since opening — no unsaved changes to warn about).
+    await expect(page.locator(".work-status-phase-option")).toHaveCount(8);
+    await expect(page.locator("#workStatusSaveBtn")).toBeDisabled();
     await expect(page.locator("#workStatusPendingList")).toContainText(
       "Sem trabalhos pendentes registados."
     );
@@ -196,6 +200,19 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
     // for an active project (Estado da Obra as project home, not a dead end).
     await expect(page.locator("#workStatusPendingHeading")).toHaveText("Pendentes (0)");
     await expect(page.locator("#workStatusGenerateReportBtn")).toBeVisible();
+
+    // A work item can be added directly on Estado da Obra, with no source
+    // report — it shows up as Pendente immediately, saved right away (this
+    // quick-tap-style action is not part of the Guardar alterações draft).
+    page.once("dialog", async (dialog) => {
+      await dialog.accept("Reparar fissura na fachada — E2E adicionado");
+    });
+    await page.locator("#workStatusAddWorkItemBtn").click();
+
+    await expect(page.locator("#workStatusPendingHeading")).toHaveText("Pendentes (1)");
+    await expect(page.locator("#workStatusPendingList")).toContainText(
+      "Reparar fissura na fachada — E2E adicionado"
+    );
   });
 
   test("consolidates work items and incidents across reports, quick-tap status persists, and weekly report prefills open items", async ({
@@ -296,25 +313,14 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
 
     // Now: open items are only Em curso (w1) — Pendentes is empty (w3 became Concluída),
     // Concluídas (w2, w3) must not be pre-filled, incidents must not be pre-filled.
-    await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
-    await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, { timeout: 10000 });
-
-    const projectCard = page
-      .locator("#projectList .project-card")
-      .filter({ hasText: projectName });
-
-    await projectCard.first().click();
-
-    await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-      timeout: 10000,
-    });
-
+    // Still on Estado da Obra (reopened above) — use its own "Gerar relatório
+    // semanal" shortcut directly, the project hub's own entry point.
     page.once("dialog", async (dialog) => {
       expect(dialog.message()).toMatch(/pré-preenchidos/i);
       await dialog.accept();
     });
 
-    await page.locator('[data-nav-action="select-mode"][data-mode="weekly"]').click();
+    await page.locator('[data-nav-action="generate-weekly-report"]').click();
 
     await expect(page.locator("#stepLabel")).toHaveText(/passo 1 de 9|período|periodo/i, {
       timeout: 10000,
@@ -395,7 +401,10 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
       .filter({ hasText: projectName });
 
     await expect(projectCard).toHaveCount(1, { timeout: 15000 });
-    await projectCard.first().click();
+    // Lifecycle actions (pause/complete/archive/reopen) live on the mode
+    // picker, reached via "Mais opções" now that the card itself opens
+    // Estado da Obra.
+    await projectCard.first().getByRole("button", { name: /mais opções/i }).click();
 
     await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
       timeout: 10000,
@@ -447,5 +456,120 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
 
     // Archived project: no new weekly report can be started from here either.
     await expect(page.locator("#workStatusGenerateReportBtn")).toBeHidden();
+
+    // Nor can the editable Fase/Progresso/Resumo panel be touched.
+    await expect(page.locator("#workStatusProgressSlider")).toBeDisabled();
+    await expect(page.locator("#workStatusSummary")).toBeDisabled();
+    await expect(page.locator("#workStatusSaveBtn")).toBeHidden();
+    await expect(page.locator("#workStatusAddWorkItemBtn")).toBeHidden();
+  });
+
+  test("Fase atual / Progresso geral / Resumo da obra stay a local draft until saved, warn before leaving unsaved, and feed the weekly report once saved", async ({
+    page,
+  }) => {
+    test.setTimeout(60000);
+
+    const timestamp = Date.now();
+    const projectName = `E2E Master Sheet Editable ${timestamp}`;
+    const clientName = `E2E Master Sheet Editable Client ${timestamp}`;
+
+    const client = getServiceRoleClient();
+    const company = await ensureE2ECompany();
+    const testClient = await insertTestClient(client, company.id, clientName);
+    const project = await insertTestProject(client, company.id, testClient.id, projectName);
+
+    // phase "Acabamentos" / 20% — the report-derived fallback, only used until
+    // something is actually saved to Estado da Obra.
+    await insertTestReport(client, {
+      projectId: project.id,
+      reportNum: 1,
+      reportDate: "2026-08-10",
+      progressPct: 20,
+      works: [],
+      incidents: [],
+    });
+
+    await login(page);
+    await openMasterSheetFromProjectList(page, projectName);
+
+    await expect(page.locator("#workStatusProgressPct")).toHaveText("20%");
+    await expect(page.locator("#workStatusSaveBtn")).toBeDisabled();
+
+    // Edit all three fields — a local draft only, nothing saved yet.
+    await page.locator('[data-work-status-phase="Cobertura"]').click();
+    await page.locator("#workStatusProgressSlider").fill("77");
+    await page
+      .locator("#workStatusSummary")
+      .fill("Resumo E2E guardado — obra em bom ritmo.");
+
+    await expect(page.locator("#workStatusSaveHint")).toHaveText(
+      /alterações por guardar/i
+    );
+    await expect(page.locator("#workStatusSaveBtn")).toBeEnabled();
+
+    // Leaving now must warn, with the exact required copy — and cancelling
+    // must leave the draft untouched on screen.
+    await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
+    await expect(page.locator("#confirmDialogMessage")).toHaveText(
+      "Existem alterações por guardar. Quer sair sem guardar?"
+    );
+
+    await page.locator('[data-confirm-action="cancel"]').click();
+    await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i);
+    await expect(page.locator('[data-work-status-phase="Cobertura"]')).toHaveClass(
+      /selected/
+    );
+
+    // Save explicitly.
+    page.once("dialog", async (dialog) => {
+      expect(dialog.message()).toBe("Alterações guardadas.");
+      await dialog.accept();
+    });
+    await page.locator("#workStatusSaveBtn").click();
+
+    await expect(page.locator("#workStatusSaveBtn")).toBeDisabled();
+    await expect(page.locator("#workStatusSaveHint")).toHaveText("");
+
+    // Nothing unsaved now — leaving must not warn.
+    await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
+    await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, { timeout: 10000 });
+
+    // Reopen — a server round-trip, not client cache — saved values survive.
+    await openMasterSheetFromProjectList(page, projectName);
+    await expect(page.locator("#workStatusProgressPct")).toHaveText("77%");
+    await expect(page.locator('[data-work-status-phase="Cobertura"]')).toHaveClass(
+      /selected/
+    );
+    await expect(page.locator("#workStatusSummary")).toHaveValue(
+      "Resumo E2E guardado — obra em bom ritmo."
+    );
+
+    // "Gerar relatório semanal" prefills from the saved Estado da Obra state —
+    // Cobertura / 77% — not the older report's own Acabamentos / 20%.
+    page.once("dialog", async (dialog) => {
+      await dialog.accept();
+    });
+    await page.locator('[data-nav-action="generate-weekly-report"]').click();
+
+    await expect(page.locator("#stepLabel")).toHaveText(/passo 1 de 9|período|periodo/i, {
+      timeout: 10000,
+    });
+
+    await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
+    await expect(page.locator("#stepLabel")).toHaveText(/passo 2 de 9|progresso/i, {
+      timeout: 10000,
+    });
+
+    await expect(page.locator(".phase-option.selected")).toHaveText("Cobertura");
+    await expect(page.locator("#progressPct")).toHaveText("77%");
+
+    await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
+    await expect(page.locator("#stepLabel")).toHaveText(/passo 3 de 9|resumo/i, {
+      timeout: 10000,
+    });
+
+    await expect(page.locator("#weekSummary")).toHaveValue(
+      "Resumo E2E guardado — obra em bom ritmo."
+    );
   });
 });

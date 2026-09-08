@@ -13,8 +13,9 @@ import { renderPhotos } from "#projects/sections/photos.js";
 import { renderIncidents } from "#projects/sections/incidents.js";
 import { renderExtras } from "#projects/sections/extras.js";
 import { renderNextSteps } from "#projects/sections/next-steps.js";
-import { updateIncidentsUI } from "#ui/ui-controls.js";
-import { getOpenWorkItemsForPrefill } from "#projects/project-work-items.js";
+import { updateIncidentsUI, updatePhaseUI, syncProgressSlider } from "#ui/ui-controls.js";
+import { getOpenWorkItemsForPrefill, getSavedProjectStatusForPrefill } from "#projects/project-work-items.js";
+import { hasUnsavedWorkStatusChanges } from "#projects/project-work-items-ui.js";
 import { getProjectStatusLabel, canCreateWeeklyReport, canCreateLegalFinancialReport } from "#projects/project-status-rules.js";
 import { renderProjectModePage } from "#projects/project-mode-page.js";
 import { openClientsPage } from "#clients/client-index.js";
@@ -401,12 +402,19 @@ export async function prepareWeeklyReportFromMasterSheet(projectId) {
   const resolvedProjectId = projectId || state.currentProjectId || appState.currentProjectId;
 
   let openItems = [];
+  let savedStatus = null;
 
   if (resolvedProjectId) {
     try {
       openItems = await getOpenWorkItemsForPrefill(resolvedProjectId);
     } catch (error) {
       console.error("Error loading Estado da Obra items for prefill:", error);
+    }
+
+    try {
+      savedStatus = await getSavedProjectStatusForPrefill(resolvedProjectId);
+    } catch (error) {
+      console.error("Error loading saved Estado da Obra status for prefill:", error);
     }
   }
 
@@ -416,6 +424,24 @@ export async function prepareWeeklyReportFromMasterSheet(projectId) {
     state.works = openItems;
     appState.works = openItems;
     renderWorks();
+  }
+
+  // PROJECT-HUB-INTEGRATION-001 — the contractor's last saved Estado da Obra
+  // state takes priority over the latest report's own phase/progress/resumo,
+  // which prepareWeeklyReportFromPrevious just set as the baseline fallback.
+  if (savedStatus) {
+    if (savedStatus.phase) {
+      state.phase = savedStatus.phase;
+      appState.phase = savedStatus.phase;
+      updatePhaseUI();
+    }
+
+    setValue("progressSlider", savedStatus.progressPct);
+    syncProgressSlider();
+
+    if (savedStatus.summary) {
+      setValue("weekSummary", savedStatus.summary);
+    }
   }
 
   state.incidents = [];
@@ -429,6 +455,21 @@ export async function prepareWeeklyReportFromMasterSheet(projectId) {
 
 function showPrefillNotice() {
   alert("Último relatório encontrado. Os dados foram pré-preenchidos. Atualize apenas o que mudou esta semana.");
+}
+
+// PROJECT-HUB-INTEGRATION-001 — guards leaving Estado da Obra (back button or
+// the "Gerar relatório semanal" shortcut) when Fase atual/Progresso
+// geral/Resumo da obra were edited but never saved. Resolves true when it's
+// safe to proceed (nothing unsaved, or the user confirmed leaving anyway).
+async function confirmLeaveEstadoObraIfDirty() {
+  if (!hasUnsavedWorkStatusChanges()) return true;
+
+  return confirmAction({
+    title: "Sair sem guardar?",
+    message: "Existem alterações por guardar. Quer sair sem guardar?",
+    confirmLabel: "Sair sem guardar",
+    cancelLabel: "Cancelar",
+  });
 }
 
 async function handleNavigationClick(event) {
@@ -462,6 +503,8 @@ async function handleNavigationClick(event) {
   // select-mode/weekly) so it doesn't collide with the mode-picker tile's
   // identical data-mode="weekly" selector while both sit in the DOM at once.
   if (action === "generate-weekly-report") {
+    if (!(await confirmLeaveEstadoObraIfDirty())) return;
+
     await selectMode("weekly");
     return;
   }
@@ -472,6 +515,8 @@ async function handleNavigationClick(event) {
   }
 
   if (action === "back") {
+    if (!(await confirmLeaveEstadoObraIfDirty())) return;
+
     goBack();
     return;
   }

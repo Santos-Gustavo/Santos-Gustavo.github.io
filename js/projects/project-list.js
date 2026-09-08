@@ -129,10 +129,10 @@ function renderProjectCard(project) {
         <button
           type="button"
           class="btn-project-work-status"
-          data-project-action="view-work-status"
+          data-project-action="more-options"
           data-project-id="${escapeHtml(project.id)}"
         >
-          Ver Estado da Obra
+          Mais opções
         </button>
 
         <button

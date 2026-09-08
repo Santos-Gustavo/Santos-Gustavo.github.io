@@ -45,6 +45,7 @@ export async function upsertWorkItemStatus({
   itemId,
   status,
   sourceReportId = null,
+  desc,
 }) {
   if (!projectId) {
     throw new Error("projectId é obrigatório para guardar o estado do trabalho.");
@@ -54,18 +55,25 @@ export async function upsertWorkItemStatus({
     throw new Error("itemId é obrigatório para guardar o estado do trabalho.");
   }
 
+  const payload = {
+    project_id: projectId,
+    item_id: itemId,
+    status,
+    source_report_id: sourceReportId,
+    updated_at: new Date().toISOString(),
+  };
+
+  // Only sent when explicitly provided (adding a new manual item) — leaving
+  // this key out of a plain status change (mark done/reopen on a
+  // report-derived item) means PostgREST's upsert leaves the existing `desc`
+  // column untouched instead of overwriting it with null.
+  if (desc !== undefined) {
+    payload.desc = desc;
+  }
+
   const { data, error } = await supabaseClient
     .from("project_work_item_status")
-    .upsert(
-      {
-        project_id: projectId,
-        item_id: itemId,
-        status,
-        source_report_id: sourceReportId,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "project_id,item_id" }
-    )
+    .upsert(payload, { onConflict: "project_id,item_id" })
     .select()
     .single();
 

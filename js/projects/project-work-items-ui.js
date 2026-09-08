@@ -8,7 +8,13 @@ import { appState } from "#state/app-state.js";
 import { getProjectById } from "#projects/project-list.js";
 import { goToStepId } from "#navigation/navigation.js";
 import { canEditProject, canCreateWeeklyReport } from "#projects/project-status-rules.js";
-import { loadProjectWorkState, setWorkItemStatus } from "#projects/project-work-items.js";
+import {
+  loadProjectWorkState,
+  setWorkItemStatus,
+  addWorkItem,
+  loadSavedProjectStatus,
+  saveEditableProjectStatus,
+} from "#projects/project-work-items.js";
 
 // One action per item, not a 3-way picker — an open item (Pendente or Em curso)
 // only ever offers "Marcar como concluída"; a completed item only ever offers
@@ -18,6 +24,35 @@ import { loadProjectWorkState, setWorkItemStatus } from "#projects/project-work-
 const REOPEN_STATUS = "progress";
 const COMPLETE_STATUS = "done";
 
+// Same 8 phase labels as the weekly report's own step 3 (app.html #phasePicker)
+// — deliberately a separate, self-contained picker here (own class names, own
+// data attribute) rather than reusing .phase-option/[data-phase]: those are
+// wired to a *global* delegated handler (js/ui/ui-controls.js) that writes
+// straight to appState.phase, the live report-draft field. Estado da Obra's
+// phase is a local, unsaved draft until "Guardar alterações" — sharing the
+// element would either overwrite the in-progress report draft or get silently
+// overwritten by it.
+const PHASE_OPTIONS = [
+  "Fundações",
+  "Estrutura e Alvenaria",
+  "Impermeabilização",
+  "Cobertura",
+  "Instalações",
+  "Acabamentos",
+  "Arranjos Exteriores",
+  "Concluído",
+];
+
+// PROJECT-HUB-INTEGRATION-001 — explicit manual save, no autosave (dirty
+// state / debounce / partial-save-error complexity isn't worth it for this
+// MVP). `saved` is the last value known to be persisted (or the report-derived
+// fallback, treated as already "saved" — there's nothing to lose by leaving
+// without touching it); `draft` is what's currently on screen. The two are
+// compared to decide whether "Guardar alterações" is enabled and whether
+// leaving the screen should warn.
+let saved = { phase: "", progressPct: 0, summary: "" };
+let draft = { phase: "", progressPct: 0, summary: "" };
+
 let initialized = false;
 
 export function initProjectWorkItemsUi() {
@@ -25,6 +60,7 @@ export function initProjectWorkItemsUi() {
   initialized = true;
 
   document.addEventListener("click", handleWorkStatusClick);
+  document.addEventListener("input", handleWorkStatusInput);
 }
 
 export async function openProjectMasterSheet(projectId) {
@@ -54,6 +90,21 @@ export async function openProjectMasterSheet(projectId) {
   await renderMasterSheet(project);
 }
 
+// Exported for navigation.js — guards the "Voltar às obras" / "Gerar
+// relatório semanal" actions on this screen with a confirm dialog when there
+// are edits that were never saved. Gated on currentStepId so a stale draft
+// left over from a previous visit can never misfire once the user has moved
+// on to an unrelated screen.
+export function hasUnsavedWorkStatusChanges() {
+  if (appState.currentStepId !== "estado-obra") return false;
+
+  return (
+    draft.phase !== saved.phase ||
+    draft.progressPct !== saved.progressPct ||
+    draft.summary !== saved.summary
+  );
+}
+
 function renderHeader(project) {
   const nameEl = document.getElementById("workStatusProjectLabel");
   const clientEl = document.getElementById("workStatusClientLabel");
@@ -76,9 +127,15 @@ async function renderMasterSheet(project) {
   setListLoading("workStatusIncidentsList");
 
   try {
-    const state = await loadProjectWorkState(project.id);
+    const [state, savedStatus] = await Promise.all([
+      loadProjectWorkState(project.id),
+      loadSavedProjectStatus(project.id),
+    ]);
 
-    renderProgress(state.progressPct);
+    saved = savedStatus || { phase: state.phase, progressPct: state.progressPct, summary: "" };
+    draft = { ...saved };
+
+    renderEditablePanel(editable);
 
     renderWorkList({
       containerId: "workStatusPendingList",
@@ -123,18 +180,80 @@ async function renderMasterSheet(project) {
   }
 }
 
-function renderProgress(progressPct) {
+function renderEditablePanel(editable) {
+  renderPhasePicker(editable);
+  renderProgressSlider();
+  renderSummaryField(editable);
+
+  const slider = document.getElementById("workStatusProgressSlider");
+  if (slider) {
+    slider.disabled = !editable;
+  }
+
+  const addWorkItemBtn = document.getElementById("workStatusAddWorkItemBtn");
+  if (addWorkItemBtn) {
+    addWorkItemBtn.hidden = !editable;
+  }
+
+  const saveBtn = document.getElementById("workStatusSaveBtn");
+  if (saveBtn) {
+    saveBtn.hidden = !editable;
+  }
+
+  updateSaveButtonState();
+}
+
+function renderPhasePicker(editable) {
+  const el = document.getElementById("workStatusPhasePicker");
+  if (!el) return;
+
+  el.innerHTML = PHASE_OPTIONS.map((phase) => `
+    <div
+      class="work-status-phase-option${phase === draft.phase ? " selected" : ""}"
+      data-work-status-phase="${escapeHtml(phase)}"
+    >${escapeHtml(phase)}</div>
+  `).join("");
+
+  el.classList.toggle("is-readonly", !editable);
+}
+
+function renderProgressSlider() {
+  const slider = document.getElementById("workStatusProgressSlider");
   const fill = document.getElementById("workStatusProgressFill");
   const pct = document.getElementById("workStatusProgressPct");
 
-  const clamped = Math.max(0, Math.min(100, Number(progressPct) || 0));
+  if (slider) {
+    slider.value = String(draft.progressPct);
+  }
 
   if (fill) {
-    fill.style.width = `${clamped}%`;
+    fill.style.width = `${draft.progressPct}%`;
   }
 
   if (pct) {
-    pct.textContent = `${clamped}%`;
+    pct.textContent = `${draft.progressPct}%`;
+  }
+}
+
+function renderSummaryField(editable) {
+  const textarea = document.getElementById("workStatusSummary");
+  if (!textarea) return;
+
+  textarea.value = draft.summary;
+  textarea.disabled = !editable;
+}
+
+function updateSaveButtonState() {
+  const btn = document.getElementById("workStatusSaveBtn");
+  const hint = document.getElementById("workStatusSaveHint");
+  const dirty = hasUnsavedWorkStatusChanges();
+
+  if (btn) {
+    btn.disabled = !dirty;
+  }
+
+  if (hint) {
+    hint.textContent = dirty ? "Existem alterações por guardar." : "";
   }
 }
 
@@ -218,23 +337,118 @@ function renderIncidentsList(incidents) {
 }
 
 async function handleWorkStatusClick(event) {
-  const button = event.target.closest('[data-work-status-action="set-status"]');
-  if (!button) return;
+  const phaseOption = event.target.closest("[data-work-status-phase]");
+  if (phaseOption) {
+    handlePhaseOptionClick(phaseOption);
+    return;
+  }
 
-  event.preventDefault();
+  const saveBtn = event.target.closest('[data-work-status-action="save"]');
+  if (saveBtn) {
+    event.preventDefault();
+    await handleSaveClick(saveBtn);
+    return;
+  }
 
+  const addWorkItemBtn = event.target.closest('[data-work-status-action="add-work-item"]');
+  if (addWorkItemBtn) {
+    event.preventDefault();
+    await handleAddWorkItemClick();
+    return;
+  }
+
+  const statusBtn = event.target.closest('[data-work-status-action="set-status"]');
+  if (statusBtn) {
+    event.preventDefault();
+    await handleSetStatusClick(statusBtn);
+  }
+}
+
+function requireEditableProject() {
   const projectId = appState.currentWorkStatusProjectId;
   const project = projectId ? getProjectById(projectId) : null;
 
   if (!project) {
     alert("Projeto não encontrado.");
-    return;
+    return null;
   }
 
   if (!canEditProject(project)) {
-    alert("Este projeto está arquivado. Não é possível alterar o estado dos trabalhos.");
+    alert("Este projeto está arquivado. Não é possível alterar o estado da obra.");
+    return null;
+  }
+
+  return project;
+}
+
+function handlePhaseOptionClick(phaseOption) {
+  if (!requireEditableProject()) return;
+
+  draft.phase = phaseOption.dataset.workStatusPhase;
+  renderPhasePicker(true);
+  updateSaveButtonState();
+}
+
+function handleWorkStatusInput(event) {
+  const target = event.target;
+
+  if (target?.id === "workStatusProgressSlider") {
+    draft.progressPct = Math.max(0, Math.min(100, Number(target.value) || 0));
+    renderProgressSlider();
+    updateSaveButtonState();
     return;
   }
+
+  if (target?.id === "workStatusSummary") {
+    draft.summary = target.value;
+    updateSaveButtonState();
+  }
+}
+
+async function handleSaveClick(button) {
+  const project = requireEditableProject();
+  if (!project) return;
+
+  button.disabled = true;
+
+  try {
+    await saveEditableProjectStatus({
+      projectId: project.id,
+      companyId: project.companyId,
+      phase: draft.phase,
+      progressPct: draft.progressPct,
+      summary: draft.summary,
+    });
+
+    saved = { ...draft };
+    updateSaveButtonState();
+    alert("Alterações guardadas.");
+  } catch (error) {
+    console.error("Error saving Estado da Obra:", error);
+    alert("Erro ao guardar alterações: " + error.message);
+    button.disabled = false;
+  }
+}
+
+async function handleAddWorkItemClick() {
+  const project = requireEditableProject();
+  if (!project) return;
+
+  const desc = prompt("Descreva o trabalho a adicionar:");
+  if (desc === null || !desc.trim()) return;
+
+  try {
+    await addWorkItem({ projectId: project.id, desc });
+    await renderMasterSheet(project);
+  } catch (error) {
+    console.error("Error adding work item:", error);
+    alert("Erro ao adicionar trabalho: " + error.message);
+  }
+}
+
+async function handleSetStatusClick(button) {
+  const project = requireEditableProject();
+  if (!project) return;
 
   const itemId = button.dataset.itemId;
   const status = button.dataset.status;
@@ -243,7 +457,7 @@ async function handleWorkStatusClick(event) {
   button.disabled = true;
 
   try {
-    await setWorkItemStatus({ projectId, itemId, status, sourceReportId });
+    await setWorkItemStatus({ projectId: project.id, itemId, status, sourceReportId });
     await renderMasterSheet(project);
   } catch (error) {
     console.error("Error saving work item status:", error);
