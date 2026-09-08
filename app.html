@@ -216,18 +216,20 @@
 
       <div class="card work-status-progress-card">
         <h3>Progresso geral</h3>
-        <div class="work-status-progress-track">
-          <div class="work-status-progress-fill" id="workStatusProgressFill" style="width:0%"></div>
+        <div class="work-status-progress-row">
+          <div class="work-status-progress-track">
+            <div class="work-status-progress-fill" id="workStatusProgressFill" style="width:0%"></div>
+            <div class="work-status-progress-pct" id="workStatusProgressPct">0%</div>
+          </div>
+          <input
+            type="range"
+            id="workStatusProgressSlider"
+            min="0"
+            max="100"
+            value="0"
+            class="work-status-progress-slider"
+          />
         </div>
-        <div class="work-status-progress-pct" id="workStatusProgressPct">0%</div>
-        <input
-          type="range"
-          id="workStatusProgressSlider"
-          min="0"
-          max="100"
-          value="0"
-          class="work-status-progress-slider"
-        />
 
         <h3 class="work-status-field-title">Fase atual</h3>
         <div class="work-status-phase-picker" id="workStatusPhasePicker"></div>
