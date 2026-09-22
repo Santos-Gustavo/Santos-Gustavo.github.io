@@ -129,7 +129,8 @@ async function insertTestReport(client, {
 
 // PROJECT-HUB-INTEGRATION-001 — Estado da Obra is the project hub now:
 // clicking the card itself opens it directly (no dedicated card button
-// anymore — that slot is "Mais opções", which goes to the old mode picker).
+// anymore — "Mais opções", which goes to the old mode picker, now lives
+// inside Estado da Obra's own header, see #workStatusMoreOptionsBtn).
 async function openMasterSheetFromProjectList(page, projectName) {
   const projectCard = page
     .locator("#projectList .project-card")
@@ -173,11 +174,12 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
       .filter({ hasText: projectName });
 
     await expect(projectCard).toHaveCount(1, { timeout: 15000 });
-    await expect(
-      projectCard.first().getByRole("button", { name: /mais opções/i })
-    ).toBeVisible();
 
     await openMasterSheetFromProjectList(page, projectName);
+
+    // "Mais opções" (mode picker / lifecycle actions) lives inside Estado da
+    // Obra's own header now, not on the project-list card.
+    await expect(page.locator("#workStatusMoreOptionsBtn")).toBeVisible();
 
     await expect(page.locator("#workStatusProgressPct")).toHaveText("0%");
     // Editable panel: 8 phase options, nothing selected yet, save disabled
@@ -445,10 +447,16 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
       .filter({ hasText: projectName });
 
     await expect(projectCard).toHaveCount(1, { timeout: 15000 });
+
     // Lifecycle actions (pause/complete/archive/reopen) live on the mode
-    // picker, reached via "Mais opções" now that the card itself opens
-    // Estado da Obra.
-    await projectCard.first().getByRole("button", { name: /mais opções/i }).click();
+    // picker, reached via "Mais opções" inside Estado da Obra's own header
+    // now that the card itself opens Estado da Obra directly.
+    await projectCard.first().click();
+    await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
+      timeout: 10000,
+    });
+
+    await page.locator("#workStatusMoreOptionsBtn").click();
 
     await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
       timeout: 10000,
@@ -652,7 +660,12 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
       .filter({ hasText: projectName });
     await expect(projectCards).toHaveCount(1);
 
-    await projectCards.getByRole("button", { name: /mais opções/i }).click();
+    await projectCards.click();
+    await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
+      timeout: 10000,
+    });
+
+    await page.locator("#workStatusMoreOptionsBtn").click();
     await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
       timeout: 10000,
     });

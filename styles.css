@@ -785,11 +785,11 @@ input:-webkit-autofill:focus {
   transition: background 0.15s, border-color 0.15s;
 }
 .btn-project-edit { flex: 1; border: 1px solid var(--border); background: var(--input-bg); color: var(--muted); }
-/* PROJECT-HUB-INTEGRATION-001 — the card itself now opens Estado da Obra
-   directly (see data-project-action="select" in handleProjectClick), so this
-   button is back to a plain secondary action: everything Estado da Obra
-   doesn't cover (Legal/Financeiro, histórico de relatórios, ações do
-   projeto). */
+/* PROJECT-HUB-INTEGRATION-001 — no longer rendered on the project-list card;
+   the same "Mais opções" button (Legal/Financeiro, histórico de relatórios,
+   ações do projeto) now lives inside Estado da Obra's own step header (see
+   .work-status-more-options-btn below), reusing this class for its
+   colors/hover only. */
 .btn-project-work-status { flex: 1; border: 1px solid var(--border); background: var(--input-bg); color: var(--muted); }
 .btn-project-archive { flex: 0 0 auto; min-width: 4.4rem; border: 1px solid #ecc3ba; background: var(--rust-soft); color: var(--rust); }
 .btn-project-edit:hover, .btn-project-edit:active { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
@@ -797,6 +797,21 @@ input:-webkit-autofill:focus {
 .btn-project-archive:active { background: #f4cfc5; }
 
 /* ---------- ESTADO DA OBRA (PROJECT-MASTER-SHEET-001) ---------- */
+/* "Mais opções" (Tipo de Relatório / histórico / ações do projeto) lives here
+   in the step header now, not on the project-list card — reuses
+   .btn-project-work-status's colors/hover, just needs its own box model since
+   that class normally sizes via the card's flex row, not a block header. */
+.work-status-more-options-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
 .work-status-progress-card { margin-bottom: 22px; }
 /* The percentage label lives inside the bar itself (centered over the full
    track, not just the filled portion) rather than as a separate line below

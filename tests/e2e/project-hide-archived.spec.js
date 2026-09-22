@@ -88,9 +88,16 @@ async function selectProjectFromCurrentList(page, projectName) {
 
   await expect(projectCard).toHaveCount(1, { timeout: 15000 });
 
-  // PROJECT-HUB-INTEGRATION-001 — the card itself now opens Estado da Obra;
-  // "Mais opções" is where the mode picker (and lifecycle actions) moved to.
-  await projectCard.first().getByRole("button", { name: /mais opções/i }).click();
+  // PROJECT-HUB-INTEGRATION-001 — the card itself opens Estado da Obra;
+  // "Mais opções" (the mode picker / lifecycle actions) now lives inside
+  // Estado da Obra's own header, not on this card.
+  await projectCard.first().click();
+
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
+    timeout: 10000,
+  });
+
+  await page.locator("#workStatusMoreOptionsBtn").click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
     timeout: 10000,

@@ -128,15 +128,6 @@ function renderProjectCard(project) {
 
         <button
           type="button"
-          class="btn-project-work-status"
-          data-project-action="more-options"
-          data-project-id="${escapeHtml(project.id)}"
-        >
-          Mais opções
-        </button>
-
-        <button
-          type="button"
           class="btn-project-archive"
           data-project-action="archive-hide"
           data-project-id="${escapeHtml(project.id)}"

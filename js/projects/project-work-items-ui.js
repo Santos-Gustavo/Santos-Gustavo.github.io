@@ -135,6 +135,7 @@ export function hasUnsavedWorkStatusChanges() {
 function renderHeader(project) {
   const nameEl = document.getElementById("workStatusProjectLabel");
   const clientEl = document.getElementById("workStatusClientLabel");
+  const moreOptionsBtn = document.getElementById("workStatusMoreOptionsBtn");
 
   if (nameEl) {
     nameEl.textContent = project.name || "";
@@ -142,6 +143,14 @@ function renderHeader(project) {
 
   if (clientEl) {
     clientEl.textContent = project.clientName ? `Cliente: ${project.clientName}` : "";
+  }
+
+  // "Mais opções" (Tipo de Relatório / histórico / ações do projeto) now
+  // lives on Estado da Obra itself, not the project list card — the card's
+  // own click already opens Estado da Obra directly. handleProjectClick in
+  // project-index.js reads this same data-project-id off the button.
+  if (moreOptionsBtn) {
+    moreOptionsBtn.dataset.projectId = project.id;
   }
 }
 
