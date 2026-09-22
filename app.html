@@ -333,10 +333,10 @@
     <div class="step-content">
       <div class="step-header"><h2>Dados do Projeto</h2><p>Identificação do projeto — guardados para uso futuro</p></div>
       <div class="field"><label>Nome do Projeto *</label><input type="text" id="projectName" placeholder="Ex: Moradia dos Pinheiros" /></div>
-      <div class="field">
+      <div class="field field-client-name">
         <label>Cliente *</label>
-        <input type="text" id="clientName" list="clientNameOptions" placeholder="Ex: Sr. e Sra. Monteiro" autocomplete="off" />
-        <datalist id="clientNameOptions"></datalist>
+        <input type="text" id="clientName" placeholder="Ex: Sr. e Sra. Monteiro" autocomplete="off" />
+        <div class="client-name-dropdown" id="clientNameDropdown" hidden></div>
       </div>
       <div class="field"><label>Localização / Morada *</label><input type="text" id="location" placeholder="Ex: Rua das Acácias 14, Sintra" /></div>
       <div class="field"><label>N.º Contrato</label><input type="text" id="contractNum" placeholder="CONT-2026-0014" /></div>

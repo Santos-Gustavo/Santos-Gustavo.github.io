@@ -204,30 +204,95 @@ export function bindClientSearch() {
   });
 }
 
-// Populates the <datalist> the project-creation "Cliente" field autocompletes
-// against (app.html #clientNameOptions). Text input stays the source of
+// Backs the project-creation "Cliente" field's custom dropdown (app.html
+// #clientNameDropdown). A native <datalist> used to do this job, but mobile
+// Safari's datalist support is unreliable-to-absent — contractors on iOS
+// would click the field and see nothing. Text input stays the source of
 // truth (findOrCreateClient matches by name) — this only surfaces active
 // clients as suggestions so picking an existing one doesn't require retyping
 // it exactly, and archived clients don't show up as a suggestion.
-export async function populateClientNameOptions() {
-  const datalist = document.getElementById("clientNameOptions");
-  if (!datalist) return;
+let cachedActiveClientsForDropdown = [];
 
+export async function populateClientNameOptions() {
   try {
     const companyId = await resolveActiveCompanyId();
     if (!companyId) {
-      datalist.innerHTML = "";
+      cachedActiveClientsForDropdown = [];
       return;
     }
 
-    const activeClients = await loadClientsForCompany(companyId, { includeArchived: false });
-
-    datalist.innerHTML = activeClients
-      .map((client) => `<option value="${escapeHtml(client.name)}"></option>`)
-      .join("");
+    cachedActiveClientsForDropdown = await loadClientsForCompany(companyId, {
+      includeArchived: false,
+    });
   } catch (error) {
     console.warn("Could not load client name suggestions:", error);
+    cachedActiveClientsForDropdown = [];
   }
+}
+
+// Wires the dropdown open/filter/select behavior — call once at startup
+// (client-index.js's initClients()). Opens on focus/click (showing every
+// active client when the field is still empty) and narrows as the
+// contractor types; picking an option fills the field with that client's
+// exact name so findOrCreateClient() matches the existing row instead of
+// creating a duplicate.
+export function bindClientNameAutocomplete() {
+  const input = document.getElementById("clientName");
+  const dropdown = document.getElementById("clientNameDropdown");
+  if (!input || !dropdown) return;
+
+  const showDropdown = () => renderClientNameDropdown(input, dropdown);
+
+  input.addEventListener("focus", showDropdown);
+  input.addEventListener("click", showDropdown);
+  input.addEventListener("input", showDropdown);
+
+  input.addEventListener("blur", () => {
+    // Delay so a click on a dropdown option (which itself blurs the input)
+    // has a chance to register before the dropdown disappears.
+    setTimeout(() => {
+      dropdown.hidden = true;
+    }, 150);
+  });
+
+  dropdown.addEventListener("mousedown", (event) => {
+    const option = event.target.closest("[data-client-name-option]");
+    if (!option) return;
+
+    event.preventDefault();
+
+    input.value = option.dataset.clientNameOption;
+    dropdown.hidden = true;
+  });
+}
+
+function renderClientNameDropdown(input, dropdown) {
+  const term = input.value.trim().toLowerCase();
+
+  const matches = term
+    ? cachedActiveClientsForDropdown.filter((client) =>
+        (client.name || "").toLowerCase().includes(term)
+      )
+    : cachedActiveClientsForDropdown;
+
+  if (matches.length === 0) {
+    dropdown.hidden = true;
+    dropdown.innerHTML = "";
+    return;
+  }
+
+  dropdown.innerHTML = matches
+    .map(
+      (client) => `
+        <div class="client-name-dropdown-option" data-client-name-option="${escapeHtml(client.name)}">
+          <span class="client-name-dropdown-option-name">${escapeHtml(client.name)}</span>
+          ${client.phone ? `<span class="client-name-dropdown-option-meta">${escapeHtml(client.phone)}</span>` : ""}
+        </div>
+      `
+    )
+    .join("");
+
+  dropdown.hidden = false;
 }
 
 export function getClientById(clientId) {
