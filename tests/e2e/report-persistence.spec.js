@@ -221,15 +221,23 @@ test("generated weekly report appears in saved reports", async ({ page }) => {
     timeout: 10000,
   });
 
-  const projectListItem = page
-    .locator("#projectList")
-    .getByText(projectName, { exact: true });
+  const projectCard = page
+    .locator("#projectList .project-card")
+    .filter({ hasText: projectName });
 
-  await expect(projectListItem).toBeVisible({
+  await expect(projectCard).toBeVisible({
     timeout: 15000,
   });
 
-  await projectListItem.click();
+  // PROJECT-HUB-INTEGRATION-001 — the card itself opens Estado da Obra;
+  // "Mais opções" (mode picker) now lives inside Estado da Obra's own header.
+  await projectCard.click();
+
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
+    timeout: 10000,
+  });
+
+  await page.locator("#workStatusMoreOptionsBtn").click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
     timeout: 10000,

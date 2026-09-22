@@ -84,21 +84,32 @@ test("created project appears in project list and can be reopened", async ({
     timeout: 10000,
   });
 
-  const projectListItem = page
-    .locator("#projectList")
-    .getByText(projectName, { exact: true });
+  const projectCard = page
+    .locator("#projectList .project-card")
+    .filter({ hasText: projectName });
 
-  await expect(projectListItem).toBeVisible({
+  await expect(projectCard).toBeVisible({
     timeout: 15000,
   });
 
-  await projectListItem.click();
+  // PROJECT-HUB-INTEGRATION-001 — the card itself opens Estado da Obra;
+  // "Mais opções" (mode picker) now lives inside Estado da Obra's own header.
+  await projectCard.click();
+
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
+    timeout: 10000,
+  });
+
+  await page.locator("#workStatusMoreOptionsBtn").click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
     timeout: 10000,
   });
 
   await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
-  await expect(page.getByText(/relatório semanal/i)).toBeVisible();
+  // Exact text — "Relatório Semanal" is the mode-picker tile; a loose /i regex
+  // would also match Estado da Obra's "Gerar relatório semanal" shortcut
+  // button, which sits in the DOM at the same time (PROJECT-HUB-INTEGRATION-001).
+  await expect(page.getByText("Relatório Semanal", { exact: true })).toBeVisible();
   await expect(page.getByText(/legal \/ financeiro/i)).toBeVisible();
 });

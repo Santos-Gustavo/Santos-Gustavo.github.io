@@ -211,8 +211,10 @@ test.describe("CLIENT-MANAGEMENT-001 — evidence & archive guardrails", () => {
     { timeout: 10000 }
   );
 
+    await page.locator("#clientName").click();
+
     await expect(
-      page.locator(`#clientNameOptions option[value="${clientName}"]`)
+      page.locator(`#clientNameDropdown [data-client-name-option="${clientName}"]`)
     ).toHaveCount(0);
   });
 
@@ -253,21 +255,31 @@ test.describe("CLIENT-MANAGEMENT-001 — evidence & archive guardrails", () => {
       timeout: 10000,
     });
 
+    await page.locator("#clientName").click();
+
+    const dropdown = page.locator("#clientNameDropdown");
+    await expect(dropdown).toBeVisible();
+
     await expect(
-      page.locator(`#clientNameOptions option[value="${activeNameA}"]`)
+      dropdown.locator(`[data-client-name-option="${activeNameA}"]`)
     ).toHaveCount(1);
     await expect(
-      page.locator(`#clientNameOptions option[value="${activeNameB}"]`)
+      dropdown.locator(`[data-client-name-option="${activeNameB}"]`)
     ).toHaveCount(1);
     await expect(
-      page.locator(`#clientNameOptions option[value="${archivedName}"]`)
+      dropdown.locator(`[data-client-name-option="${archivedName}"]`)
     ).toHaveCount(0);
+
+    // Picking a suggestion from the dropdown fills the field with that
+    // client's exact name.
+    await dropdown.locator(`[data-client-name-option="${activeNameA}"]`).click();
+    await expect(page.locator("#clientName")).toHaveValue(activeNameA);
+    await expect(dropdown).toBeHidden();
 
     const projectName = `E2E Dropdown Project ${timestamp}`;
     const contractNum = `DROPDOWN-${timestamp}`;
 
     await page.locator("#projectName").fill(projectName);
-    await page.locator("#clientName").fill(activeNameA);
     await page.locator("#location").fill("Rua Dropdown 1, Porto");
     await page.locator("#contractNum").fill(contractNum);
     await page.locator("#distributedTo").fill("Cliente · Arquivo");

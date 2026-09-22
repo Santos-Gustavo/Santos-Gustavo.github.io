@@ -202,6 +202,44 @@ input:-webkit-autofill:focus {
 }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
+/* Custom "Cliente" autocomplete (app.html #clientNameDropdown) — a native
+   <datalist> used to do this, but mobile Safari's datalist support is
+   unreliable-to-absent, so clicking the field showed nothing on iOS. */
+.field-client-name { position: relative; }
+.client-name-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(22,38,58,0.12);
+}
+.client-name-dropdown-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--paper-line);
+}
+.client-name-dropdown-option:last-child { border-bottom: none; }
+.client-name-dropdown-option:hover, .client-name-dropdown-option:active {
+  background: var(--brass-soft);
+}
+.client-name-dropdown-option-name { font-size: 14px; color: var(--ink); }
+.client-name-dropdown-option-meta {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .password-input-wrap { position: relative; }
 .password-input-wrap input { padding-right: 46px; }
 .password-toggle-btn {
@@ -747,9 +785,237 @@ input:-webkit-autofill:focus {
   transition: background 0.15s, border-color 0.15s;
 }
 .btn-project-edit { flex: 1; border: 1px solid var(--border); background: var(--input-bg); color: var(--muted); }
+/* PROJECT-HUB-INTEGRATION-001 — no longer rendered on the project-list card;
+   the same "Mais opções" button (Legal/Financeiro, histórico de relatórios,
+   ações do projeto) now lives inside Estado da Obra's own step header (see
+   .work-status-more-options-btn below), reusing this class for its
+   colors/hover only. */
+.btn-project-work-status { flex: 1; border: 1px solid var(--border); background: var(--input-bg); color: var(--muted); }
 .btn-project-archive { flex: 0 0 auto; min-width: 4.4rem; border: 1px solid #ecc3ba; background: var(--rust-soft); color: var(--rust); }
 .btn-project-edit:hover, .btn-project-edit:active { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
+.btn-project-work-status:hover, .btn-project-work-status:active { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
 .btn-project-archive:active { background: #f4cfc5; }
+
+/* ---------- ESTADO DA OBRA (PROJECT-MASTER-SHEET-001) ---------- */
+/* "Mais opções" (Tipo de Relatório / histórico / ações do projeto) lives here
+   in the step header now, not on the project-list card — reuses
+   .btn-project-work-status's colors/hover, just needs its own box model since
+   that class normally sizes via the card's flex row, not a block header. */
+.work-status-more-options-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.work-status-progress-card { margin-bottom: 22px; }
+/* The percentage label lives inside the bar itself (centered over the full
+   track, not just the filled portion) rather than as a separate line below
+   it — stays readable at any fill amount, including 0%. */
+.work-status-progress-track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper-line);
+  border-radius: 99px;
+  height: 26px;
+  overflow: hidden;
+}
+.work-status-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--brass);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+.work-status-progress-pct {
+  position: relative;
+  z-index: 1;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* PROJECT-HUB-INTEGRATION-001 — editable Fase atual / Progresso geral /
+   Resumo da obra, saved via "Guardar alterações" (no autosave). The slider
+   sits directly on top of the progress track (same row, same box) instead of
+   as its own line underneath — dragging it and reading the fill/percentage
+   happen on the exact same bar, not two stacked ones. */
+.work-status-progress-row { position: relative; }
+.work-status-progress-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 26px;
+  margin: 0;
+  outline: none;
+  background: transparent;
+  cursor: pointer;
+}
+.work-status-progress-slider::-webkit-slider-runnable-track {
+  background: transparent;
+  height: 26px;
+}
+.work-status-progress-slider::-moz-range-track {
+  background: transparent;
+  height: 26px;
+}
+.work-status-progress-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--brass);
+  cursor: pointer;
+}
+.work-status-progress-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid var(--paper);
+  cursor: pointer;
+}
+.work-status-progress-slider:disabled { opacity: 0.5; cursor: default; }
+
+.work-status-field-title {
+  font-size: 13px;
+  color: var(--ink);
+  margin-top: 20px;
+  margin-bottom: 8px;
+}
+
+.work-status-phase-picker { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.work-status-phase-option {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 8px;
+  font-size: 12.5px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--input-bg);
+  color: var(--muted);
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.work-status-phase-option.selected { border-color: var(--forest); background: var(--forest-soft); color: var(--forest); }
+.work-status-phase-picker.is-readonly .work-status-phase-option { pointer-events: none; opacity: 0.7; }
+
+.work-status-summary {
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  font-family: inherit;
+  background: var(--input-bg);
+  color: var(--ink);
+}
+.work-status-summary:disabled { opacity: 0.6; }
+
+.work-status-save-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+.work-status-save-row .btn-add { width: auto; flex: 0 0 auto; margin-top: 0; padding: 12px 20px; }
+.work-status-save-row .btn-add:disabled { opacity: 0.4; cursor: default; background: none; }
+.work-status-save-hint {
+  font-size: 12px;
+  color: var(--rust);
+}
+
+/* PROJECT-HUB-INTEGRATION-001 — "+ Adicionar trabalho" form: same fields as a
+   report's own work item (Tipo de trabalho / Área / Descrição / Estado), reusing
+   the existing .item-card/.field styling from the report steps. */
+.work-status-add-form { margin-bottom: 10px; }
+.work-status-add-form-actions { display: flex; gap: 10px; margin-top: 4px; }
+.work-status-add-form-actions .btn-add { width: auto; flex: 1; margin-top: 0; padding: 12px; }
+.btn-cancel-work-item {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-cancel-work-item:hover, .btn-cancel-work-item:active {
+  background: var(--paper-line);
+}
+
+.work-status-section { margin-bottom: 26px; }
+.work-status-section-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--brass-deep);
+  margin-bottom: 12px;
+}
+.work-status-section-title--incidents { color: var(--rust); }
+
+.work-status-item-card {
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 10px;
+  background: var(--input-bg);
+}
+/* Pendente is a neutral "not started yet", never rust — rust is reserved for
+   incidents/blocked/destructive, not ordinary pending work. */
+.work-status-item-card--pending { border-left-color: var(--ink-soft); }
+.work-status-item-card--progress { border-left-color: var(--amber); }
+.work-status-item-card--done { border-left-color: var(--forest); }
+.work-status-incident-card { border-color: #ecc3ba; border-left-color: var(--rust); background: var(--rust-soft); }
+.work-status-nextstep-card { border-left-color: var(--brass); }
+.work-status-item-title { font-size: 14.5px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+.work-status-item-desc { font-size: 13.5px; color: var(--text); line-height: 1.5; margin-bottom: 6px; }
+.work-status-item-meta {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+/* One action per item — "Marcar como concluída" (open items) or "Reabrir"
+   (completed items), never a 3-way state picker. */
+.work-status-item-action {
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.work-status-item-action:disabled { cursor: default; opacity: 0.6; }
+.work-status-item-action--complete { background: var(--forest-soft); border-color: var(--forest); color: var(--forest); }
+.work-status-item-action--complete:not(:disabled):hover { background: var(--forest); color: white; }
+.work-status-item-action--reopen { background: var(--input-bg); border-color: var(--border); color: var(--muted); }
+.work-status-item-action--reopen:not(:disabled):hover { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
 
 .project-card-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 

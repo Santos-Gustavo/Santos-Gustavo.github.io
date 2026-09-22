@@ -14,6 +14,8 @@ import {
   editProject,
 } from "#projects/project-selection.js";
 
+import { openProjectMasterSheet } from "#projects/project-work-items-ui.js";
+
 import {
   clearProjectForm,
   loadProjectIntoForm,
@@ -62,7 +64,12 @@ async function handleProjectClick(event) {
   }
 
   if (action === "select") {
-    selectProject(projectId);
+    // PROJECT-HUB-INTEGRATION-001 — Estado da Obra is now the hub: clicking a
+    // project opens it directly instead of the old mode-picker page. The mode
+    // picker (Legal/Financeiro report, histórico, ações do projeto) is still
+    // reachable via "Mais opções" — now a button inside Estado da Obra itself
+    // (app.html #workStatusMoreOptionsBtn) rather than on this card.
+    await openProjectMasterSheet(projectId);
     return;
   }
 
@@ -73,6 +80,11 @@ async function handleProjectClick(event) {
 
   if (action === "archive-hide") {
     await archiveOrHideProject(projectId);
+    return;
+  }
+
+  if (action === "more-options") {
+    selectProject(projectId);
   }
 }
 

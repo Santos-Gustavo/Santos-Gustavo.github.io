@@ -73,10 +73,21 @@ async function openProjectWithReport(page, projectName, reportId) {
     timeout: 15000,
   });
 
+  // PROJECT-HUB-INTEGRATION-001 — the card itself opens Estado da Obra;
+  // "Mais opções" (mode picker) now lives inside Estado da Obra's own
+  // header. Exact-text `has` filter, not `hasText` (substring) — the sibling
+  // fixture "E2E Fixture Project B" would otherwise also match a filter on
+  // "E2E Fixture Project".
   await page
-    .locator("#projectList")
-    .getByText(projectName, { exact: true })
+    .locator("#projectList .project-card")
+    .filter({ has: page.getByText(projectName, { exact: true }) })
     .click();
+
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
+    timeout: 10000,
+  });
+
+  await page.locator("#workStatusMoreOptionsBtn").click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
     timeout: 10000,

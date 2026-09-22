@@ -3,6 +3,7 @@
 import {
   bindClientListFilters,
   bindClientSearch,
+  bindClientNameAutocomplete,
   renderClientList,
   getClientById,
 } from "#clients/client-list.js";
@@ -22,6 +23,7 @@ export function initClients() {
 
   bindClientListFilters();
   bindClientSearch();
+  bindClientNameAutocomplete();
 
   document.addEventListener("click", handleClientClick);
 }
