@@ -95,6 +95,7 @@ async function insertTestReport(client, {
   progressPct,
   works = [],
   incidents = [],
+  nextSteps = [],
 }) {
   const { data, error } = await client
     .from("reports")
@@ -115,7 +116,7 @@ async function insertTestReport(client, {
       works,
       incidents,
       extras: [],
-      next_steps: [],
+      next_steps: nextSteps,
       snapshot_json: null,
       status: 0,
     })
@@ -195,6 +196,9 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
     await expect(page.locator("#workStatusIncidentsList")).toContainText(
       "Sem incidentes registados."
     );
+    await expect(page.locator("#workStatusNextStepsList")).toContainText(
+      "Sem próximos passos registados."
+    );
 
     // Section headings surface a count, and the report shortcut is available
     // for an active project (Estado da Obra as project home, not a dead end).
@@ -252,7 +256,7 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
     const testClient = await insertTestClient(client, company.id, clientName);
     const project = await insertTestProject(client, company.id, testClient.id, projectName);
 
-    // Report #1 (older): w1 blocked, w2 done. Incident i1.
+    // Report #1 (older): w1 blocked, w2 done. Incident i1. Next step n1.
     await insertTestReport(client, {
       projectId: project.id,
       reportNum: 1,
@@ -263,9 +267,10 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
         { id: "e2e-w2", type: "Canalização / Hidráulica", area: "Cozinha", desc: "Canalização da cozinha — E2E w2", status: "done" },
       ],
       incidents: [{ id: "e2e-i1", desc: "Atraso na entrega de material — E2E i1" }],
+      nextSteps: [{ id: "e2e-n1", desc: "Encomendar azulejos — E2E n1", date: "2026-08-15" }],
     });
 
-    // Report #2 (newer): w1 now progress (latest status should win), w3 blocked. Incident i2.
+    // Report #2 (newer): w1 now progress (latest status should win), w3 blocked. Incident i2. Next step n2.
     await insertTestReport(client, {
       projectId: project.id,
       reportNum: 2,
@@ -276,6 +281,7 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
         { id: "e2e-w3", type: "Isolamento Térmico", area: "Cobertura / Terraço", desc: "Isolamento da cobertura — E2E w3", status: "blocked" },
       ],
       incidents: [{ id: "e2e-i2", desc: "Fissura na parede exterior — E2E i2" }],
+      nextSteps: [{ id: "e2e-n2", desc: "Agendar inspeção elétrica — E2E n2", date: "2026-08-25" }],
     });
 
     await login(page);
@@ -289,6 +295,16 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
     await expect(page.locator("#workStatusProgressList")).toContainText("Pintura da sala — E2E w1");
     await expect(page.locator("#workStatusPendingList")).not.toContainText("E2E w1");
 
+    // w1's meta shows the report it was ORIGINALLY created on (#1), not the
+    // newer report (#2) that merely carried it forward as still-open — the
+    // status/desc shown come from the newest occurrence, but the "criado em"
+    // report reference must stay pinned to its creation report.
+    const w1Card = page
+      .locator("#workStatusProgressList .work-status-item-card")
+      .filter({ hasText: "Pintura da sala — E2E w1" });
+    await expect(w1Card.locator(".work-status-item-meta")).toContainText("Relatório #1");
+    await expect(w1Card.locator(".work-status-item-meta")).not.toContainText("Relatório #2");
+
     // w3 only exists on the newer report, as blocked (Pendente).
     await expect(page.locator("#workStatusPendingList")).toContainText("Isolamento da cobertura — E2E w3");
 
@@ -298,6 +314,11 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
     // Both incidents show up, consolidated from both reports.
     await expect(page.locator("#workStatusIncidentsList")).toContainText("Atraso na entrega de material — E2E i1");
     await expect(page.locator("#workStatusIncidentsList")).toContainText("Fissura na parede exterior — E2E i2");
+
+    // Both next steps show up too, consolidated the same way as incidents.
+    await expect(page.locator("#workStatusNextStepsHeading")).toHaveText("Próximos Passos (2)");
+    await expect(page.locator("#workStatusNextStepsList")).toContainText("Encomendar azulejos — E2E n1");
+    await expect(page.locator("#workStatusNextStepsList")).toContainText("Agendar inspeção elétrica — E2E n2");
 
     // Quick-tap: mark w3 (currently Pendente) as concluída — a single action
     // button per item ("Marcar como concluída" / "Reabrir"), not a 3-way picker.

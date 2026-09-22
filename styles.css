@@ -934,6 +934,7 @@ input:-webkit-autofill:focus {
 .work-status-item-card--progress { border-left-color: var(--amber); }
 .work-status-item-card--done { border-left-color: var(--forest); }
 .work-status-incident-card { border-color: #ecc3ba; border-left-color: var(--rust); background: var(--rust-soft); }
+.work-status-nextstep-card { border-left-color: var(--brass); }
 .work-status-item-title { font-size: 14.5px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
 .work-status-item-desc { font-size: 13.5px; color: var(--text); line-height: 1.5; margin-bottom: 6px; }
 .work-status-item-meta {

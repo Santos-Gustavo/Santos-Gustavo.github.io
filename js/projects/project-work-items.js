@@ -34,6 +34,7 @@ function emptyProjectWorkState() {
     emCurso: [],
     concluidas: [],
     incidentes: [],
+    proximosPassos: [],
   };
 }
 
@@ -48,6 +49,24 @@ export async function loadProjectWorkState(projectId) {
   ]);
 
   const overrideByItemId = new Map(overrides.map((row) => [row.item_id, row]));
+
+  // An open (Pendente/Em curso) work item gets carried forward into each new
+  // weekly report's prefill (see getOpenWorkItemsForPrefill /
+  // prepareWeeklyReportFromMasterSheet), so the same item id can legitimately
+  // appear on several reports. Values (status/type/area/desc) should still
+  // come from the newest occurrence — that's "latest known state" — but the
+  // report shown in .work-status-item-meta should always be the ORIGINAL
+  // report the item was created on, not whichever report most recently
+  // carried it forward. Walked oldest-first (reverse of loadReportsForProject's
+  // newest-first order) so the last write for a given id is its earliest report.
+  const creationReportByWorkId = new Map();
+  for (let i = reports.length - 1; i >= 0; i -= 1) {
+    const report = reports[i];
+    for (const work of Array.isArray(report.works) ? report.works : []) {
+      if (!work?.id || creationReportByWorkId.has(work.id)) continue;
+      creationReportByWorkId.set(work.id, report);
+    }
+  }
 
   const seenWorkIds = new Set();
   const consolidatedWorks = [];
@@ -65,15 +84,17 @@ export async function loadProjectWorkState(projectId) {
           ? work.status
           : "blocked";
 
+      const creationReport = creationReportByWorkId.get(work.id) || report;
+
       consolidatedWorks.push({
         id: work.id,
         type: work.type || "",
         area: work.area || "",
         desc: work.desc || "",
         status,
-        sourceReportId: report.id,
-        sourceReportNum: report.reportNum,
-        sourceReportDate: report.reportDate,
+        sourceReportId: creationReport.id,
+        sourceReportNum: creationReport.reportNum,
+        sourceReportDate: creationReport.reportDate,
       });
     }
   }
@@ -118,6 +139,29 @@ export async function loadProjectWorkState(projectId) {
     }
   }
 
+  // Próximos Passos — same read-only consolidation as incidents: no status
+  // concept exists for next steps (js/projects/sections/next-steps.js is just
+  // desc + a target date), so there's nothing to quick-tap here, just a
+  // newest-first, first-occurrence-wins view across reports.
+  const seenNextStepIds = new Set();
+  const consolidatedNextSteps = [];
+
+  for (const report of reports) {
+    for (const nextStep of Array.isArray(report.nextSteps) ? report.nextSteps : []) {
+      if (!nextStep?.id || seenNextStepIds.has(nextStep.id)) continue;
+      if (!nextStep.desc) continue;
+      seenNextStepIds.add(nextStep.id);
+
+      consolidatedNextSteps.push({
+        id: nextStep.id,
+        desc: nextStep.desc || "",
+        date: nextStep.date || "",
+        sourceReportNum: report.reportNum,
+        sourceReportDate: report.reportDate,
+      });
+    }
+  }
+
   // Fallback defaults for the editable Estado da Obra fields, used only until
   // the contractor saves their own value to project_status_state (see
   // loadSavedProjectStatus below) — the latest report's own progress/phase
@@ -132,6 +176,7 @@ export async function loadProjectWorkState(projectId) {
     emCurso: consolidatedWorks.filter((work) => work.status === "progress"),
     concluidas: consolidatedWorks.filter((work) => work.status === "done"),
     incidentes: consolidatedIncidents,
+    proximosPassos: consolidatedNextSteps,
   };
 }
 

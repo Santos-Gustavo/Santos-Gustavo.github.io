@@ -155,6 +155,7 @@ async function renderMasterSheet(project) {
   setListLoading("workStatusProgressList");
   setListLoading("workStatusDoneList");
   setListLoading("workStatusIncidentsList");
+  setListLoading("workStatusNextStepsList");
 
   try {
     const [state, savedStatus] = await Promise.all([
@@ -198,6 +199,7 @@ async function renderMasterSheet(project) {
     });
 
     renderIncidentsList(state.incidentes);
+    renderNextStepsList(state.proximosPassos);
   } catch (error) {
     console.error("Error loading Estado da Obra:", error);
 
@@ -207,6 +209,7 @@ async function renderMasterSheet(project) {
     setListError("workStatusProgressList", message);
     setListError("workStatusDoneList", message);
     setListError("workStatusIncidentsList", message);
+    setListError("workStatusNextStepsList", message);
   }
 }
 
@@ -427,6 +430,37 @@ function renderIncidentsList(incidents) {
       return `
         <div class="work-status-item-card work-status-incident-card">
           <div class="work-status-item-desc">${escapeHtml(incident.desc)}</div>
+          ${meta ? `<div class="work-status-item-meta">${meta}</div>` : ""}
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderNextStepsList(nextSteps) {
+  const heading = document.getElementById("workStatusNextStepsHeading");
+  if (heading) {
+    heading.textContent = `Próximos Passos (${nextSteps.length})`;
+  }
+
+  const el = document.getElementById("workStatusNextStepsList");
+  if (!el) return;
+
+  if (nextSteps.length === 0) {
+    el.innerHTML = `<p class="empty-hint">Sem próximos passos registados.</p>`;
+    return;
+  }
+
+  el.innerHTML = nextSteps
+    .map((nextStep) => {
+      const meta = nextStep.sourceReportNum
+        ? `Relatório #${escapeHtml(nextStep.sourceReportNum)} · ${escapeHtml(formatShortDate(nextStep.sourceReportDate))}`
+        : "";
+
+      return `
+        <div class="work-status-item-card work-status-nextstep-card">
+          <div class="work-status-item-desc">${escapeHtml(nextStep.desc)}</div>
+          ${nextStep.date ? `<div class="work-status-item-meta">Data prevista: ${escapeHtml(formatShortDate(nextStep.date))}</div>` : ""}
           ${meta ? `<div class="work-status-item-meta">${meta}</div>` : ""}
         </div>
       `;

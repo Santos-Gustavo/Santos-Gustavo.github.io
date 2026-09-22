@@ -252,17 +252,6 @@
       <div class="work-status-section">
         <h3 class="work-status-section-title" id="workStatusPendingHeading">Pendentes</h3>
         <div id="workStatusPendingList"></div>
-
-        <div class="item-card work-status-add-form" id="workStatusAddWorkItemForm" hidden></div>
-
-        <button
-          type="button"
-          class="btn-add"
-          data-work-status-action="add-work-item"
-          id="workStatusAddWorkItemBtn"
-        >
-          + Adicionar trabalho
-        </button>
       </div>
 
       <div class="work-status-section">
@@ -273,11 +262,25 @@
       <div class="work-status-section">
         <h3 class="work-status-section-title" id="workStatusDoneHeading">Concluídas</h3>
         <div id="workStatusDoneList"></div>
+        <button
+          type="button"
+          class="btn-add"
+          data-work-status-action="add-work-item"
+          id="workStatusAddWorkItemBtn"
+        >
+          + Adicionar trabalho
+        </button>
+        <div class="item-card work-status-add-form" id="workStatusAddWorkItemForm" hidden></div>
       </div>
 
       <div class="work-status-section">
         <h3 class="work-status-section-title work-status-section-title--incidents" id="workStatusIncidentsHeading">Incidentes</h3>
         <div id="workStatusIncidentsList"></div>
+      </div>
+
+      <div class="work-status-section">
+        <h3 class="work-status-section-title" id="workStatusNextStepsHeading">Próximos Passos</h3>
+        <div id="workStatusNextStepsList"></div>
       </div>
     </div>
     <div class="nav-bar">
