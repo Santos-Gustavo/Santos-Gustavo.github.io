@@ -90,8 +90,8 @@ export async function loadProjectWorkState(projectId) {
 
     consolidatedWorks.push({
       id: override.item_id,
-      type: "",
-      area: "",
+      type: override.type || "",
+      area: override.area || "",
       desc: override.desc || "",
       status,
       sourceReportId: null,
@@ -143,17 +143,21 @@ export async function setWorkItemStatus({ projectId, itemId, status, sourceRepor
   return upsertWorkItemStatus({ projectId, itemId, status, sourceReportId });
 }
 
-export async function addWorkItem({ projectId, desc }) {
+export async function addWorkItem({ projectId, type = "", area = "", desc, status }) {
   const trimmedDesc = String(desc || "").trim();
 
   if (!trimmedDesc) {
     throw new Error("Descreva o trabalho antes de adicionar.");
   }
 
+  const resolvedStatus = WORK_STATUS_VALUES.has(status) ? status : "blocked";
+
   return upsertWorkItemStatus({
     projectId,
     itemId: crypto.randomUUID(),
-    status: "blocked",
+    status: resolvedStatus,
+    type: String(type || "").trim(),
+    area: String(area || "").trim(),
     desc: trimmedDesc,
   });
 }

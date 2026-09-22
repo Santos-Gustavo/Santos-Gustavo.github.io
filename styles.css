@@ -888,6 +888,27 @@ input:-webkit-autofill:focus {
   color: var(--rust);
 }
 
+/* PROJECT-HUB-INTEGRATION-001 — "+ Adicionar trabalho" form: same fields as a
+   report's own work item (Tipo de trabalho / Área / Descrição / Estado), reusing
+   the existing .item-card/.field styling from the report steps. */
+.work-status-add-form { margin-bottom: 10px; }
+.work-status-add-form-actions { display: flex; gap: 10px; margin-top: 4px; }
+.work-status-add-form-actions .btn-add { width: auto; flex: 1; margin-top: 0; padding: 12px; }
+.btn-cancel-work-item {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-cancel-work-item:hover, .btn-cancel-work-item:active {
+  background: var(--paper-line);
+}
+
 .work-status-section { margin-bottom: 26px; }
 .work-status-section-title {
   font-family: 'IBM Plex Mono', monospace;

@@ -46,6 +46,8 @@ export async function upsertWorkItemStatus({
   status,
   sourceReportId = null,
   desc,
+  type,
+  area,
 }) {
   if (!projectId) {
     throw new Error("projectId é obrigatório para guardar o estado do trabalho.");
@@ -69,6 +71,14 @@ export async function upsertWorkItemStatus({
   // column untouched instead of overwriting it with null.
   if (desc !== undefined) {
     payload.desc = desc;
+  }
+
+  if (type !== undefined) {
+    payload.type = type;
+  }
+
+  if (area !== undefined) {
+    payload.area = area;
   }
 
   const { data, error } = await supabaseClient

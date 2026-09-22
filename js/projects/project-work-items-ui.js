@@ -8,6 +8,8 @@ import { appState } from "#state/app-state.js";
 import { getProjectById } from "#projects/project-list.js";
 import { goToStepId } from "#navigation/navigation.js";
 import { canEditProject, canCreateWeeklyReport } from "#projects/project-status-rules.js";
+import { loadProjectIntoForm } from "#projects/project-form.js";
+import { JOB_TYPES, AREAS } from "#config/app-options.js";
 import {
   loadProjectWorkState,
   setWorkItemStatus,
@@ -53,6 +55,20 @@ const PHASE_OPTIONS = [
 let saved = { phase: "", progressPct: 0, summary: "" };
 let draft = { phase: "", progressPct: 0, summary: "" };
 
+// PROJECT-HUB-INTEGRATION-001 — "+ Adicionar trabalho" opens the same fields
+// as adding a work item on a weekly report (js/projects/sections/works.js's
+// renderWorkCard: Tipo de trabalho / Área / Descrição / Estado) instead of a
+// bare free-text prompt. This is its own local draft, submitted immediately
+// on "Adicionar" (not part of the Guardar alterações draft above).
+const NEW_WORK_ITEM_STATUS_OPTIONS = [
+  { value: "blocked", label: "Pendente / Bloqueado" },
+  { value: "progress", label: "Em curso" },
+  { value: "done", label: "Concluído" },
+];
+
+let addWorkItemFormOpen = false;
+let newWorkItemDraft = { type: "", area: "", desc: "", status: "blocked" };
+
 let initialized = false;
 
 export function initProjectWorkItemsUi() {
@@ -61,6 +77,7 @@ export function initProjectWorkItemsUi() {
 
   document.addEventListener("click", handleWorkStatusClick);
   document.addEventListener("input", handleWorkStatusInput);
+  document.addEventListener("change", handleWorkStatusInput);
 }
 
 export async function openProjectMasterSheet(projectId) {
@@ -75,9 +92,19 @@ export async function openProjectMasterSheet(projectId) {
   // The "Gerar relatório semanal" shortcut on this screen calls the same
   // selectMode("weekly") every other entry point uses, which reads these —
   // set them here too so opening Estado da Obra straight from a project card
-  // (skipping selectProject()) still lets that shortcut work.
+  // (skipping selectProject()) still lets that shortcut work. currentCompanyId
+  // / currentClientId matter just as much as currentProjectId: report-save.js
+  // only attaches a new report to this project when all three are set —
+  // without them it silently falls through to its "no project selected"
+  // branch and creates a brand-new client + project instead. loadProjectIntoForm
+  // fills the #clientName/#projectName/... DOM fields report-document-builder.js
+  // reads from, same as selectProject() does for the "Mais opções" path.
+  appState.currentCompanyId = project.companyId;
+  appState.currentClientId = project.clientId;
   appState.currentProjectId = project.id;
   appState.currentProject = project;
+
+  loadProjectIntoForm(project);
 
   renderHeader(project);
   goToStepId("estado-obra");
@@ -120,6 +147,9 @@ function renderHeader(project) {
 
 async function renderMasterSheet(project) {
   const editable = canEditProject(project);
+
+  addWorkItemFormOpen = false;
+  newWorkItemDraft = { type: "", area: "", desc: "", status: "blocked" };
 
   setListLoading("workStatusPendingList");
   setListLoading("workStatusProgressList");
@@ -190,10 +220,16 @@ function renderEditablePanel(editable) {
     slider.disabled = !editable;
   }
 
+  if (!editable) {
+    addWorkItemFormOpen = false;
+  }
+
   const addWorkItemBtn = document.getElementById("workStatusAddWorkItemBtn");
   if (addWorkItemBtn) {
-    addWorkItemBtn.hidden = !editable;
+    addWorkItemBtn.hidden = !editable || addWorkItemFormOpen;
   }
+
+  renderAddWorkItemForm();
 
   const saveBtn = document.getElementById("workStatusSaveBtn");
   if (saveBtn) {
@@ -201,6 +237,68 @@ function renderEditablePanel(editable) {
   }
 
   updateSaveButtonState();
+}
+
+function renderAddWorkItemForm() {
+  const container = document.getElementById("workStatusAddWorkItemForm");
+  if (!container) return;
+
+  container.hidden = !addWorkItemFormOpen;
+
+  if (!addWorkItemFormOpen) {
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="field">
+      <label>Tipo de trabalho</label>
+      <select data-add-work-field="type">
+        <option value="">— Selecionar —</option>
+        ${renderSelectOptions(JOB_TYPES, newWorkItemDraft.type)}
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Área</label>
+      <select data-add-work-field="area">
+        <option value="">— Selecionar —</option>
+        ${renderSelectOptions(AREAS, newWorkItemDraft.area)}
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Descrição</label>
+      <textarea
+        data-add-work-field="desc"
+        placeholder="Ex: Aplicação de primário nas paredes da sala"
+      >${escapeHtml(newWorkItemDraft.desc)}</textarea>
+    </div>
+
+    <div class="field">
+      <label>Estado</label>
+      <select data-add-work-field="status">
+        ${NEW_WORK_ITEM_STATUS_OPTIONS.map(
+          (option) =>
+            `<option value="${option.value}"${option.value === newWorkItemDraft.status ? " selected" : ""}>${option.label}</option>`
+        ).join("")}
+      </select>
+    </div>
+
+    <div class="work-status-add-form-actions">
+      <button type="button" class="btn-add" data-work-status-action="submit-add-work-item">Adicionar</button>
+      <button type="button" class="btn-cancel-work-item" data-work-status-action="cancel-add-work-item">Cancelar</button>
+    </div>
+  `;
+}
+
+function renderSelectOptions(options, selectedValue) {
+  return options
+    .map((option) => {
+      const selected = option === selectedValue ? " selected" : "";
+      return `<option value="${escapeHtml(option)}"${selected}>${escapeHtml(option)}</option>`;
+    })
+    .join("");
 }
 
 function renderPhasePicker(editable) {
@@ -353,7 +451,25 @@ async function handleWorkStatusClick(event) {
   const addWorkItemBtn = event.target.closest('[data-work-status-action="add-work-item"]');
   if (addWorkItemBtn) {
     event.preventDefault();
-    await handleAddWorkItemClick();
+    handleOpenAddWorkItemForm();
+    return;
+  }
+
+  const cancelAddWorkItemBtn = event.target.closest(
+    '[data-work-status-action="cancel-add-work-item"]'
+  );
+  if (cancelAddWorkItemBtn) {
+    event.preventDefault();
+    handleCancelAddWorkItem();
+    return;
+  }
+
+  const submitAddWorkItemBtn = event.target.closest(
+    '[data-work-status-action="submit-add-work-item"]'
+  );
+  if (submitAddWorkItemBtn) {
+    event.preventDefault();
+    await handleSubmitAddWorkItem(submitAddWorkItemBtn);
     return;
   }
 
@@ -402,6 +518,15 @@ function handleWorkStatusInput(event) {
   if (target?.id === "workStatusSummary") {
     draft.summary = target.value;
     updateSaveButtonState();
+    return;
+  }
+
+  const addWorkField = target?.closest?.("[data-add-work-field]");
+  if (addWorkField) {
+    const key = addWorkField.dataset.addWorkField;
+    if (key === "type" || key === "area" || key === "desc" || key === "status") {
+      newWorkItemDraft[key] = addWorkField.value;
+    }
   }
 }
 
@@ -430,19 +555,57 @@ async function handleSaveClick(button) {
   }
 }
 
-async function handleAddWorkItemClick() {
+function handleOpenAddWorkItemForm() {
+  if (!requireEditableProject()) return;
+
+  addWorkItemFormOpen = true;
+  newWorkItemDraft = { type: "", area: "", desc: "", status: "blocked" };
+
+  const addWorkItemBtn = document.getElementById("workStatusAddWorkItemBtn");
+  if (addWorkItemBtn) {
+    addWorkItemBtn.hidden = true;
+  }
+
+  renderAddWorkItemForm();
+}
+
+function handleCancelAddWorkItem() {
+  addWorkItemFormOpen = false;
+  newWorkItemDraft = { type: "", area: "", desc: "", status: "blocked" };
+
+  const addWorkItemBtn = document.getElementById("workStatusAddWorkItemBtn");
+  if (addWorkItemBtn) {
+    addWorkItemBtn.hidden = false;
+  }
+
+  renderAddWorkItemForm();
+}
+
+async function handleSubmitAddWorkItem(button) {
   const project = requireEditableProject();
   if (!project) return;
 
-  const desc = prompt("Descreva o trabalho a adicionar:");
-  if (desc === null || !desc.trim()) return;
+  if (!newWorkItemDraft.desc.trim()) {
+    alert("Descreva o trabalho antes de adicionar.");
+    return;
+  }
+
+  button.disabled = true;
 
   try {
-    await addWorkItem({ projectId: project.id, desc });
+    await addWorkItem({
+      projectId: project.id,
+      type: newWorkItemDraft.type,
+      area: newWorkItemDraft.area,
+      desc: newWorkItemDraft.desc,
+      status: newWorkItemDraft.status,
+    });
+
     await renderMasterSheet(project);
   } catch (error) {
     console.error("Error adding work item:", error);
     alert("Erro ao adicionar trabalho: " + error.message);
+    button.disabled = false;
   }
 }
 

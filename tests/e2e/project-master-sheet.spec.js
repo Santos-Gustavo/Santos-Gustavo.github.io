@@ -204,14 +204,37 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
     // A work item can be added directly on Estado da Obra, with no source
     // report — it shows up as Pendente immediately, saved right away (this
     // quick-tap-style action is not part of the Guardar alterações draft).
-    page.once("dialog", async (dialog) => {
-      await dialog.accept("Reparar fissura na fachada — E2E adicionado");
-    });
+    // The form opens with the same fields as a report's own work item (Tipo
+    // de trabalho / Área / Descrição / Estado), not just a free-text prompt.
     await page.locator("#workStatusAddWorkItemBtn").click();
 
+    const addForm = page.locator("#workStatusAddWorkItemForm");
+    await expect(addForm).toBeVisible();
+    await expect(page.locator("#workStatusAddWorkItemBtn")).toBeHidden();
+
+    await addForm
+      .locator('select[data-add-work-field="type"]')
+      .selectOption({ label: "Fachada / Revestimento Exterior" });
+    await addForm
+      .locator('select[data-add-work-field="area"]')
+      .selectOption({ label: "Exterior" });
+    await addForm
+      .locator('textarea[data-add-work-field="desc"]')
+      .fill("Reparar fissura na fachada — E2E adicionado");
+    await addForm
+      .locator('select[data-add-work-field="status"]')
+      .selectOption("blocked");
+
+    await addForm.getByRole("button", { name: "Adicionar" }).click();
+
+    await expect(addForm).toBeHidden();
+    await expect(page.locator("#workStatusAddWorkItemBtn")).toBeVisible();
     await expect(page.locator("#workStatusPendingHeading")).toHaveText("Pendentes (1)");
     await expect(page.locator("#workStatusPendingList")).toContainText(
       "Reparar fissura na fachada — E2E adicionado"
+    );
+    await expect(page.locator("#workStatusPendingList")).toContainText(
+      "Fachada / Revestimento Exterior · Exterior"
     );
   });
 
@@ -571,5 +594,54 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
     await expect(page.locator("#weekSummary")).toHaveValue(
       "Resumo E2E guardado — obra em bom ritmo."
     );
+
+    // Regression guard: "Gerar relatório semanal" from Estado da Obra
+    // (skipping selectProject()/loadProjectIntoForm entirely) must still
+    // attach the saved report to THIS existing project/client — not silently
+    // fall into report-save.js's "no project selected" branch, which would
+    // either fail on "Nome do cliente é obrigatório" or create a duplicate
+    // client + project.
+    for (let i = 0; i < 6; i += 1) {
+      await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
+    }
+
+    await expect(page.locator("#stepLabel")).toHaveText(
+      /passo 9 de 9|revisão|revisao/i,
+      { timeout: 10000 }
+    );
+
+    const dialogPromise = page.waitForEvent("dialog");
+    await page.locator('[data-report-action="save-and-generate"]').click();
+
+    const dialog = await dialogPromise;
+    expect(dialog.message()).toMatch(/relatório guardado com sucesso/i);
+    await dialog.accept();
+
+    await page.locator('[data-nav-action="home"]').filter({ visible: true }).click();
+    await page.locator('[data-confirm-action="confirm"]').click();
+
+    await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, {
+      timeout: 10000,
+    });
+
+    // Still exactly one project card for this project — no duplicate project
+    // was created by the save.
+    const projectCards = page
+      .locator("#projectList .project-card")
+      .filter({ hasText: projectName });
+    await expect(projectCards).toHaveCount(1);
+
+    await projectCards.getByRole("button", { name: /mais opções/i }).click();
+    await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
+      timeout: 10000,
+    });
+
+    // Both the original report and the one just generated are attached to
+    // this same project — scoped to the report-history list itself, since
+    // sibling fixture projects' own "Relatório #1" card meta stays mounted
+    // (hidden) elsewhere in the DOM.
+    const reportHistoryList = page.locator("#reportHistoryList");
+    await expect(reportHistoryList.getByText(/relatório\s*#?1/i)).toBeVisible();
+    await expect(reportHistoryList.getByText(/relatório\s*#?2/i)).toBeVisible();
   });
 });
