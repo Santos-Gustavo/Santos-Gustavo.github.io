@@ -565,7 +565,7 @@ function renderStyles() {
 body{font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;font-size:13px;color:#16263a;background:#f4f1e8}
 .page{position:relative;width:210mm;margin:0 auto;background:#ffffff}
 @media screen{.page{min-height:297mm}}
-@media print{body{background:white}.page{margin:0;min-height:0;box-shadow:none}@page{size:A4;margin:0}.no-print{display:none}}
+@media print{body{background:white}.page{margin:0;min-height:0;box-shadow:none;border:1px solid #d7ccb3}@page{size:A4;margin:6mm}.no-print{display:none}}
 .page::before,.page::after{content:"";position:absolute;top:10mm;width:10mm;height:10mm;pointer-events:none;z-index:1}
 .page::before{left:10mm}
 .page::after{right:10mm}
