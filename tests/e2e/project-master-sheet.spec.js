@@ -932,6 +932,98 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 — Estado da Obra canonical workspa
     await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
     await expect(page.locator("#step-estado-obra")).toHaveAttribute("data-workspace-state", "ready", { timeout: 15000 });
   });
+
+  // POST-RELEASE-POLISH-001 — phone widths: no horizontal overflow, 44px touch
+  // targets, readable hidden-from-report cards, and a save bar that is really
+  // sticky (it used to sit inside .step-content, an overflow container, so it
+  // only ever showed at the very end of the page).
+  test("mobile: no overflow, 44px targets, readable hidden cards, Guardar stays reachable mid-scroll", async ({ page }) => {
+    test.setTimeout(90000);
+
+    const client = getServiceRoleClient();
+    const projectName = `E2E Workspace Mobile ${Date.now()}`;
+    const { project } = await createTestProject(client, { name: projectName });
+    await seedWorkspace(client, {
+      project,
+      status: { progressPct: 40, summary: "Resumo", nextSteps: "Passo" },
+      workItems: [
+        { type: "Pintura Interior", area: "Sala", description: "Em curso", status: "in_progress" },
+        {
+          type: "Canalização / Hidráulica",
+          area: "Casa de Banho Principal",
+          description: "https://exemplo.pt/um/caminho/muito/longo/sem/espacos/que/nao/quebra/naturalmente/abcdefghijklmnopqrstuvwxyz",
+          status: "pending",
+        },
+        { type: "Alvenaria / Paredes", area: "Quarto 1", description: "Oculto", status: "done", include_in_reports: false },
+      ],
+      incidents: [
+        { description: "Incidente aberto", status: "open" },
+        { description: "Incidente resolvido e oculto", status: "resolved", include_in_reports: false },
+      ],
+      photos: [{ storage_path: "mobile.jpg", description: "Foto", include_in_reports: false }],
+    });
+
+    await page.setViewportSize({ width: 320, height: 640 });
+    await login(page);
+    await openWorkspace(page, projectName);
+
+    const measure = () =>
+      page.evaluate(() => {
+        const root = document.querySelector("#step-estado-obra");
+        const visible = (el) => {
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden";
+        };
+        const describe = (el) => `${el.tagName.toLowerCase()} "${(el.textContent || el.value || "").trim().slice(0, 30)}"`;
+        let hiddenCardOpacity = 1;
+        for (let el = root.querySelector(".is-hidden-from-reports .work-status-item-btn"); el; el = el.parentElement) {
+          hiddenCardOpacity *= Number(getComputedStyle(el).opacity);
+        }
+        return {
+          overflowPx: document.documentElement.scrollWidth - window.innerWidth,
+          smallTargets: [...root.querySelectorAll("button, select, textarea, input:not([type=range]):not([type=file])")]
+            .filter(visible)
+            .filter((el) => el.getBoundingClientRect().height < 44)
+            .map(describe),
+          hiddenCardOpacity,
+        };
+      });
+
+    const clean = await measure();
+    expect(clean.overflowPx).toBeLessThanOrEqual(0);
+    expect(clean.smallTargets).toEqual([]);
+    expect(clean.hiddenCardOpacity).toBe(1);
+
+    // Clean workspace: no save bar taking footer space.
+    await expect(page.locator("#workStatusSaveBar")).toBeHidden();
+
+    // Dirty, then scrolled to the middle: Guardar is on screen, directly above
+    // the nav bar, and usable from there.
+    await page.locator("#workStatusSummary").fill("Resumo alterado no telemóvel");
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight * 0.4));
+
+    const bar = page.locator("#workStatusSaveBar");
+    await expect(bar).toBeVisible();
+    await expect(page.locator("#workStatusSaveBtn")).toBeInViewport();
+    const barBox = await bar.boundingBox();
+    const navBox = await page.locator("#step-estado-obra .nav-bar").boundingBox();
+    expect(Math.round(barBox.y + barBox.height)).toBe(Math.round(navBox.y));
+    expect(navBox.y + navBox.height).toBeLessThanOrEqual(640 + 1);
+
+    await page.locator("#workStatusSaveBtn").click();
+    await expect(page.locator("#workStatusSaveHint")).toHaveText("Alterações guardadas.", { timeout: 15000 });
+    const { data: saved } = await client.from("project_status_state").select("summary").eq("project_id", project.id).single();
+    expect(saved.summary).toBe("Resumo alterado no telemóvel");
+
+    // Editing forms open: still no overflow / small targets.
+    await page.locator('[data-ws-action="toggle-edit-work"]').first().click();
+    await page.locator('[data-ws-action="toggle-edit-incident"]').first().click();
+    await page.locator("#workStatusAddWorkItemBtn").click();
+    await page.locator("#workStatusAddIncidentBtn").click();
+    const editing = await measure();
+    expect(editing.overflowPx).toBeLessThanOrEqual(0);
+    expect(editing.smallTargets).toEqual([]);
+  });
 });
 
 // Keep the fixture image referenced so a missing file fails loudly at load.

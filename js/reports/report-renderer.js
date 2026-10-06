@@ -92,7 +92,7 @@ function renderHeader(report) {
       <div class="header-info">
         ${infoItem("Projeto", report.project.name)}
         ${infoItem("Localização", report.project.location)}
-        ${infoItem("Data do Relatório", formatLongDate(report.meta.reportDate))}
+        ${renderReportDateItem(report)}
         ${infoItem("Cliente", report.project.clientName)}
         ${infoItem("Responsável de Projeto", report.company.responsible)}
         ${infoItem("N.º Contrato", report.project.contractNumber, true)}
@@ -695,6 +695,32 @@ body{font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;font-size:13px;color
 .print-btn{position:fixed;bottom:24px;right:24px;background:#16263a;color:#f4f1e8;border:none;border-radius:6px;padding:14px 20px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:999}
 .muted{color:#3f5368}
 </style>`;
+}
+
+// The period is shown only on canonical reports (generate_report, which
+// derives it server-side). Legacy snapshots stored a wizard-prefilled period
+// that was never displayed and is often stale, so they render exactly as
+// before.
+function renderReportDateItem(report) {
+  const { periodStart, periodEnd } = report.meta;
+  if (report.source !== "canonical" || !periodStart || !periodEnd) {
+    return infoItem("Data do Relatório", formatLongDate(report.meta.reportDate));
+  }
+
+  return `
+    <div class="info-item">
+      <div class="info-label">Data do Relatório</div>
+      <div class="info-value">${escapeHtml(formatLongDate(report.meta.reportDate))}</div>
+      <div class="info-value mono" data-report-period>Período ${escapeHtml(formatPeriodDate(periodStart))} – ${escapeHtml(formatPeriodDate(periodEnd))}</div>
+    </div>
+  `;
+}
+
+// "2026-09-30" -> "30/09/2026" without going through Date, so the viewer's
+// time zone can never shift a date-only value by a day.
+function formatPeriodDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value));
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : formatShortDate(value);
 }
 
 function infoItem(label, value, mono = false) {

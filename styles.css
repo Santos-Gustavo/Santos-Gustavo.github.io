@@ -806,6 +806,7 @@ input:-webkit-autofill:focus {
   align-items: center;
   justify-content: center;
   margin-top: 10px;
+  min-height: 44px;
   padding: 8px 14px;
   border-radius: 7px;
   font-size: 12.5px;
@@ -1018,15 +1019,25 @@ input:-webkit-autofill:focus {
 .work-status-item-action--reopen:not(:disabled):hover { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
 
 /* ESTADO-DA-OBRA-WORKSPACE-001 — canonical workspace editing. */
-.work-status-save-bar {
+/* POST-RELEASE-POLISH-001 — the save bar + nav bar form one sticky footer
+   (see app.html). The nav bar inside it no longer sticks on its own. */
+.work-status-footer {
   position: sticky;
   bottom: 0;
   z-index: 5;
-  padding: 12px 0;
+  background: white;
+}
+.work-status-footer .nav-bar { position: static; }
+.work-status-save-bar {
+  padding: 10px 20px;
   margin-top: 0;
   background: var(--paper, var(--input-bg));
   border-top: 1px solid var(--border);
 }
+.work-status-save-bar .btn-add { min-height: 44px; }
+/* "Voltar às obras" on one line instead of three in a fixed 80px column. */
+.work-status-footer .btn-back { flex: 0 0 auto; padding: 14px; white-space: nowrap; }
+.work-status-footer .btn-generate { min-width: 0; }
 .work-status-save-bar[hidden],
 .work-status-section .btn-add[hidden],
 .work-status-add-form[hidden],
@@ -1061,7 +1072,13 @@ input:-webkit-autofill:focus {
   padding: 3px 8px;
   margin-bottom: 10px;
 }
-.work-status-item-card.is-hidden-from-reports { opacity: 0.75; }
+/* Hidden-from-reports reads from the dashed outline + badge, not from
+   fading the card — opacity pushed its labels/buttons below 4.5:1. */
+.work-status-item-card.is-hidden-from-reports {
+  border-top-style: dashed;
+  border-right-style: dashed;
+  border-bottom-style: dashed;
+}
 .work-status-incident-card.is-resolved { background: var(--input-bg); border-color: var(--border); }
 .work-status-photo-img {
   display: block;
@@ -1202,6 +1219,7 @@ input:-webkit-autofill:focus {
 .report-result { margin-top: 16px; }
 .report-result[hidden] { display: none; }
 .report-result-text { font-size: 14px; color: var(--ink); margin-bottom: 10px; }
+.report-result-period { display: block; margin-top: 2px; font-size: 12.5px; color: var(--muted); }
 .report-result-text--error { color: var(--danger); margin-bottom: 0; }
 .report-result[data-state="loading"] .report-result-text { color: var(--muted); margin-bottom: 0; }
 .report-result-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }

@@ -8,10 +8,12 @@
 // the live Estado da Obra UI before this script was written (see the Phase 2
 // preflight report).
 //
-// Idempotent by design: rerunning this script must converge to the same
-// canonical state, never duplicate rows, and never clobber a next_steps
-// value a contractor may have already edited directly (empty string is the
-// only value this script will ever overwrite).
+// Idempotent by design: rerunning this script only fills in canonical rows
+// that are missing. It never duplicates rows, never overwrites or reactivates
+// an existing project_work_items / project_incidents / project_photos row,
+// and never clobbers a next_steps value a contractor may have already edited
+// directly (empty string is the only value this script will ever overwrite).
+// Canonical Estado da Obra always wins over legacy report data.
 //
 // Never writes to: reports, photos, project_work_item_status. Those remain
 // legacy/historical sources only — see decision log in
@@ -162,13 +164,36 @@ function consolidate(reportsNewestFirst, overrides) {
   return { consolidatedWorks, consolidatedIncidents, consolidatedNextSteps };
 }
 
+async function insertMissing(table, rows) {
+  if (rows.length === 0) return;
+  const existingIds = new Set();
+  for (let i = 0; i < rows.length; i += 200) {
+    const ids = rows.slice(i, i + 200).map((r) => r.id);
+    const { data, error } = await db.from(table).select("id").in("id", ids);
+    if (error) throw new Error(`${table} read failed: ${error.message}`);
+    for (const r of data || []) existingIds.add(r.id);
+  }
+  const toInsert = rows.filter((r) => !existingIds.has(r.id));
+  if (toInsert.length > 0) {
+    const { error } = await db.from(table).insert(toInsert);
+    if (error) throw new Error(`${table} insert failed: ${error.message}`);
+  }
+  console.log(`${table}: inserted ${toInsert.length}, skipped ${existingIds.size} already canonical.`);
+}
+
 async function main() {
   const projects = await fetchAll("projects", "id,company_id,deleted_at", (q) => q.is("deleted_at", null));
-  const reports = await fetchAll(
-    "reports",
-    "id,project_id,report_num,report_date,created_at,works,incidents,next_steps,deleted_at",
-    (q) => q.is("deleted_at", null)
-  );
+  // Only legacy reports are a backfill source. Reports produced by
+  // generate_report (Phase 4) are derived FROM the canonical tables — feeding
+  // them back in would shift the verified counts and point "latest report
+  // photos" at a report that has no `photos` rows.
+  const reports = (
+    await fetchAll(
+      "reports",
+      "id,project_id,report_num,report_date,created_at,works,incidents,next_steps,deleted_at,source:snapshot_json->>source",
+      (q) => q.is("deleted_at", null)
+    )
+  ).filter((r) => r.source !== "canonical");
   const overrides = await fetchAll(
     "project_work_item_status",
     "id,project_id,item_id,status,source_report_id,type,area,desc"
@@ -291,29 +316,21 @@ async function main() {
 
   if (!APPLY) {
     console.log("\nDry run only (no --apply flag) — no writes performed.");
-    console.log(`Would upsert: ${workItemRows.length} work items, ${incidentRows.length} incidents, ${photoRows.length} photos, next_steps for ${nextStepsWrites.length} projects.`);
+    console.log(`Would insert (missing ids only) up to: ${workItemRows.length} work items, ${incidentRows.length} incidents, ${photoRows.length} photos, next_steps for ${nextStepsWrites.length} projects.`);
     return;
   }
 
   console.log("\n--apply set — writing to production...");
 
-  if (workItemRows.length > 0) {
-    const { error } = await db.from("project_work_items").upsert(workItemRows, { onConflict: "id" });
-    if (error) throw new Error(`project_work_items upsert failed: ${error.message}`);
-    console.log(`project_work_items: upserted ${workItemRows.length} row(s).`);
-  }
-
-  if (incidentRows.length > 0) {
-    const { error } = await db.from("project_incidents").upsert(incidentRows, { onConflict: "id" });
-    if (error) throw new Error(`project_incidents upsert failed: ${error.message}`);
-    console.log(`project_incidents: upserted ${incidentRows.length} row(s).`);
-  }
-
-  if (photoRows.length > 0) {
-    const { error } = await db.from("project_photos").upsert(photoRows, { onConflict: "id" });
-    if (error) throw new Error(`project_photos upsert failed: ${error.message}`);
-    console.log(`project_photos: upserted ${photoRows.length} row(s).`);
-  }
+  // Canonical Estado da Obra always wins over legacy report data: work items,
+  // incidents and photos are insert-only. A row that already exists (active,
+  // edited, hidden or deactivated) is never overwritten or reactivated.
+  // Missing photos are re-created at their legacy .../reports/{report_id}/...
+  // path, which trg_project_photos_storage_path (20261006140000) accepts
+  // because the source `photos` row still references it.
+  await insertMissing("project_work_items", workItemRows);
+  await insertMissing("project_incidents", incidentRows);
+  await insertMissing("project_photos", photoRows);
 
   let nextStepsWritten = 0;
   let nextStepsSkippedNonEmpty = 0;

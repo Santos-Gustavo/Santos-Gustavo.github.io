@@ -1,118 +1,26 @@
--- ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — canonical report generation.
+-- POST-RELEASE-POLISH-001 — report period (period_start / period_end) for
+-- canonical generation.
 --
--- Three parts, applied together:
+-- generate_report (20261006140000) left the period null. It now derives it
+-- server-side, with no user input and no signature change:
 --
---   1. project_photos.storage_path hardening (DB boundary, not just UI).
---   2. reports snapshot guard: snapshot photo paths must stay inside the
---      report's own {company_id}/{project_id}/ folder, and a report's frozen
---      content can never be rewritten once its snapshot exists.
---   3. generate_report(p_project_id) — "Gerar relatório" as a pure export of
---      the SAVED canonical Estado da Obra. The browser sends only the project
---      id; every byte of report content is read here, inside one transaction.
+--   today        = (now() at time zone 'Europe/Lisbon')::date
+--   report_date  = today (was current_date, i.e. the server's UTC date)
+--   period_end   = today
+--   period_start = day after the project's previous non-deleted report's
+--                  report_date, or today - 7 for the first report (same
+--                  subtraction as the old wizard's default,
+--                  js/reports/report-defaults.js); clamped so it never
+--                  starts after period_end.
 --
--- Why 1 and 2 matter: get-shared-report signs snapshot photo paths with the
--- service-role key, i.e. with more storage access than the browser has. Any
--- path that reaches a snapshot must therefore be proven to belong to the
--- report's own project before it gets there.
-
--- ---------------------------------------------------------------------------
--- 1. project_photos.storage_path hardening
--- ---------------------------------------------------------------------------
+-- Both are written to the reports columns and to snapshot_json.meta
+-- (periodStart / periodEnd), like the legacy wizard did.
 --
--- A project photo may only reference its own project's workspace folder:
+-- guard_report_snapshot additionally freezes period_start / period_end once a
+-- report has a snapshot (they were missing from the write-once list).
 --
---   {projects.company_id}/{project_photos.project_id}/workspace/{file}
---
--- company_id is derived from the row's project, never trusted from the
--- caller. {file} is a single path segment (no sub-folders, no leading dot).
---
--- Fires on INSERT and on any UPDATE that actually changes storage_path or
--- project_id (a same-value rewrite is a no-op). The only exception to the
--- workspace/ rule is a migrated legacy photo: a path under the same
--- project's reports/ folder that a legacy `photos` row of one of that
--- project's own reports already references (the Phase 2 backfill shape).
--- generate_report re-checks every selected photo against the looser
--- {company_id}/{project_id}/ prefix below, which both shapes satisfy.
-
-create or replace function public.enforce_project_photo_storage_path()
-returns trigger
-language plpgsql
-security invoker
-set search_path = public, pg_temp
-as $$
-declare
-  v_company_id uuid;
-  v_prefix text;
-  v_file text;
-begin
-  if tg_op = 'UPDATE'
-     and new.storage_path is not distinct from old.storage_path
-     and new.project_id is not distinct from old.project_id then
-    return new;
-  end if;
-
-  select p.company_id into v_company_id
-  from public.projects p
-  where p.id = new.project_id;
-
-  if v_company_id is null then
-    raise exception 'Projeto inválido para esta fotografia.' using errcode = '42501';
-  end if;
-
-  -- Migrated legacy photo: the exact file a legacy `photos` row of one of
-  -- THIS project's reports already references, under this project's
-  -- reports/ folder. Lets the Phase 2 backfill re-create a canonical row for
-  -- evidence that already exists without moving storage objects; any other
-  -- path (new uploads, other projects/companies) must use workspace/.
-  if new.storage_path is not null
-     and left(new.storage_path, length(v_company_id::text || '/' || new.project_id::text || '/reports/'))
-         = v_company_id::text || '/' || new.project_id::text || '/reports/'
-     and exists (
-       select 1
-       from public.photos ph
-       join public.reports r on r.id = ph.report_id
-       where ph.storage_path = new.storage_path
-         and r.project_id = new.project_id
-     ) then
-    return new;
-  end if;
-
-  v_prefix := v_company_id::text || '/' || new.project_id::text || '/workspace/';
-
-  if new.storage_path is null
-     or left(new.storage_path, length(v_prefix)) <> v_prefix then
-    raise exception 'Caminho de fotografia inválido para este projeto.' using errcode = '42501';
-  end if;
-
-  v_file := substr(new.storage_path, length(v_prefix) + 1);
-
-  if v_file !~ '^[A-Za-z0-9_-][A-Za-z0-9._-]*$' then
-    raise exception 'Caminho de fotografia inválido para este projeto.' using errcode = '42501';
-  end if;
-
-  return new;
-end;
-$$;
-
-drop trigger if exists trg_project_photos_storage_path on public.project_photos;
-
-create trigger trg_project_photos_storage_path
-before insert or update of storage_path, project_id on public.project_photos
-for each row execute function public.enforce_project_photo_storage_path();
-
--- ---------------------------------------------------------------------------
--- 2. reports snapshot guard
--- ---------------------------------------------------------------------------
---
--- (a) Every snapshot_json.photos[].storagePath written to a report must start
---     with that report's own {company_id}/{project_id}/. Covers both
---     generate_report and the legacy client-built snapshot (legal/financial
---     wizard, fixtures). Existing rows are not re-validated.
--- (b) Write-once: once a report has a snapshot, its frozen content (snapshot,
---     legacy mirror columns, number, project) can never change. The legacy
---     wizard's insert-then-attach-snapshot (null -> value) still works;
---     archiving/soft-deleting a report (archived_at/deleted_at/status) still
---     works.
+-- Everything else in both functions is identical to 20261006140000.
+-- Grants are unchanged (create or replace keeps them).
 
 create or replace function public.guard_report_snapshot()
 returns trigger
@@ -131,6 +39,8 @@ begin
        or new.project_id is distinct from old.project_id
        or new.report_num is distinct from old.report_num
        or new.report_date is distinct from old.report_date
+       or new.period_start is distinct from old.period_start
+       or new.period_end is distinct from old.period_end
        or new.phase is distinct from old.phase
        or new.progress_pct is distinct from old.progress_pct
        or new.week_summary is distinct from old.week_summary
@@ -173,60 +83,6 @@ begin
 end;
 $$;
 
-drop trigger if exists trg_reports_guard_snapshot on public.reports;
-
-create trigger trg_reports_guard_snapshot
-before insert or update on public.reports
-for each row execute function public.guard_report_snapshot();
-
--- ---------------------------------------------------------------------------
--- 3. generate_report
--- ---------------------------------------------------------------------------
---
--- SECURITY INVOKER: every read and the report insert run as the calling
--- user, so the existing ownership RLS on projects/companies/clients/
--- project_* and reports_insert_own all still apply. The explicit ownership
--- and eligibility checks only exist to fail loudly with a clear message.
---
--- Eligibility mirrors canCreateWeeklyReport (js/projects/project-status-rules.js):
--- status 1 (em curso) or 2 (pausada), not soft-deleted. Archived (5) and
--- completed (3) projects cannot generate.
---
--- Numbering: a per-project transaction-scoped advisory lock serialises
--- concurrent generate_report calls for the same project (double click, two
--- tabs) before max(report_num)+1 is read. max() runs over every report row
--- of the project, including soft-deleted ones, because
--- UNIQUE(project_id, report_num) covers those too and stays the DB backstop
--- (e.g. against a legacy-wizard insert that doesn't take this lock).
---
--- Content: phase/progress/summary/next_steps from project_status_state, plus
---   project_work_items  active AND include_in_reports
---   project_incidents   active AND include_in_reports
---   project_photos      active AND include_in_reports AND is_client_visible
--- "Active" = deactivated_at IS NULL. All tasks regardless of status, every
--- such incident (open or resolved) — no "changes this week" filtering.
---
--- The snapshot is self-contained: rendering it never needs the live
--- project_* rows. It carries no canonical row ids (only project/company/
--- client/report ids in the same places the legacy snapshot already had
--- them, which get-shared-report strips). Photos keep their storage_path —
--- canonical photo removal is soft-only and storage objects are retained.
---
--- No report-scoped `photos` rows are created: history ("Abrir"), "Ver PDF"
--- and the client share link (get-shared-report) all render from
--- snapshot_json.photos[].storagePath only. The legacy `photos` table is read
--- solely by the delete-photo edge function, which hard-deletes the storage
--- object — so pointing a `photos` row at a shared workspace object would
--- let that function destroy evidence other reports still reference.
---
--- The legacy columns (phase, progress_pct, week_summary, works, incidents,
--- incidents_on, next_steps) are filled once, here, as write-once mirrors in
--- the legacy shapes/status codes (blocked/progress/done), and are frozen by
--- trg_reports_guard_snapshot.
---
--- Everything happens in this one function call = one transaction: any error
--- leaves no report row and consumes no report number.
-
 create or replace function public.generate_report(p_project_id uuid)
 returns public.reports
 language plpgsql
@@ -241,7 +97,12 @@ declare
   v_prefix text;
   v_report_id uuid := gen_random_uuid();
   v_report_num integer;
-  v_report_date date := current_date;
+  -- Portugal's calendar date, not the server's UTC date: a report generated
+  -- 00:00–01:00 Lisbon summer time must not be dated the previous day.
+  v_report_date date := (now() at time zone 'Europe/Lisbon')::date;
+  v_previous_report_date date;
+  v_period_start date;
+  v_period_end date;
   v_generated_at timestamptz := now();
   v_phase text;
   v_progress integer;
@@ -373,6 +234,19 @@ begin
   from public.reports r
   where r.project_id = p_project_id;
 
+  -- Período: from the day after the previous (non-deleted) report up to
+  -- today; a project's first report covers the last 7 days (the old weekly
+  -- wizard's default). Never starts after it ends.
+  select r.report_date into v_previous_report_date
+  from public.reports r
+  where r.project_id = p_project_id
+    and r.deleted_at is null
+  order by r.report_num desc
+  limit 1;
+
+  v_period_end := v_report_date;
+  v_period_start := least(coalesce(v_previous_report_date + 1, v_report_date - 7), v_period_end);
+
   v_snapshot := jsonb_build_object(
     'schemaVersion', 1,
     'snapshotVersion', 1,
@@ -383,8 +257,8 @@ begin
       'mode', 'weekly',
       'reportNumber', v_report_num,
       'reportDate', v_report_date,
-      'periodStart', null,
-      'periodEnd', null,
+      'periodStart', v_period_start,
+      'periodEnd', v_period_end,
       'generatedAt', v_generated_at
     ),
     'company', jsonb_build_object(
@@ -454,8 +328,8 @@ begin
     p_project_id,
     v_report_num,
     v_report_date,
-    null,
-    null,
+    v_period_start,
+    v_period_end,
     nullif(v_phase, ''),
     v_progress,
     nullif(v_summary, ''),
@@ -475,6 +349,3 @@ begin
 end;
 $$;
 
-revoke all on function public.generate_report(uuid) from public;
-revoke all on function public.generate_report(uuid) from anon;
-grant execute on function public.generate_report(uuid) to authenticated;

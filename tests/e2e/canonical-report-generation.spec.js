@@ -548,9 +548,21 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — canonical report generat
       .single();
     if (companyError) throw companyError;
 
+    // projects (client_id, company_id) must reference a client of the same
+    // company, so the move needs a client in the second company too.
+    const { data: secondClient, error: secondClientError } = await client
+      .from("clients")
+      .insert({ company_id: secondCompany.id, name: "E2E Report Gen Second Client" })
+      .select()
+      .single();
+    if (secondClientError) throw secondClientError;
+
     const owner = await signInOwner();
     try {
-      const { error: moveError } = await client.from("projects").update({ company_id: secondCompany.id }).eq("id", project.id);
+      const { error: moveError } = await client
+        .from("projects")
+        .update({ company_id: secondCompany.id, client_id: secondClient.id })
+        .eq("id", project.id);
       if (moveError) throw moveError;
 
       const { data, error } = await owner.rpc("generate_report", { p_project_id: project.id });
@@ -560,7 +572,8 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — canonical report generat
 
       expect(await reportsForProject(client, project.id)).toEqual([]);
     } finally {
-      await client.from("projects").update({ company_id: project.company_id }).eq("id", project.id);
+      await client.from("projects").update({ company_id: project.company_id, client_id: project.client_id }).eq("id", project.id);
+      await client.from("clients").delete().eq("id", secondClient.id);
       await client.from("companies").delete().eq("id", secondCompany.id);
     }
 
@@ -690,6 +703,8 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — canonical report generat
     expect(opened.html).toContain('<span class="work-tag blocked">');
     expect(opened.html).toContain('<span class="work-tag progress">');
     expect(opened.html).not.toContain("Em aberto");
+    // Legacy reports never displayed their (wizard-prefilled) period.
+    expect(opened.html).not.toContain("data-report-period");
     expect(opened.html).toMatch(/<div class="photo-frame">\s*<img src="https:\/\/[^"]+"/);
 
     // A canonical snapshot with the new vocabulary renders with the same
@@ -709,6 +724,188 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — canonical report generat
     await clientPage.close();
     } finally {
       await client.storage.from(PHOTO_BUCKET).remove([oldPhotoPath]);
+    }
+  });
+
+  // The Phase 2 backfill copied the latest legacy report's photos into
+  // project_photos at their original .../reports/{report_id}/... path. Those
+  // rows must keep generating reports, and the backfill must be able to
+  // re-create them — without opening the door to any other non-workspace path.
+  test("legacy-path canonical photo: accepted for its own project, included in generated reports; other legacy-looking paths rejected", async ({ page }) => {
+    test.setTimeout(90000);
+
+    const client = getServiceRoleClient();
+    const owner = await signInOwner();
+    const stamp = Date.now();
+    const { project } = await createTestProject(client, { name: `E2E Report Gen Legacy Photo ${stamp}` });
+    const { project: otherProject } = await createTestProject(client, { name: `E2E Report Gen Legacy Photo Other ${stamp}` });
+
+    async function legacyReportWithPhoto(target) {
+      const reportId = crypto.randomUUID();
+      const storagePath = `${target.company_id}/${target.id}/reports/${reportId}/${crypto.randomUUID()}.png`;
+      const { error: reportError } = await client
+        .from("reports")
+        .insert({ id: reportId, project_id: target.id, report_num: 1, report_date: "2026-08-20", works: [], status: 0 });
+      if (reportError) throw reportError;
+      const { error: uploadError } = await client.storage
+        .from(PHOTO_BUCKET)
+        .upload(storagePath, fs.readFileSync(TEST_PHOTO_PATH), { contentType: "image/png" });
+      if (uploadError) throw uploadError;
+      const { error: photoError } = await client
+        .from("photos")
+        .insert({ report_id: reportId, storage_path: storagePath, description: "Foto migrada", stage: 0 });
+      if (photoError) throw photoError;
+      return { reportId, storagePath };
+    }
+
+    const own = await legacyReportWithPhoto(project);
+    const foreign = await legacyReportWithPhoto(otherProject);
+
+    try {
+      // Exactly the backfill's row shape, written as the owner (RLS + trigger).
+      const legacyRowId = crypto.randomUUID();
+      const { error: legacyInsertError } = await owner.from("project_photos").insert({
+        id: legacyRowId,
+        project_id: project.id,
+        storage_path: own.storagePath,
+        description: "Foto migrada",
+        stage: "during",
+        include_in_reports: true,
+        is_client_visible: true,
+      });
+      expect(legacyInsertError).toBeNull();
+
+      // Same-value rewrite (the old backfill upsert) is a no-op for the trigger.
+      const { error: rewriteError } = await client
+        .from("project_photos")
+        .update({ storage_path: own.storagePath, description: "Foto migrada" })
+        .eq("id", legacyRowId);
+      expect(rewriteError).toBeNull();
+
+      const rejected = {
+        "legacy-looking path with no legacy photos row": `${project.company_id}/${project.id}/reports/${own.reportId}/${crypto.randomUUID()}.png`,
+        "another project's legacy photo": foreign.storagePath,
+        "another project's legacy photo re-prefixed into this project": `${project.company_id}/${project.id}/reports/${foreign.reportId}/${foreign.storagePath.split("/").pop()}`,
+      };
+      for (const [label, storagePath] of Object.entries(rejected)) {
+        const { error } = await owner.from("project_photos").insert({ project_id: project.id, storage_path: storagePath });
+        expect(error, `insert with ${label} must fail`).toBeTruthy();
+        const { error: updateError } = await owner.from("project_photos").update({ storage_path: storagePath }).eq("id", legacyRowId);
+        expect(updateError, `re-point to ${label} must fail`).toBeTruthy();
+      }
+      const { error: moveError } = await owner.from("project_photos").update({ project_id: otherProject.id }).eq("id", legacyRowId);
+      expect(moveError).toBeTruthy();
+
+      const { data: stillLegacy } = await client.from("project_photos").select("project_id, storage_path").eq("id", legacyRowId).single();
+      expect(stillLegacy).toEqual({ project_id: project.id, storage_path: own.storagePath });
+
+      // generate_report accepts it and freezes the legacy path into the snapshot.
+      const { data, error } = await owner.rpc("generate_report", { p_project_id: project.id });
+      expect(error).toBeNull();
+      const generated = Array.isArray(data) ? data[0] : data;
+      expect(generated.report_num).toBe(2);
+      expect(generated.snapshot_json.photos).toEqual([
+        expect.objectContaining({ storagePath: own.storagePath, description: "Foto migrada" }),
+      ]);
+
+      // ... and the report renders the photo.
+      await login(page);
+      await openWorkspace(page, project.name);
+      await page.locator("#workStatusMoreOptionsBtn").click();
+      const card = page.locator(`[data-report-history-card="${generated.id}"]`);
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const opened = await readOpenedReport(page, () => card.locator('[data-report-history-action="open"]').click());
+      expect(opened.text).toContain("Foto migrada");
+      expect(opened.html).toMatch(/<div class="photo-frame">\s*<img src="https:\/\/[^"]+"/);
+    } finally {
+      await client.storage.from(PHOTO_BUCKET).remove([own.storagePath, foreign.storagePath]);
+      await owner.auth.signOut();
+    }
+  });
+
+  // POST-RELEASE-POLISH-001 (20261007120000_generate_report_period.sql) — the
+  // period is derived server-side: first report = last 7 days; afterwards from
+  // the day after the previous non-deleted report up to today. Frozen once
+  // generated; shown on canonical reports and in the success panel.
+  test("period: derived server-side from the previous report, frozen, and shown on the report", async ({ page }) => {
+    test.setTimeout(90000);
+
+    const client = getServiceRoleClient();
+    const owner = await signInOwner();
+    const projectName = `E2E Report Gen Period ${Date.now()}`;
+    const { project } = await createTestProject(client, { name: projectName });
+
+    const shift = (isoDate, days) => {
+      const [y, m, d] = isoDate.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+    };
+    const pt = (isoDate) => isoDate.split("-").reverse().join("/");
+    const generate = async () => {
+      const { data, error } = await owner.rpc("generate_report", { p_project_id: project.id });
+      expect(error).toBeNull();
+      return Array.isArray(data) ? data[0] : data;
+    };
+
+    try {
+      // First report: the 7 days up to today.
+      const first = await generate();
+      const today = first.report_date;
+      expect(first.period_end).toBe(today);
+      expect(first.period_start).toBe(shift(today, -7));
+      expect(first.snapshot_json.meta).toMatchObject({ periodStart: first.period_start, periodEnd: today });
+
+      // Same day again: starts the day after the previous report, clamped to today.
+      const second = await generate();
+      expect([second.period_start, second.period_end]).toEqual([today, today]);
+
+      // A legacy report as the previous one: starts the day after its date.
+      const { error: legacyError } = await client.from("reports").insert({
+        project_id: project.id,
+        report_num: 3,
+        report_date: shift(today, -10),
+        period_start: shift(today, -40),
+        period_end: shift(today, 30),
+        works: [],
+        status: 0,
+      });
+      if (legacyError) throw legacyError;
+      const fourth = await generate();
+      expect(fourth.report_num).toBe(4);
+      expect([fourth.period_start, fourth.period_end]).toEqual([shift(today, -9), today]);
+
+      // A soft-deleted report is not "the previous report".
+      await client.from("reports").update({ deleted_at: new Date().toISOString() }).eq("id", fourth.id);
+      const fifth = await generate();
+      expect([fifth.period_start, fifth.period_end]).toEqual([shift(today, -9), today]);
+
+      // Frozen once generated.
+      for (const patch of [{ period_start: shift(today, -1) }, { period_end: shift(today, 1) }]) {
+        const { error } = await owner.from("reports").update(patch).eq("id", first.id);
+        expect(error, `update ${Object.keys(patch)[0]} must fail`).toBeTruthy();
+      }
+      const { data: firstAgain } = await client.from("reports").select("period_start, period_end").eq("id", first.id).single();
+      expect(firstAgain).toEqual({ period_start: shift(today, -7), period_end: today });
+
+      // UI: success panel and the rendered report show the period.
+      await login(page);
+      await openWorkspace(page, projectName);
+      const reportId = await generateViaUi(page);
+      const expected = `Período ${pt(today)} – ${pt(today)}`;
+      await expect(page.locator("#workStatusReportResult [data-report-period]")).toHaveText(expected);
+      const viewed = await readOpenedReport(page, () =>
+        page.locator('#workStatusReportResult [data-generated-report-action="view-pdf"]').click()
+      );
+      expect(viewed.text).toContain(expected);
+      expect((await getReport(client, reportId)).report_num).toBe(6);
+
+      // An older report opened from history shows its own frozen period.
+      await page.locator("#workStatusMoreOptionsBtn").click();
+      const card = page.locator(`[data-report-history-card="${first.id}"]`);
+      await expect(card).toBeVisible({ timeout: 15000 });
+      const opened = await readOpenedReport(page, () => card.locator('[data-report-history-action="open"]').click());
+      expect(opened.text).toContain(`Período ${pt(shift(today, -7))} – ${pt(today)}`);
+    } finally {
+      await owner.auth.signOut();
     }
   });
 });

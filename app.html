@@ -315,26 +315,30 @@
       <!-- Phase 4 — result of "Gerar relatório" (loading / success with
            Ver PDF + Partilhar / error). Filled by js/reports/report-generation-panel.js. -->
       <div class="card report-result" id="workStatusReportResult" hidden></div>
-
-      <!-- Single manual save for the whole workspace draft — sticky so it's
-           reachable from any section. -->
+    </div>
+    <!-- Sticky footer: the single manual save for the whole workspace draft
+         (shown only while there is something to save or report) sits right
+         above the nav bar, so it's reachable from any section. It lives
+         outside .step-content because that element is an overflow container,
+         which would pin a sticky child to its own (non-scrolling) box. -->
+    <div class="work-status-footer">
       <div class="work-status-save-row work-status-save-bar" id="workStatusSaveBar">
         <button type="button" class="btn-add" data-work-status-action="save" id="workStatusSaveBtn">
           Guardar alterações
         </button>
         <span class="work-status-save-hint" id="workStatusSaveHint"></span>
       </div>
-    </div>
-    <div class="nav-bar">
-      <button class="btn btn-back" data-nav-action="back">Voltar às obras</button>
-      <button
-        type="button"
-        class="btn btn-generate"
-        data-work-status-action="generate-report"
-        id="workStatusGenerateReportBtn"
-      >
-        Gerar relatório
-      </button>
+      <div class="nav-bar">
+        <button class="btn btn-back" data-nav-action="back">Voltar às obras</button>
+        <button
+          type="button"
+          class="btn btn-generate"
+          data-work-status-action="generate-report"
+          id="workStatusGenerateReportBtn"
+        >
+          Gerar relatório
+        </button>
+      </div>
     </div>
   </div>
 

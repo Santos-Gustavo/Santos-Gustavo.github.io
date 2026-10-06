@@ -168,8 +168,12 @@ test("user can create a project and generate a weekly report from Estado da Obra
   await page.locator("#workStatusMoreOptionsBtn").click();
   await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, { timeout: 10000 });
   await page.locator('[data-nav-action="select-mode"][data-mode="legal"]').click();
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
+  // Walk "Seguinte" through the legal flow until its review step (#step12).
+  for (let i = 0; i < 6 && !/\bactive\b/.test((await page.locator("#step12").getAttribute("class")) || ""); i += 1) {
+    const label = await page.locator("#stepLabel").textContent();
+    await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
+    await expect(page.locator("#stepLabel")).not.toHaveText(label || "", { timeout: 10000 });
+  }
   await expect(page.locator("#step12")).toHaveClass(/active/, { timeout: 10000 });
 
   const homeButton = page

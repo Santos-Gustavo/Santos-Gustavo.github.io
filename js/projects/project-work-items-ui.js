@@ -707,8 +707,6 @@ function updateSaveButtonState() {
   const hint = document.getElementById("workStatusSaveHint");
   const dirty = isDirty();
 
-  if (bar) bar.hidden = !editable;
-
   if (btn) {
     btn.disabled = !dirty || saving || generating;
     btn.textContent = saving ? "A guardar..." : "Guardar alterações";
@@ -730,6 +728,10 @@ function updateSaveButtonState() {
     }
     hint.classList.toggle("is-success", !saving && !dirty && statusMessage.tone === "success");
   }
+
+  // The sticky save bar only takes footer space while there is something to
+  // save, a save in flight, or a save result to read.
+  if (bar) bar.hidden = !editable || (!dirty && !saving && !hint?.textContent);
 }
 
 function setListsMessage(message) {

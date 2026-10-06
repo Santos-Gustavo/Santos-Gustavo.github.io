@@ -52,6 +52,11 @@ export function showGeneratedReport({ report, projectName }) {
     `
       <p class="report-result-text">
         Relatório <strong>#${escapeHtml(String(report.reportNum).padStart(3, "0"))}</strong> gerado.
+        ${
+          report.periodStart && report.periodEnd
+            ? `<span class="report-result-period" data-report-period>Período ${escapeHtml(formatDate(report.periodStart))} – ${escapeHtml(formatDate(report.periodEnd))}</span>`
+            : ""
+        }
       </p>
       <div class="report-result-actions">
         <button type="button" class="secondary" data-generated-report-action="view-pdf">Ver PDF</button>
@@ -155,6 +160,12 @@ function handleCopy(button) {
       console.error("Failed to copy share link:", error);
       alert("Erro ao copiar link.");
     });
+}
+
+// "2026-09-30" -> "30/09/2026" (date-only, no time-zone shift).
+function formatDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value));
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : String(value);
 }
 
 function escapeHtml(value) {
