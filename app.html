@@ -202,10 +202,10 @@
     </div>
   </div>
 
-  <!-- LAYER 0d: ESTADO DA OBRA (PROJECT-MASTER-SHEET-001) — single-page master
-       sheet per project: consolidated Pendentes/Em curso/Concluídas/Incidentes
-       from existing reports, with a quick-tap status control. Not a task board —
-       no drag-and-drop, no multi-column layout, stays inside the mobile frame. -->
+  <!-- LAYER 0d: ESTADO DA OBRA — the canonical project workspace
+       (ESTADO-DA-OBRA-WORKSPACE-001): status, work items, incidents, next steps
+       and photos, edited as one local draft and persisted only via
+       "Guardar alterações". Not a task board — stays inside the mobile frame. -->
   <div class="step" id="step-estado-obra">
     <div class="step-content">
       <div class="step-header">
@@ -249,12 +249,12 @@
           placeholder="Ex: Obra em fase de acabamentos, sem atrasos face ao previsto..."
         ></textarea>
 
-        <div class="work-status-save-row">
-          <button type="button" class="btn-add" data-work-status-action="save" id="workStatusSaveBtn">
-            Guardar alterações
-          </button>
-          <span class="work-status-save-hint" id="workStatusSaveHint"></span>
-        </div>
+        <h3 class="work-status-field-title">Próximos passos</h3>
+        <textarea
+          id="workStatusNextSteps"
+          class="work-status-summary"
+          placeholder="Um passo por linha. Ex: Encomendar azulejos"
+        ></textarea>
       </div>
 
       <div class="work-status-section">
@@ -284,11 +284,38 @@
       <div class="work-status-section">
         <h3 class="work-status-section-title work-status-section-title--incidents" id="workStatusIncidentsHeading">Incidentes</h3>
         <div id="workStatusIncidentsList"></div>
+        <button
+          type="button"
+          class="btn-add"
+          data-work-status-action="add-incident"
+          id="workStatusAddIncidentBtn"
+        >
+          + Adicionar incidente
+        </button>
+        <div class="item-card work-status-add-form" id="workStatusAddIncidentForm" hidden></div>
       </div>
 
       <div class="work-status-section">
-        <h3 class="work-status-section-title" id="workStatusNextStepsHeading">Próximos Passos</h3>
-        <div id="workStatusNextStepsList"></div>
+        <h3 class="work-status-section-title" id="workStatusPhotosHeading">Fotografias</h3>
+        <div id="workStatusPhotosList"></div>
+        <button
+          type="button"
+          class="btn-add"
+          data-work-status-action="add-photo"
+          id="workStatusAddPhotoBtn"
+        >
+          + Adicionar foto
+        </button>
+        <input type="file" id="workStatusPhotoInput" accept="image/*" hidden />
+      </div>
+
+      <!-- Single manual save for the whole workspace draft — sticky so it's
+           reachable from any section. -->
+      <div class="work-status-save-row work-status-save-bar" id="workStatusSaveBar">
+        <button type="button" class="btn-add" data-work-status-action="save" id="workStatusSaveBtn">
+          Guardar alterações
+        </button>
+        <span class="work-status-save-hint" id="workStatusSaveHint"></span>
       </div>
     </div>
     <div class="nav-bar">

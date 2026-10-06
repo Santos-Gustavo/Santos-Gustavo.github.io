@@ -49,7 +49,9 @@ export function confirmAction({
 
   titleEl.textContent = title || "";
   messageEl.textContent = message || "";
-  cancelBtn.textContent = cancelLabel;
+  // cancelLabel: null → a single-button notice (e.g. "save before generating").
+  cancelBtn.hidden = cancelLabel === null;
+  cancelBtn.textContent = cancelLabel ?? "";
   confirmBtn.textContent = confirmLabel;
 
   overlay.hidden = false;

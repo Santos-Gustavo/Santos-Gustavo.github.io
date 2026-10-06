@@ -1017,6 +1017,62 @@ input:-webkit-autofill:focus {
 .work-status-item-action--reopen { background: var(--input-bg); border-color: var(--border); color: var(--muted); }
 .work-status-item-action--reopen:not(:disabled):hover { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
 
+/* ESTADO-DA-OBRA-WORKSPACE-001 — canonical workspace editing. */
+.work-status-save-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding: 12px 0;
+  margin-top: 0;
+  background: var(--paper, var(--input-bg));
+  border-top: 1px solid var(--border);
+}
+.work-status-save-bar[hidden],
+.work-status-section .btn-add[hidden],
+.work-status-add-form[hidden],
+[data-confirm-action][hidden] { display: none; }
+.work-status-save-hint.is-success { color: var(--forest); }
+
+.work-status-inline-field { margin-bottom: 10px; }
+.work-status-item-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.work-status-item-btn {
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.work-status-item-btn:hover { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
+.work-status-item-btn--danger { color: var(--rust); }
+.work-status-item-btn--danger:hover { background: var(--rust-soft); border-color: var(--rust); color: var(--rust); }
+.work-status-hidden-badge {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  margin-bottom: 10px;
+}
+.work-status-item-card.is-hidden-from-reports { opacity: 0.75; }
+.work-status-incident-card.is-resolved { background: var(--input-bg); border-color: var(--border); }
+.work-status-photo-img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
 .project-card-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
 /* ---------- CLIENT DIRECTORY ---------- */

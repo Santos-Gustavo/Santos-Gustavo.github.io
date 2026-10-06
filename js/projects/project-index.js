@@ -14,7 +14,10 @@ import {
   editProject,
 } from "#projects/project-selection.js";
 
-import { openProjectMasterSheet } from "#projects/project-work-items-ui.js";
+import {
+  openProjectMasterSheet,
+  confirmLeaveEstadoObraIfDirty,
+} from "#projects/project-work-items-ui.js";
 
 import {
   clearProjectForm,
@@ -84,6 +87,7 @@ async function handleProjectClick(event) {
   }
 
   if (action === "more-options") {
+    if (!(await confirmLeaveEstadoObraIfDirty())) return;
     selectProject(projectId);
   }
 }

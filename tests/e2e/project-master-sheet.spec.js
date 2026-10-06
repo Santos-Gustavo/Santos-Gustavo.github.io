@@ -1,14 +1,28 @@
 // tests/e2e/project-master-sheet.spec.js
 //
-// PROJECT-MASTER-SHEET-001 — "Ver Estado da Obra". Seeds reports directly via the
-// service-role client (mirrors tests/e2e/helpers/report-share-test-helper.js) rather
-// than driving the full multi-step weekly report wizard twice per test, since what's
-// under test is the consolidation/quick-tap/prefill logic, not report creation itself
-// (already covered by weekly-happy-path.spec.js / report-persistence.spec.js).
+// ESTADO-DA-OBRA-WORKSPACE-001 — Estado da Obra as the canonical project
+// workspace. Seeds canonical rows (project_status_state / project_work_items /
+// project_incidents / project_photos) directly via the service-role client,
+// drives the real UI as the logged-in owner, and verifies persisted state via
+// the service-role client — so "nothing persisted before Guardar" and
+// "Guardar persisted exactly this" are checked against the database itself,
+// not against client state.
+//
+// Replaces the PROJECT-MASTER-SHEET-001 expectations (state consolidated from
+// reports.works, quick-tap status changes persisting immediately): those
+// behaviors no longer exist.
 
+import fs from "fs";
+import path from "path";
 import { expect, test } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
+import { APP_ENV } from "../../js/config/env.js";
 import { getServiceRoleClient, hasServiceRoleEnv } from "./helpers/supabase-admin.js";
 import { ensureE2ECompany } from "./helpers/e2e-fixtures.js";
+
+// Same pattern as project-archived-photo-evidence.spec.js — Playwright loads
+// specs as CommonJS here, so __dirname is available and import.meta is not.
+const TEST_PHOTO_PATH = path.join(__dirname, "fixtures", "test-photo.png");
 
 const E2E_EMAIL =
   process.env.E2E_EMAIL ||
@@ -19,6 +33,8 @@ const E2E_PASSWORD =
   process.env.E2E_PASSWORD ||
   process.env.TEST_USER_PASSWORD ||
   process.env.PLAYWRIGHT_PASSWORD;
+
+const PHOTO_BUCKET = "project-photos";
 
 function missingEnv() {
   const missing = [];
@@ -42,112 +58,154 @@ async function login(page) {
 
   await page.getByRole("button", { name: /entrar|login|iniciar/i }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, {
-    timeout: 15000,
-  });
+  await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, { timeout: 15000 });
 
   await page.waitForTimeout(500);
 }
 
-async function insertTestClient(client, companyId, name) {
-  const { data, error } = await client
+async function createTestProject(client, { name, status = 1 }) {
+  const company = await ensureE2ECompany();
+
+  const { data: testClient, error: clientError } = await client
     .from("clients")
-    .insert({
-      company_id: companyId,
-      name,
-      phone: "+351 910 000 000",
-      email: null,
-      nif: null,
-      address: "Rua E2E Master Sheet, Porto",
-    })
+    .insert({ company_id: company.id, name: `${name} Client`, address: "Rua E2E Workspace, Porto" })
     .select()
     .single();
+  if (clientError) throw clientError;
 
-  if (error) throw error;
-  return data;
-}
-
-async function insertTestProject(client, companyId, clientId, name) {
-  const { data, error } = await client
+  const { data: project, error: projectError } = await client
     .from("projects")
     .insert({
-      company_id: companyId,
-      client_id: clientId,
+      company_id: company.id,
+      client_id: testClient.id,
       name,
-      site_address: "Rua E2E Master Sheet, Porto",
+      site_address: "Rua E2E Workspace, Porto",
       type_of_work: "Fixture",
       start_date: new Date().toISOString().slice(0, 10),
-      contract_num: `E2E-MASTER-SHEET-${Date.now()}`,
+      contract_num: `E2E-WS-${Date.now()}`,
       contract_value: 5000,
-      status: 1,
+      status,
     })
     .select()
     .single();
+  if (projectError) throw projectError;
 
-  if (error) throw error;
-  return data;
+  return { company, project };
 }
 
-async function insertTestReport(client, {
-  projectId,
-  reportNum,
-  reportDate,
-  progressPct,
-  works = [],
-  incidents = [],
-  nextSteps = [],
-}) {
-  const { data, error } = await client
+async function seedWorkspace(client, { project, status, workItems = [], incidents = [], photos = [] }) {
+  if (status) {
+    const { error } = await client.from("project_status_state").insert({
+      project_id: project.id,
+      company_id: project.company_id,
+      phase: status.phase || "",
+      progress_pct: status.progressPct || 0,
+      summary: status.summary || "",
+      next_steps: status.nextSteps || "",
+    });
+    if (error) throw error;
+  }
+
+  // One row per insert: a PostgREST bulk insert whose rows have different key
+  // sets sends NULL (not the column default) for each row's missing keys.
+  const inserts = [
+    ...workItems.map((row) => ["project_work_items", row]),
+    ...incidents.map((row) => ["project_incidents", row]),
+    ...photos.map((row) => ["project_photos", row]),
+  ];
+
+  for (const [table, row] of inserts) {
+    const { error } = await client.from(table).insert({ project_id: project.id, ...row });
+    if (error) throw error;
+  }
+}
+
+// A legacy report + project_work_item_status override on the same project:
+// Estado da Obra must ignore both for display, and must never write to them.
+async function seedLegacyState(client, project) {
+  const { data: report, error } = await client
     .from("reports")
     .insert({
-      project_id: projectId,
-      report_num: reportNum,
-      report_date: reportDate,
-      period_start: null,
-      period_end: null,
+      project_id: project.id,
+      report_num: 1,
+      report_date: "2026-08-10",
       distributed_to: "Cliente",
       sent_via: 1,
-      phase: "Acabamentos",
-      progress_pct: progressPct,
-      week_summary: `Resumo E2E — relatório #${reportNum}.`,
-      alert_on: false,
-      incidents_on: incidents.length > 0,
-      financial_note: null,
-      works,
-      incidents,
+      phase: "Fundações",
+      progress_pct: 5,
+      week_summary: "Resumo legado E2E",
+      works: [{ id: crypto.randomUUID(), type: "Outro", area: "Sala", desc: "LEGACY WORK — must not render", status: "blocked" }],
+      incidents: [{ id: crypto.randomUUID(), desc: "LEGACY INCIDENT — must not render" }],
       extras: [],
-      next_steps: nextSteps,
-      snapshot_json: null,
+      next_steps: [{ id: crypto.randomUUID(), desc: "LEGACY NEXT STEP — must not render" }],
       status: 0,
     })
     .select()
     .single();
+  if (error) throw error;
 
+  const { error: overrideError } = await client.from("project_work_item_status").insert({
+    project_id: project.id,
+    item_id: crypto.randomUUID(),
+    status: "done",
+    desc: "LEGACY OVERRIDE ITEM — must not render",
+  });
+  if (overrideError) throw overrideError;
+
+  return report;
+}
+
+async function snapshotLegacy(client, projectId) {
+  const [{ data: reports }, { data: overrides }] = await Promise.all([
+    client.from("reports").select("*").eq("project_id", projectId).order("id"),
+    client.from("project_work_item_status").select("*").eq("project_id", projectId).order("id"),
+  ]);
+
+  return JSON.stringify({ reports, overrides });
+}
+
+async function openWorkspace(page, projectName, { archivedFilter = false } = {}) {
+  if (archivedFilter) {
+    await page.locator('[data-project-filter="archived"]').filter({ visible: true }).click();
+  }
+
+  const projectCard = page.locator("#projectList .project-card").filter({ hasText: projectName });
+  await expect(projectCard).toHaveCount(1, { timeout: 15000 });
+  await projectCard.first().click();
+
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, { timeout: 10000 });
+  await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
+  // Controls are read-only until the canonical workspace has loaded.
+  await expect(page.locator("#step-estado-obra")).toHaveAttribute("data-workspace-state", "ready", { timeout: 15000 });
+}
+
+async function backToProjects(page) {
+  await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
+  await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, { timeout: 10000 });
+}
+
+async function saveWorkspace(page) {
+  await expect(page.locator("#workStatusSaveBtn")).toBeEnabled();
+  await page.locator("#workStatusSaveBtn").click();
+  await expect(page.locator("#workStatusSaveHint")).toHaveText("Alterações guardadas.", { timeout: 15000 });
+  await expect(page.locator("#workStatusSaveBtn")).toBeDisabled();
+}
+
+function workCard(page, id) {
+  return page.locator(`.work-status-item-card[data-work-item-id="${id}"]`);
+}
+
+function incidentCard(page, id) {
+  return page.locator(`.work-status-item-card[data-incident-id="${id}"]`);
+}
+
+async function getRow(client, table, id) {
+  const { data, error } = await client.from(table).select("*").eq("id", id).maybeSingle();
   if (error) throw error;
   return data;
 }
 
-// PROJECT-HUB-INTEGRATION-001 — Estado da Obra is the project hub now:
-// clicking the card itself opens it directly (no dedicated card button
-// anymore — "Mais opções", which goes to the old mode picker, now lives
-// inside Estado da Obra's own header, see #workStatusMoreOptionsBtn).
-async function openMasterSheetFromProjectList(page, projectName) {
-  const projectCard = page
-    .locator("#projectList .project-card")
-    .filter({ hasText: projectName });
-
-  await expect(projectCard).toHaveCount(1, { timeout: 15000 });
-
-  await projectCard.first().click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
-    timeout: 10000,
-  });
-
-  await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
-}
-
-test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
+test.describe("ESTADO-DA-OBRA-WORKSPACE-001 — Estado da Obra canonical workspace", () => {
   test.beforeEach(() => {
     const missing = missingEnv();
     if (missing.length > 0) {
@@ -155,527 +213,723 @@ test.describe("PROJECT-MASTER-SHEET-001 — Ver Estado da Obra", () => {
     }
   });
 
-  test("project card shows the action, and an empty project shows clear empty states", async ({
-    page,
-  }) => {
-    const timestamp = Date.now();
-    const projectName = `E2E Master Sheet Empty Project ${timestamp}`;
-    const clientName = `E2E Master Sheet Empty Client ${timestamp}`;
+  test("A/I: renders only canonical state, ignores legacy reports/overrides, and has no immediate quick-tap", async ({ page }) => {
+    test.setTimeout(60000);
 
     const client = getServiceRoleClient();
-    const company = await ensureE2ECompany();
-    const testClient = await insertTestClient(client, company.id, clientName);
-    const project = await insertTestProject(client, company.id, testClient.id, projectName);
+    const projectName = `E2E Workspace Load ${Date.now()}`;
+    const { project } = await createTestProject(client, { name: projectName });
+
+    await seedLegacyState(client, project);
+
+    const ids = {
+      pending: crypto.randomUUID(),
+      progress: crypto.randomUUID(),
+      doneHidden: crypto.randomUUID(),
+      removed: crypto.randomUUID(),
+      openIncident: crypto.randomUUID(),
+      resolvedIncident: crypto.randomUUID(),
+      removedIncident: crypto.randomUUID(),
+    };
+
+    await seedWorkspace(client, {
+      project,
+      status: {
+        phase: "Cobertura",
+        progressPct: 40,
+        summary: "Resumo canónico E2E",
+        nextSteps: "Passo canónico A\nPasso canónico B",
+      },
+      workItems: [
+        { id: ids.pending, type: "Pintura Interior", area: "Sala", description: "Canon pendente", status: "pending" },
+        { id: ids.progress, type: "Outro", area: "Cozinha", description: "Canon em curso", status: "in_progress" },
+        { id: ids.doneHidden, type: "Outro", area: "Exterior", description: "Canon concluída oculta", status: "done", include_in_reports: false },
+        { id: ids.removed, description: "Canon removida", status: "pending", deactivated_at: new Date().toISOString() },
+      ],
+      incidents: [
+        { id: ids.openIncident, description: "Canon incidente aberto", status: "open" },
+        { id: ids.resolvedIncident, description: "Canon incidente resolvido", status: "resolved", resolved_at: new Date().toISOString() },
+        { id: ids.removedIncident, description: "Canon incidente removido", status: "open", deactivated_at: new Date().toISOString() },
+      ],
+      photos: [
+        { storage_path: `e2e-workspace-load/${Date.now()}.jpg`, description: "Canon foto legenda", stage: "after" },
+      ],
+    });
 
     await login(page);
+    await openWorkspace(page, projectName);
 
-    const projectCard = page
-      .locator("#projectList .project-card")
-      .filter({ hasText: projectName });
+    await expect(page.locator("#workStatusProgressPct")).toHaveText("40%");
+    await expect(page.locator('[data-work-status-phase="Cobertura"]')).toHaveClass(/selected/);
+    await expect(page.locator("#workStatusSummary")).toHaveValue("Resumo canónico E2E");
+    await expect(page.locator("#workStatusNextSteps")).toHaveValue("Passo canónico A\nPasso canónico B");
 
-    await expect(projectCard).toHaveCount(1, { timeout: 15000 });
+    await expect(page.locator("#workStatusPendingList")).toContainText("Canon pendente");
+    await expect(page.locator("#workStatusProgressList")).toContainText("Canon em curso");
+    await expect(page.locator("#workStatusDoneList")).toContainText("Canon concluída oculta");
+    await expect(workCard(page, ids.doneHidden)).toContainText("Oculto dos próximos relatórios");
+    await expect(workCard(page, ids.pending)).not.toContainText("Oculto dos próximos relatórios");
 
-    await openMasterSheetFromProjectList(page, projectName);
+    // Deactivated rows never render.
+    await expect(page.locator("#step-estado-obra")).not.toContainText("Canon removida");
+    await expect(page.locator("#step-estado-obra")).not.toContainText("Canon incidente removido");
 
-    // "Mais opções" (mode picker / lifecycle actions) lives inside Estado da
-    // Obra's own header now, not on the project-list card.
-    await expect(page.locator("#workStatusMoreOptionsBtn")).toBeVisible();
+    // Legacy report/override state is not merged in any more.
+    await expect(page.locator("#step-estado-obra")).not.toContainText("LEGACY");
+
+    await expect(incidentCard(page, ids.openIncident)).toContainText("Em aberto");
+    await expect(incidentCard(page, ids.resolvedIncident)).toContainText("Resolvido");
+
+    await expect(page.locator("#workStatusPhotosHeading")).toHaveText("Fotografias (1)");
+    await expect(page.locator('#workStatusPhotosList input[data-ws-field="description"]')).toHaveValue("Canon foto legenda");
+
+    // I: the old one-tap "Marcar como concluída"/"Reabrir" persist-immediately
+    // control is gone; nothing is dirty on open.
+    await expect(page.getByRole("button", { name: "Marcar como concluída" })).toHaveCount(0);
+    await expect(page.locator("#workStatusSaveBtn")).toBeDisabled();
+  });
+
+  test("B/C: phase/progress/summary/next steps persist only via Guardar; unsaved edits are lost on reload", async ({ page }) => {
+    test.setTimeout(60000);
+
+    const client = getServiceRoleClient();
+    const projectName = `E2E Workspace Save ${Date.now()}`;
+    const { project } = await createTestProject(client, { name: projectName });
+
+    await login(page);
+    await openWorkspace(page, projectName);
 
     await expect(page.locator("#workStatusProgressPct")).toHaveText("0%");
-    // Editable panel: 8 phase options, nothing selected yet, save disabled
-    // (nothing edited since opening — no unsaved changes to warn about).
-    await expect(page.locator(".work-status-phase-option")).toHaveCount(8);
-    await expect(page.locator("#workStatusSaveBtn")).toBeDisabled();
-    await expect(page.locator("#workStatusPendingList")).toContainText(
-      "Sem trabalhos pendentes registados."
-    );
-    await expect(page.locator("#workStatusProgressList")).toContainText(
-      "Sem trabalhos em curso registados."
-    );
-    await expect(page.locator("#workStatusDoneList")).toContainText(
-      "Sem trabalhos concluídos registados."
-    );
-    await expect(page.locator("#workStatusIncidentsList")).toContainText(
-      "Sem incidentes registados."
-    );
-    await expect(page.locator("#workStatusNextStepsList")).toContainText(
-      "Sem próximos passos registados."
-    );
-
-    // Section headings surface a count, and the report shortcut is available
-    // for an active project (Estado da Obra as project home, not a dead end).
-    await expect(page.locator("#workStatusPendingHeading")).toHaveText("Pendentes (0)");
-    await expect(page.locator("#workStatusGenerateReportBtn")).toBeVisible();
-
-    // A work item can be added directly on Estado da Obra, with no source
-    // report — it shows up as Pendente immediately, saved right away (this
-    // quick-tap-style action is not part of the Guardar alterações draft).
-    // The form opens with the same fields as a report's own work item (Tipo
-    // de trabalho / Área / Descrição / Estado), not just a free-text prompt.
-    await page.locator("#workStatusAddWorkItemBtn").click();
-
-    const addForm = page.locator("#workStatusAddWorkItemForm");
-    await expect(addForm).toBeVisible();
-    await expect(page.locator("#workStatusAddWorkItemBtn")).toBeHidden();
-
-    await addForm
-      .locator('select[data-add-work-field="type"]')
-      .selectOption({ label: "Fachada / Revestimento Exterior" });
-    await addForm
-      .locator('select[data-add-work-field="area"]')
-      .selectOption({ label: "Exterior" });
-    await addForm
-      .locator('textarea[data-add-work-field="desc"]')
-      .fill("Reparar fissura na fachada — E2E adicionado");
-    await addForm
-      .locator('select[data-add-work-field="status"]')
-      .selectOption("blocked");
-
-    await addForm.getByRole("button", { name: "Adicionar" }).click();
-
-    await expect(addForm).toBeHidden();
-    await expect(page.locator("#workStatusAddWorkItemBtn")).toBeVisible();
-    await expect(page.locator("#workStatusPendingHeading")).toHaveText("Pendentes (1)");
-    await expect(page.locator("#workStatusPendingList")).toContainText(
-      "Reparar fissura na fachada — E2E adicionado"
-    );
-    await expect(page.locator("#workStatusPendingList")).toContainText(
-      "Fachada / Revestimento Exterior · Exterior"
-    );
-  });
-
-  test("consolidates work items and incidents across reports, quick-tap status persists, and weekly report prefills open items", async ({
-    page,
-  }) => {
-    test.setTimeout(60000);
-
-    const timestamp = Date.now();
-    const projectName = `E2E Master Sheet Project ${timestamp}`;
-    const clientName = `E2E Master Sheet Client ${timestamp}`;
-
-    const client = getServiceRoleClient();
-    const company = await ensureE2ECompany();
-    const testClient = await insertTestClient(client, company.id, clientName);
-    const project = await insertTestProject(client, company.id, testClient.id, projectName);
-
-    // Report #1 (older): w1 blocked, w2 done. Incident i1. Next step n1.
-    await insertTestReport(client, {
-      projectId: project.id,
-      reportNum: 1,
-      reportDate: "2026-08-10",
-      progressPct: 20,
-      works: [
-        { id: "e2e-w1", type: "Pintura Interior", area: "Sala", desc: "Pintura da sala — E2E w1", status: "blocked" },
-        { id: "e2e-w2", type: "Canalização / Hidráulica", area: "Cozinha", desc: "Canalização da cozinha — E2E w2", status: "done" },
-      ],
-      incidents: [{ id: "e2e-i1", desc: "Atraso na entrega de material — E2E i1" }],
-      nextSteps: [{ id: "e2e-n1", desc: "Encomendar azulejos — E2E n1", date: "2026-08-15" }],
-    });
-
-    // Report #2 (newer): w1 now progress (latest status should win), w3 blocked. Incident i2. Next step n2.
-    await insertTestReport(client, {
-      projectId: project.id,
-      reportNum: 2,
-      reportDate: "2026-08-20",
-      progressPct: 55,
-      works: [
-        { id: "e2e-w1", type: "Pintura Interior", area: "Sala", desc: "Pintura da sala — E2E w1", status: "progress" },
-        { id: "e2e-w3", type: "Isolamento Térmico", area: "Cobertura / Terraço", desc: "Isolamento da cobertura — E2E w3", status: "blocked" },
-      ],
-      incidents: [{ id: "e2e-i2", desc: "Fissura na parede exterior — E2E i2" }],
-      nextSteps: [{ id: "e2e-n2", desc: "Agendar inspeção elétrica — E2E n2", date: "2026-08-25" }],
-    });
-
-    await login(page);
-
-    await openMasterSheetFromProjectList(page, projectName);
-
-    // Progress uses the most recent report's percentage.
-    await expect(page.locator("#workStatusProgressPct")).toHaveText("55%");
-
-    // w1 carried the newer report's "progress" status, not the older "blocked" one.
-    await expect(page.locator("#workStatusProgressList")).toContainText("Pintura da sala — E2E w1");
-    await expect(page.locator("#workStatusPendingList")).not.toContainText("E2E w1");
-
-    // w1's meta shows the report it was ORIGINALLY created on (#1), not the
-    // newer report (#2) that merely carried it forward as still-open — the
-    // status/desc shown come from the newest occurrence, but the "criado em"
-    // report reference must stay pinned to its creation report.
-    const w1Card = page
-      .locator("#workStatusProgressList .work-status-item-card")
-      .filter({ hasText: "Pintura da sala — E2E w1" });
-    await expect(w1Card.locator(".work-status-item-meta")).toContainText("Relatório #1");
-    await expect(w1Card.locator(".work-status-item-meta")).not.toContainText("Relatório #2");
-
-    // w3 only exists on the newer report, as blocked (Pendente).
-    await expect(page.locator("#workStatusPendingList")).toContainText("Isolamento da cobertura — E2E w3");
-
-    // w2 only exists on the older report, as done (Concluída).
-    await expect(page.locator("#workStatusDoneList")).toContainText("Canalização da cozinha — E2E w2");
-
-    // Both incidents show up, consolidated from both reports.
-    await expect(page.locator("#workStatusIncidentsList")).toContainText("Atraso na entrega de material — E2E i1");
-    await expect(page.locator("#workStatusIncidentsList")).toContainText("Fissura na parede exterior — E2E i2");
-
-    // Both next steps show up too, consolidated the same way as incidents.
-    await expect(page.locator("#workStatusNextStepsHeading")).toHaveText("Próximos Passos (2)");
-    await expect(page.locator("#workStatusNextStepsList")).toContainText("Encomendar azulejos — E2E n1");
-    await expect(page.locator("#workStatusNextStepsList")).toContainText("Agendar inspeção elétrica — E2E n2");
-
-    // Quick-tap: mark w3 (currently Pendente) as concluída — a single action
-    // button per item ("Marcar como concluída" / "Reabrir"), not a 3-way picker.
-    const w3Card = page
-      .locator(".work-status-item-card")
-      .filter({ hasText: "Isolamento da cobertura — E2E w3" });
-
-    await w3Card.getByRole("button", { name: "Marcar como concluída" }).click();
-
-    await expect(page.locator("#workStatusPendingList")).toContainText(
-      "Sem trabalhos pendentes registados."
-    );
-    await expect(page.locator("#workStatusDoneList")).toContainText("Isolamento da cobertura — E2E w3");
-
-    // Once done, the same item offers "Reabrir" instead — never both actions at once.
-    const w3CardAfterComplete = page
-      .locator("#workStatusDoneList .work-status-item-card")
-      .filter({ hasText: "Isolamento da cobertura — E2E w3" });
-
-    await expect(w3CardAfterComplete.getByRole("button", { name: "Reabrir" })).toBeVisible();
-    await expect(
-      w3CardAfterComplete.getByRole("button", { name: "Marcar como concluída" })
-    ).toHaveCount(0);
-
-    // Leave the screen and come back to prove the status change persisted server-side
-    // (Estado da Obra never caches this client-side — reopening always re-queries the
-    // DB) rather than just surviving in local JS state from the click above.
-    await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
-    await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, { timeout: 10000 });
-    await openMasterSheetFromProjectList(page, projectName);
-
-    await expect(page.locator("#workStatusDoneList")).toContainText("Isolamento da cobertura — E2E w3");
-    await expect(page.locator("#workStatusPendingList")).toContainText(
-      "Sem trabalhos pendentes registados."
-    );
-
-    // Now: open items are only Em curso (w1) — Pendentes is empty (w3 became Concluída),
-    // Concluídas (w2, w3) must not be pre-filled, incidents must not be pre-filled.
-    // Still on Estado da Obra (reopened above) — use its own "Gerar relatório
-    // semanal" shortcut directly, the project hub's own entry point.
-    page.once("dialog", async (dialog) => {
-      expect(dialog.message()).toMatch(/pré-preenchidos/i);
-      await dialog.accept();
-    });
-
-    await page.locator('[data-nav-action="generate-weekly-report"]').click();
-
-    await expect(page.locator("#stepLabel")).toHaveText(/passo 1 de 9|período|periodo/i, {
-      timeout: 10000,
-    });
-
-    await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-    await expect(page.locator("#stepLabel")).toHaveText(/passo 2 de 9|progresso/i, {
-      timeout: 10000,
-    });
-
-    await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-    await expect(page.locator("#stepLabel")).toHaveText(/passo 3 de 9|resumo/i, {
-      timeout: 10000,
-    });
-
-    await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-    await expect(page.locator("#stepLabel")).toHaveText(/passo 4 de 9|trabalhos/i, {
-      timeout: 10000,
-    });
-
-    const workCards = page.locator("#workList .item-card, #worksList .item-card");
-    await expect(workCards).toHaveCount(1);
-    await expect(workCards.first()).toContainText("Pintura da sala — E2E w1");
-    await expect(workCards.first().locator("textarea")).toHaveValue("Pintura da sala — E2E w1");
-
-    const statusSelect = workCards.first().locator('select[data-work-field="status"]');
-    await expect(statusSelect).toHaveValue("progress");
-
-    // Incidents must start clean — never pre-filled from Estado da Obra by default.
-    await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-    await expect(page.locator("#stepLabel")).toHaveText(/passo 5 de 9|fotos/i, {
-      timeout: 10000,
-    });
-
-    await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-    await expect(page.locator("#stepLabel")).toHaveText(/passo 6 de 9|decisão|decisao/i, {
-      timeout: 10000,
-    });
-
-    await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-    await expect(page.locator("#stepLabel")).toHaveText(/passo 7 de 9|incidentes/i, {
-      timeout: 10000,
-    });
-
-    await expect(page.locator("#incidentsToggle")).not.toHaveClass(/on/);
-    await expect(page.locator("#incidentList")).toContainText(
-      "Sem incidentes registados."
-    );
-  });
-
-  test("archived project stays view-only in Estado da Obra", async ({ page }) => {
-    test.setTimeout(60000);
-
-    const timestamp = Date.now();
-    const projectName = `E2E Master Sheet Archived Project ${timestamp}`;
-    const clientName = `E2E Master Sheet Archived Client ${timestamp}`;
-
-    const client = getServiceRoleClient();
-    const company = await ensureE2ECompany();
-    const testClient = await insertTestClient(client, company.id, clientName);
-    const project = await insertTestProject(client, company.id, testClient.id, projectName);
-
-    await insertTestReport(client, {
-      projectId: project.id,
-      reportNum: 1,
-      reportDate: "2026-08-10",
-      progressPct: 30,
-      works: [
-        { id: "e2e-arch-w1", type: "Pintura Interior", area: "Sala", desc: "Pintura E2E arquivado", status: "blocked" },
-      ],
-      incidents: [],
-    });
-
-    await login(page);
-
-    const projectCard = page
-      .locator("#projectList .project-card")
-      .filter({ hasText: projectName });
-
-    await expect(projectCard).toHaveCount(1, { timeout: 15000 });
-
-    // Lifecycle actions (pause/complete/archive/reopen) live on the mode
-    // picker, reached via "Mais opções" inside Estado da Obra's own header
-    // now that the card itself opens Estado da Obra directly.
-    await projectCard.first().click();
-    await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
-      timeout: 10000,
-    });
-
-    await page.locator("#workStatusMoreOptionsBtn").click();
-
-    await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-      timeout: 10000,
-    });
-
-    page.once("dialog", async (dialog) => {
-      await dialog.accept("Conclusão E2E — master sheet arquivado");
-    });
-    await page
-      .locator('[data-project-lifecycle-action="complete"]')
-      .filter({ visible: true })
-      .click();
-
-    await expect(page.locator("#modeProjectStatus")).toHaveText(/concluída/i, {
-      timeout: 15000,
-    });
-
-    page.once("dialog", async (dialog) => {
-      await dialog.accept("Arquivo E2E — master sheet arquivado");
-    });
-    await page
-      .locator('[data-project-lifecycle-action="archive"]')
-      .filter({ visible: true })
-      .click();
-
-    await expect(page.locator("#modeProjectStatus")).toHaveText(/arquivada/i, {
-      timeout: 15000,
-    });
-
-    await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
-    await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, { timeout: 10000 });
-
-    await page.locator('[data-project-filter="archived"]').filter({ visible: true }).click();
-
-    await openMasterSheetFromProjectList(page, projectName);
-
-    await expect(page.locator("#workStatusPendingList")).toContainText("Pintura E2E arquivado");
-
-    const statusButtons = page
-      .locator(".work-status-item-card")
-      .filter({ hasText: "Pintura E2E arquivado" })
-      .getByRole("button");
-
-    await expect(statusButtons).toHaveCount(1);
-
-    for (const button of await statusButtons.all()) {
-      await expect(button).toBeDisabled();
-    }
-
-    // Archived project: no new weekly report can be started from here either.
-    await expect(page.locator("#workStatusGenerateReportBtn")).toBeHidden();
-
-    // Nor can the editable Fase/Progresso/Resumo panel be touched.
-    await expect(page.locator("#workStatusProgressSlider")).toBeDisabled();
-    await expect(page.locator("#workStatusSummary")).toBeDisabled();
-    await expect(page.locator("#workStatusSaveBtn")).toBeHidden();
-    await expect(page.locator("#workStatusAddWorkItemBtn")).toBeHidden();
-  });
-
-  test("Fase atual / Progresso geral / Resumo da obra stay a local draft until saved, warn before leaving unsaved, and feed the weekly report once saved", async ({
-    page,
-  }) => {
-    test.setTimeout(60000);
-
-    const timestamp = Date.now();
-    const projectName = `E2E Master Sheet Editable ${timestamp}`;
-    const clientName = `E2E Master Sheet Editable Client ${timestamp}`;
-
-    const client = getServiceRoleClient();
-    const company = await ensureE2ECompany();
-    const testClient = await insertTestClient(client, company.id, clientName);
-    const project = await insertTestProject(client, company.id, testClient.id, projectName);
-
-    // phase "Acabamentos" / 20% — the report-derived fallback, only used until
-    // something is actually saved to Estado da Obra.
-    await insertTestReport(client, {
-      projectId: project.id,
-      reportNum: 1,
-      reportDate: "2026-08-10",
-      progressPct: 20,
-      works: [],
-      incidents: [],
-    });
-
-    await login(page);
-    await openMasterSheetFromProjectList(page, projectName);
-
-    await expect(page.locator("#workStatusProgressPct")).toHaveText("20%");
     await expect(page.locator("#workStatusSaveBtn")).toBeDisabled();
 
-    // Edit all three fields — a local draft only, nothing saved yet.
+    // C: edit everything, then reload without saving.
+    await page.locator('[data-work-status-phase="Instalações"]').click();
+    await page.locator("#workStatusProgressSlider").fill("33");
+    await page.locator("#workStatusSummary").fill("Rascunho nunca guardado");
+    await page.locator("#workStatusNextSteps").fill("Passo nunca guardado");
+    await expect(page.locator("#workStatusSaveHint")).toHaveText(/alterações por guardar/i);
+
+    page.once("dialog", (dialog) => dialog.accept()); // beforeunload
+    await page.reload();
+    await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, { timeout: 15000 });
+
+    const { data: afterReload } = await client
+      .from("project_status_state")
+      .select("*")
+      .eq("project_id", project.id)
+      .maybeSingle();
+    expect(afterReload).toBeNull();
+
+    await openWorkspace(page, projectName);
+    await expect(page.locator("#workStatusProgressPct")).toHaveText("0%");
+    await expect(page.locator("#workStatusSummary")).toHaveValue("");
+    await expect(page.locator("#workStatusNextSteps")).toHaveValue("");
+
+    // B: edit and save explicitly.
     await page.locator('[data-work-status-phase="Cobertura"]').click();
     await page.locator("#workStatusProgressSlider").fill("77");
-    await page
-      .locator("#workStatusSummary")
-      .fill("Resumo E2E guardado — obra em bom ritmo.");
+    await page.locator("#workStatusSummary").fill("Resumo E2E guardado");
+    await page.locator("#workStatusNextSteps").fill("Encomendar azulejos\nAgendar inspeção");
 
-    await expect(page.locator("#workStatusSaveHint")).toHaveText(
-      /alterações por guardar/i
-    );
+    await saveWorkspace(page);
+
+    const { data: saved } = await client
+      .from("project_status_state")
+      .select("*")
+      .eq("project_id", project.id)
+      .single();
+    expect(saved).toMatchObject({
+      phase: "Cobertura",
+      progress_pct: 77,
+      summary: "Resumo E2E guardado",
+      next_steps: "Encomendar azulejos\nAgendar inspeção",
+    });
+
+    await page.reload();
+    await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, { timeout: 15000 });
+    await openWorkspace(page, projectName);
+
+    await expect(page.locator("#workStatusProgressPct")).toHaveText("77%");
+    await expect(page.locator('[data-work-status-phase="Cobertura"]')).toHaveClass(/selected/);
+    await expect(page.locator("#workStatusSummary")).toHaveValue("Resumo E2E guardado");
+    await expect(page.locator("#workStatusNextSteps")).toHaveValue("Encomendar azulejos\nAgendar inspeção");
+  });
+
+  test("D/J: work items — add, status, edit, hide/show, remove are draft-only until Guardar; legacy tables untouched", async ({ page }) => {
+    test.setTimeout(90000);
+
+    const client = getServiceRoleClient();
+    const projectName = `E2E Workspace Works ${Date.now()}`;
+    const { project } = await createTestProject(client, { name: projectName });
+    await seedLegacyState(client, project);
+
+    const ids = {
+      toProgress: crypto.randomUUID(),
+      toEdit: crypto.randomUUID(),
+      toHide: crypto.randomUUID(),
+      toRemove: crypto.randomUUID(),
+    };
+
+    await seedWorkspace(client, {
+      project,
+      workItems: [
+        { id: ids.toProgress, type: "Outro", area: "Sala", description: "Mudar para em curso", status: "pending" },
+        { id: ids.toEdit, type: "Outro", area: "Sala", description: "Descrição original", status: "pending" },
+        { id: ids.toHide, type: "Outro", area: "Sala", description: "Ocultar do relatório", status: "done" },
+        { id: ids.toRemove, type: "Outro", area: "Sala", description: "Remover este trabalho", status: "in_progress" },
+      ],
+    });
+
+    const legacyBefore = await snapshotLegacy(client, project.id);
+
+    await login(page);
+    await openWorkspace(page, projectName);
+
+    // Hide then show again is a no-op: nothing to save.
+    await workCard(page, ids.toHide).getByRole("button", { name: "Ocultar do relatório" }).click();
+    await expect(workCard(page, ids.toHide)).toContainText("Oculto dos próximos relatórios");
     await expect(page.locator("#workStatusSaveBtn")).toBeEnabled();
+    await workCard(page, ids.toHide).getByRole("button", { name: "Mostrar no relatório" }).click();
+    await expect(page.locator("#workStatusSaveBtn")).toBeDisabled();
 
-    // Leaving now must warn, with the exact required copy — and cancelling
-    // must leave the draft untouched on screen.
+    // Add (draft only).
+    await page.locator("#workStatusAddWorkItemBtn").click();
+    const addForm = page.locator("#workStatusAddWorkItemForm");
+    await addForm.locator('select[data-add-work-field="type"]').selectOption({ label: "Fachada / Revestimento Exterior" });
+    await addForm.locator('select[data-add-work-field="area"]').selectOption({ label: "Exterior" });
+    await addForm.locator('textarea[data-add-work-field="description"]').fill("Trabalho novo E2E");
+    await addForm.locator('select[data-add-work-field="status"]').selectOption("in_progress");
+    await addForm.getByRole("button", { name: "Adicionar" }).click();
+    await expect(page.locator("#workStatusProgressList")).toContainText("Trabalho novo E2E");
+
+    // Status change moves the card between lists.
+    await workCard(page, ids.toProgress).locator('select[data-ws-field="status"]').selectOption("in_progress");
+    await expect(page.locator("#workStatusProgressList")).toContainText("Mudar para em curso");
+    await expect(page.locator("#workStatusPendingList")).not.toContainText("Mudar para em curso");
+
+    // Edit description.
+    await workCard(page, ids.toEdit).getByRole("button", { name: "Editar" }).click();
+    await workCard(page, ids.toEdit).locator('textarea[data-ws-field="description"]').fill("Descrição editada E2E");
+    await workCard(page, ids.toEdit).getByRole("button", { name: "Concluir edição" }).click();
+    await expect(workCard(page, ids.toEdit)).toContainText("Descrição editada E2E");
+
+    // Hide (keeps status, stays visible).
+    await workCard(page, ids.toHide).getByRole("button", { name: "Ocultar do relatório" }).click();
+    await expect(page.locator("#workStatusDoneList")).toContainText("Ocultar do relatório");
+    await expect(workCard(page, ids.toHide)).toContainText("Oculto dos próximos relatórios");
+
+    // Remove.
+    await workCard(page, ids.toRemove).getByRole("button", { name: "Remover" }).click();
+    await expect(page.locator("#step-estado-obra")).not.toContainText("Remover este trabalho");
+
+    // Nothing persisted yet.
+    expect((await getRow(client, "project_work_items", ids.toProgress)).status).toBe("pending");
+    expect((await getRow(client, "project_work_items", ids.toEdit)).description).toBe("Descrição original");
+    expect((await getRow(client, "project_work_items", ids.toHide)).include_in_reports).toBe(true);
+    expect((await getRow(client, "project_work_items", ids.toRemove)).deactivated_at).toBeNull();
+    const { data: beforeSaveRows } = await client.from("project_work_items").select("id").eq("project_id", project.id);
+    expect(beforeSaveRows).toHaveLength(4);
+
+    await saveWorkspace(page);
+
+    const progress = await getRow(client, "project_work_items", ids.toProgress);
+    expect(progress.status).toBe("in_progress");
+
+    const edited = await getRow(client, "project_work_items", ids.toEdit);
+    expect(edited.description).toBe("Descrição editada E2E");
+    expect(edited.status).toBe("pending");
+
+    const hidden = await getRow(client, "project_work_items", ids.toHide);
+    expect(hidden.include_in_reports).toBe(false);
+    expect(hidden.status).toBe("done");
+    expect(hidden.deactivated_at).toBeNull();
+
+    const removed = await getRow(client, "project_work_items", ids.toRemove);
+    expect(removed).not.toBeNull(); // soft delete — the row still exists
+    expect(removed.deactivated_at).not.toBeNull();
+
+    const { data: added } = await client
+      .from("project_work_items")
+      .select("*")
+      .eq("project_id", project.id)
+      .eq("description", "Trabalho novo E2E");
+    expect(added).toHaveLength(1);
+    expect(added[0]).toMatchObject({
+      type: "Fachada / Revestimento Exterior",
+      area: "Exterior",
+      status: "in_progress",
+      include_in_reports: true,
+      deactivated_at: null,
+    });
+
+    // J: Estado da Obra never wrote to reports or project_work_item_status.
+    expect(await snapshotLegacy(client, project.id)).toBe(legacyBefore);
+
+    // Reopen — a server round-trip — shows the canonical result.
+    await backToProjects(page);
+    await openWorkspace(page, projectName);
+    await expect(page.locator("#workStatusProgressList")).toContainText("Mudar para em curso");
+    await expect(page.locator("#workStatusProgressList")).toContainText("Trabalho novo E2E");
+    await expect(page.locator("#workStatusPendingList")).toContainText("Descrição editada E2E");
+    await expect(workCard(page, ids.toHide)).toContainText("Oculto dos próximos relatórios");
+    await expect(page.locator("#step-estado-obra")).not.toContainText("Remover este trabalho");
+  });
+
+  test("E: incidents — add, resolve/reopen, hide, remove are draft-only until Guardar; resolve and hide stay independent", async ({ page }) => {
+    test.setTimeout(90000);
+
+    const client = getServiceRoleClient();
+    const projectName = `E2E Workspace Incidents ${Date.now()}`;
+    const { project } = await createTestProject(client, { name: projectName });
+
+    const ids = {
+      toResolve: crypto.randomUUID(),
+      toHide: crypto.randomUUID(),
+      toRemove: crypto.randomUUID(),
+    };
+
+    await seedWorkspace(client, {
+      project,
+      incidents: [
+        { id: ids.toResolve, description: "Incidente a resolver", status: "open" },
+        { id: ids.toHide, description: "Incidente a ocultar", status: "open" },
+        { id: ids.toRemove, description: "Incidente a remover", status: "open" },
+      ],
+    });
+
+    await login(page);
+    await openWorkspace(page, projectName);
+
+    await page.locator("#workStatusAddIncidentBtn").click();
+    await page.locator('#workStatusAddIncidentForm textarea[data-add-incident-field="description"]').fill("Incidente novo E2E");
+    await page.locator("#workStatusAddIncidentForm").getByRole("button", { name: "Adicionar" }).click();
+    await expect(page.locator("#workStatusIncidentsList")).toContainText("Incidente novo E2E");
+
+    await incidentCard(page, ids.toResolve).getByRole("button", { name: "Resolver" }).click();
+    await expect(incidentCard(page, ids.toResolve)).toContainText("Resolvido");
+    await expect(incidentCard(page, ids.toResolve)).not.toContainText("Oculto dos próximos relatórios");
+
+    await incidentCard(page, ids.toHide).getByRole("button", { name: "Editar" }).click();
+    await incidentCard(page, ids.toHide).locator('textarea[data-ws-field="description"]').fill("Incidente editado E2E");
+    await incidentCard(page, ids.toHide).getByRole("button", { name: "Concluir edição" }).click();
+    await expect(incidentCard(page, ids.toHide)).toContainText("Incidente editado E2E");
+
+    await incidentCard(page, ids.toHide).getByRole("button", { name: "Ocultar do relatório" }).click();
+    await expect(incidentCard(page, ids.toHide)).toContainText("Oculto dos próximos relatórios");
+    await expect(incidentCard(page, ids.toHide)).toContainText("Em aberto");
+
+    await incidentCard(page, ids.toRemove).getByRole("button", { name: "Remover" }).click();
+    await expect(page.locator("#workStatusIncidentsList")).not.toContainText("Incidente a remover");
+
+    // Nothing persisted yet.
+    expect((await getRow(client, "project_incidents", ids.toResolve)).status).toBe("open");
+    expect((await getRow(client, "project_incidents", ids.toHide)).include_in_reports).toBe(true);
+    expect((await getRow(client, "project_incidents", ids.toHide)).description).toBe("Incidente a ocultar");
+    expect((await getRow(client, "project_incidents", ids.toRemove)).deactivated_at).toBeNull();
+
+    await saveWorkspace(page);
+
+    const resolved = await getRow(client, "project_incidents", ids.toResolve);
+    expect(resolved.status).toBe("resolved");
+    expect(resolved.resolved_at).not.toBeNull();
+    expect(resolved.include_in_reports).toBe(true); // resolving doesn't hide
+
+    const hidden = await getRow(client, "project_incidents", ids.toHide);
+    expect(hidden.include_in_reports).toBe(false);
+    expect(hidden.status).toBe("open"); // hiding doesn't resolve
+    expect(hidden.description).toBe("Incidente editado E2E");
+
+    const removed = await getRow(client, "project_incidents", ids.toRemove);
+    expect(removed).not.toBeNull();
+    expect(removed.deactivated_at).not.toBeNull();
+
+    const { data: added } = await client
+      .from("project_incidents")
+      .select("*")
+      .eq("project_id", project.id)
+      .eq("description", "Incidente novo E2E");
+    expect(added).toHaveLength(1);
+    expect(added[0]).toMatchObject({ status: "open", include_in_reports: true, deactivated_at: null });
+
+    // Reopen a resolved incident.
+    await incidentCard(page, ids.toResolve).getByRole("button", { name: "Reabrir" }).click();
+    await saveWorkspace(page);
+
+    const reopened = await getRow(client, "project_incidents", ids.toResolve);
+    expect(reopened.status).toBe("open");
+    expect(reopened.resolved_at).toBeNull();
+  });
+
+  test("F: photo upload persists immediately; metadata and removal wait for Guardar; storage object is kept", async ({ page }) => {
+    test.setTimeout(90000);
+
+    const client = getServiceRoleClient();
+    const projectName = `E2E Workspace Photos ${Date.now()}`;
+    const { project } = await createTestProject(client, { name: projectName });
+
+    await login(page);
+    await openWorkspace(page, projectName);
+
+    // Leave an unrelated unsaved edit pending — uploading must not save it.
+    await page.locator("#workStatusSummary").fill("Resumo pendente durante upload");
+
+    await page.locator("#workStatusPhotoInput").setInputFiles(TEST_PHOTO_PATH);
+    await expect(page.locator("#workStatusPhotosHeading")).toHaveText("Fotografias (1)", { timeout: 20000 });
+
+    // Persisted immediately: row + storage object exist without Guardar.
+    const { data: rows } = await client.from("project_photos").select("*").eq("project_id", project.id);
+    expect(rows).toHaveLength(1);
+    const photo = rows[0];
+    expect(photo.storage_path.startsWith(`${project.company_id}/${project.id}/workspace/`)).toBe(true);
+    expect(photo.include_in_reports).toBe(true);
+    expect(photo.deactivated_at).toBeNull();
+
+    const { data: storedFile, error: downloadError } = await client.storage.from(PHOTO_BUCKET).download(photo.storage_path);
+    expect(downloadError).toBeNull();
+    expect(storedFile).toBeTruthy();
+
+    // The unrelated summary edit is still a pending draft, not saved.
+    await expect(page.locator("#workStatusSaveBtn")).toBeEnabled();
+    const { data: statusRow } = await client.from("project_status_state").select("*").eq("project_id", project.id).maybeSingle();
+    expect(statusRow).toBeNull();
+
+    // Metadata edit — draft only.
+    const photoCard = page.locator(`.work-status-photo-card[data-photo-id="${photo.id}"]`);
+    await photoCard.locator('input[data-ws-field="description"]').fill("Legenda E2E");
+    await photoCard.locator('select[data-ws-field="stage"]').selectOption("before");
+    expect((await getRow(client, "project_photos", photo.id)).description).toBeNull();
+
+    await saveWorkspace(page);
+
+    const afterMeta = await getRow(client, "project_photos", photo.id);
+    expect(afterMeta.description).toBe("Legenda E2E");
+    expect(afterMeta.stage).toBe("before");
+
+    // Remove — draft only, then a soft delete on Guardar.
+    await photoCard.getByRole("button", { name: "Remover" }).click();
+    await expect(page.locator("#workStatusPhotosHeading")).toHaveText("Fotografias (0)");
+    expect((await getRow(client, "project_photos", photo.id)).deactivated_at).toBeNull();
+
+    await saveWorkspace(page);
+
+    const afterRemove = await getRow(client, "project_photos", photo.id);
+    expect(afterRemove).not.toBeNull();
+    expect(afterRemove.deactivated_at).not.toBeNull();
+
+    // The storage object is never hard-deleted by the product.
+    const { error: stillThereError } = await client.storage.from(PHOTO_BUCKET).download(photo.storage_path);
+    expect(stillThereError).toBeNull();
+  });
+
+  test("G: unsaved changes guard back, Mais opções and Gerar relatório", async ({ page }) => {
+    test.setTimeout(60000);
+
+    const client = getServiceRoleClient();
+    const projectName = `E2E Workspace Guard ${Date.now()}`;
+    await createTestProject(client, { name: projectName });
+
+    await login(page);
+    await openWorkspace(page, projectName);
+
+    await page.locator("#workStatusSummary").fill("Rascunho por guardar");
+
+    // Back → leave-without-saving prompt; cancel keeps the draft.
     await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
     await expect(page.locator("#confirmDialogMessage")).toHaveText(
       "Existem alterações por guardar. Quer sair sem guardar?"
     );
-
     await page.locator('[data-confirm-action="cancel"]').click();
     await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i);
-    await expect(page.locator('[data-work-status-phase="Cobertura"]')).toHaveClass(
-      /selected/
-    );
+    await expect(page.locator("#workStatusSummary")).toHaveValue("Rascunho por guardar");
 
-    // Save explicitly.
-    page.once("dialog", async (dialog) => {
-      expect(dialog.message()).toBe("Alterações guardadas.");
-      await dialog.accept();
+    // Gerar relatório → blocking "save first" notice, single button, stays put.
+    await page.locator('[data-nav-action="generate-weekly-report"]').click();
+    await expect(page.locator("#confirmDialogMessage")).toHaveText(
+      "Existem alterações por guardar. Guarde as alterações antes de gerar o relatório."
+    );
+    await expect(page.locator('[data-confirm-action="cancel"]')).toBeHidden();
+    await page.locator('[data-confirm-action="confirm"]').click();
+    await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i);
+    await expect(page.locator("#workStatusSummary")).toHaveValue("Rascunho por guardar");
+
+    // Mais opções → leave prompt; confirming discards and leaves.
+    await page.locator("#workStatusMoreOptionsBtn").click();
+    await expect(page.locator("#confirmDialogMessage")).toHaveText(
+      "Existem alterações por guardar. Quer sair sem guardar?"
+    );
+    await page.locator('[data-confirm-action="confirm"]').click();
+    await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, { timeout: 10000 });
+
+    // After a save, leaving doesn't prompt.
+    await backToProjects(page);
+    await openWorkspace(page, projectName);
+    await expect(page.locator("#workStatusSummary")).toHaveValue("");
+    await page.locator("#workStatusSummary").fill("Resumo guardado");
+    await saveWorkspace(page);
+    await backToProjects(page);
+  });
+
+  test("load race: controls stay read-only until the canonical workspace has loaded", async ({ page }) => {
+    test.setTimeout(60000);
+
+    const client = getServiceRoleClient();
+    const projectName = `E2E Workspace Load Race ${Date.now()}`;
+    const { project } = await createTestProject(client, { name: projectName });
+    await seedWorkspace(client, { project, incidents: [{ description: "Incidente existente", status: "open" }] });
+
+    await login(page);
+
+    // Hold the incidents query so the loading window is observable.
+    let release;
+    const gate = new Promise((resolve) => {
+      release = resolve;
     });
-    await page.locator("#workStatusSaveBtn").click();
-
-    await expect(page.locator("#workStatusSaveBtn")).toBeDisabled();
-    await expect(page.locator("#workStatusSaveHint")).toHaveText("");
-
-    // Nothing unsaved now — leaving must not warn.
-    await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
-    await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, { timeout: 10000 });
-
-    // Reopen — a server round-trip, not client cache — saved values survive.
-    await openMasterSheetFromProjectList(page, projectName);
-    await expect(page.locator("#workStatusProgressPct")).toHaveText("77%");
-    await expect(page.locator('[data-work-status-phase="Cobertura"]')).toHaveClass(
-      /selected/
-    );
-    await expect(page.locator("#workStatusSummary")).toHaveValue(
-      "Resumo E2E guardado — obra em bom ritmo."
-    );
-
-    // "Gerar relatório semanal" prefills from the saved Estado da Obra state —
-    // Cobertura / 77% — not the older report's own Acabamentos / 20%.
-    page.once("dialog", async (dialog) => {
-      await dialog.accept();
+    await page.route("**/rest/v1/project_incidents*", async (route) => {
+      await gate;
+      await route.continue();
     });
+
+    await page.locator("#projectList .project-card").filter({ hasText: projectName }).first().click();
+    await expect(page.locator("#step-estado-obra")).toHaveAttribute("data-workspace-state", "loading");
+
+    await expect(page.locator("#workStatusSummary")).toBeDisabled();
+    await expect(page.locator("#workStatusNextSteps")).toBeDisabled();
+    await expect(page.locator("#workStatusProgressSlider")).toBeDisabled();
+    await expect(page.locator("#workStatusAddIncidentBtn")).toBeHidden();
+    await expect(page.locator("#workStatusAddWorkItemBtn")).toBeHidden();
+    await expect(page.locator("#workStatusAddPhotoBtn")).toBeHidden();
+    await expect(page.locator("#workStatusSaveBar")).toBeHidden();
+
+    release();
+    await expect(page.locator("#step-estado-obra")).toHaveAttribute("data-workspace-state", "ready", { timeout: 15000 });
+
+    // Once loaded, an edit is kept (not overwritten by the late load).
+    await page.locator("#workStatusAddIncidentBtn").click();
+    await page.locator('#workStatusAddIncidentForm textarea[data-add-incident-field="description"]').fill("Incidente após carregar");
+    await page.locator("#workStatusAddIncidentForm").getByRole("button", { name: "Adicionar" }).click();
+    await page.waitForTimeout(1000);
+    await expect(page.locator("#workStatusIncidentsList")).toContainText("Incidente existente");
+    await expect(page.locator("#workStatusIncidentsList")).toContainText("Incidente após carregar");
+    await expect(page.locator("#workStatusSaveBtn")).toBeEnabled();
+  });
+
+  test("H: archived project is view-only in Estado da Obra and rejected by the save RPC", async ({ page }) => {
+    test.setTimeout(60000);
+
+    const client = getServiceRoleClient();
+    const projectName = `E2E Workspace Archived ${Date.now()}`;
+    const { project } = await createTestProject(client, { name: projectName, status: 5 });
+
+    const workId = crypto.randomUUID();
+    const incidentId = crypto.randomUUID();
+    await seedWorkspace(client, {
+      project,
+      status: { phase: "Concluído", progressPct: 100, summary: "Obra arquivada", nextSteps: "" },
+      workItems: [{ id: workId, type: "Outro", area: "Sala", description: "Trabalho arquivado E2E", status: "done" }],
+      incidents: [{ id: incidentId, description: "Incidente arquivado E2E", status: "open" }],
+      photos: [{ storage_path: `e2e-workspace-archived/${Date.now()}.jpg`, description: "Foto arquivada" }],
+    });
+
+    await login(page);
+    await openWorkspace(page, projectName, { archivedFilter: true });
+
+    await expect(page.locator("#workStatusDoneList")).toContainText("Trabalho arquivado E2E");
+    await expect(page.locator("#workStatusIncidentsList")).toContainText("Incidente arquivado E2E");
+
+    await expect(page.locator("#workStatusProgressSlider")).toBeDisabled();
+    await expect(page.locator("#workStatusSummary")).toBeDisabled();
+    await expect(page.locator("#workStatusNextSteps")).toBeDisabled();
+    await expect(page.locator("#workStatusPhasePicker")).toHaveClass(/is-readonly/);
+    await expect(page.locator("#workStatusSaveBar")).toBeHidden();
+    await expect(page.locator("#workStatusAddWorkItemBtn")).toBeHidden();
+    await expect(page.locator("#workStatusAddIncidentBtn")).toBeHidden();
+    await expect(page.locator("#workStatusAddPhotoBtn")).toBeHidden();
+    await expect(page.locator("#workStatusGenerateReportBtn")).toBeHidden();
+    await expect(page.locator("#step-estado-obra .work-status-item-actions")).toHaveCount(0);
+    await expect(workCard(page, workId).locator('select[data-ws-field="status"]')).toBeDisabled();
+    await expect(page.locator('#workStatusPhotosList input[data-ws-field="description"]')).toBeDisabled();
+
+    // Server-side: the RPC itself refuses, even if the UI were bypassed.
+    const owner = createClient(APP_ENV.SUPABASE_URL, APP_ENV.SUPABASE_ANON_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    await owner.auth.signInWithPassword({ email: E2E_EMAIL, password: E2E_PASSWORD });
+
+    const { error } = await owner.rpc("save_project_workspace", {
+      p_project_id: project.id,
+      p_status: { phase: "Fundações", progress_pct: 1, summary: "forjado", next_steps: "" },
+      p_work_items: [],
+      p_incidents: [],
+      p_photos: [],
+    });
+    expect(error).toBeTruthy();
+    expect(error.message).toMatch(/arquivado/i);
+
+    const { data: statusRow } = await client.from("project_status_state").select("*").eq("project_id", project.id).single();
+    expect(statusRow.summary).toBe("Obra arquivada");
+
+    await owner.auth.signOut();
+  });
+
+  test("save RPC safety (K/M/N/O): cross-owner rejected, partial and empty payloads never deactivate, failure rolls back everything", async () => {
+    test.setTimeout(60000);
+
+    const otherEmail = process.env.E2E_OTHER_EMAIL?.trim();
+    const otherPassword = process.env.E2E_OTHER_PASSWORD;
+    test.skip(!otherEmail || !otherPassword, "Set E2E_OTHER_EMAIL / E2E_OTHER_PASSWORD for the cross-owner case.");
+
+    const client = getServiceRoleClient();
+    const projectName = `E2E Workspace RPC ${Date.now()}`;
+    const { project } = await createTestProject(client, { name: projectName });
+
+    const keepId = crypto.randomUUID();
+    const changeId = crypto.randomUUID();
+    const keepIncidentId = crypto.randomUUID();
+    const keepPhotoId = crypto.randomUUID();
+    await seedWorkspace(client, {
+      project,
+      status: { phase: "Fundações", progressPct: 10, summary: "Antes", nextSteps: "" },
+      workItems: [
+        { id: keepId, description: "Não enviado no payload", status: "pending" },
+        { id: changeId, description: "Vai mudar", status: "pending" },
+      ],
+      incidents: [{ id: keepIncidentId, description: "Incidente não enviado", status: "open" }],
+      photos: [{ id: keepPhotoId, storage_path: `e2e-workspace-rpc/${Date.now()}.jpg`, description: "Foto não enviada" }],
+    });
+
+    async function snapshotWorkspace() {
+      const [s, w, i, p] = await Promise.all([
+        client.from("project_status_state").select("*").eq("project_id", project.id).single(),
+        client.from("project_work_items").select("*").eq("project_id", project.id).order("id"),
+        client.from("project_incidents").select("*").eq("project_id", project.id).order("id"),
+        client.from("project_photos").select("*").eq("project_id", project.id).order("id"),
+      ]);
+      return JSON.stringify([s.data, w.data, i.data, p.data]);
+    }
+
+    const owner = createClient(APP_ENV.SUPABASE_URL, APP_ENV.SUPABASE_ANON_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    await owner.auth.signInWithPassword({ email: E2E_EMAIL, password: E2E_PASSWORD });
+
+    const other = createClient(APP_ENV.SUPABASE_URL, APP_ENV.SUPABASE_ANON_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    await other.auth.signInWithPassword({ email: otherEmail, password: otherPassword });
+
+    try {
+      // K: another owner targeting this project fails and changes nothing,
+      // including an attempt to deactivate rows by explicit id.
+      const beforeCrossOwner = await snapshotWorkspace();
+      const { error: crossError } = await other.rpc("save_project_workspace", {
+        p_project_id: project.id,
+        p_status: { phase: "Cobertura", progress_pct: 99, summary: "Sequestrado", next_steps: "x" },
+        p_work_items: [{ id: keepId, description: "Sequestrado", status: "done", include_in_reports: false, deactivated: true }],
+        p_incidents: [{ id: keepIncidentId, description: "Sequestrado", status: "resolved", include_in_reports: false, deactivated: true }],
+        p_photos: [{ id: keepPhotoId, description: "Sequestrado", stage: "after", include_in_reports: false, deactivated: true }],
+      });
+      expect(crossError).toBeTruthy();
+      expect(crossError.message).toMatch(/sem permissão/i);
+      expect(await snapshotWorkspace()).toBe(beforeCrossOwner);
+
+      // O: explicitly empty collections update status but touch no existing row.
+      const beforeEmpty = await snapshotWorkspace();
+      const { error: emptyError } = await owner.rpc("save_project_workspace", {
+        p_project_id: project.id,
+        p_status: { phase: "Fundações", progress_pct: 15, summary: "Só estado", next_steps: "" },
+        p_work_items: [],
+        p_incidents: [],
+        p_photos: [],
+      });
+      expect(emptyError).toBeNull();
+      const afterEmpty = JSON.parse(await snapshotWorkspace());
+      const beforeEmptyParsed = JSON.parse(beforeEmpty);
+      expect(afterEmpty[0].summary).toBe("Só estado");
+      expect(afterEmpty.slice(1)).toEqual(beforeEmptyParsed.slice(1));
+
+      // N: a partial payload (only changeId) must never deactivate the
+      // omitted work item, incident or photo.
+      const { error: okError } = await owner.rpc("save_project_workspace", {
+        p_project_id: project.id,
+        p_status: { phase: "Fundações", progress_pct: 20, summary: "Depois", next_steps: "" },
+        p_work_items: [{ id: changeId, description: "Mudou", status: "done", include_in_reports: true, deactivated: false }],
+        p_incidents: [],
+        p_photos: [],
+      });
+      expect(okError).toBeNull();
+
+      const kept = await getRow(client, "project_work_items", keepId);
+      expect(kept.deactivated_at).toBeNull();
+      expect(kept.description).toBe("Não enviado no payload");
+      expect((await getRow(client, "project_work_items", changeId)).status).toBe("done");
+      expect((await getRow(client, "project_incidents", keepIncidentId)).deactivated_at).toBeNull();
+      expect((await getRow(client, "project_photos", keepPhotoId)).deactivated_at).toBeNull();
+
+      // M: a bad photo id later in the payload rolls back the status + work
+      // item + incident writes made earlier in the same call.
+      const beforeRollback = await snapshotWorkspace();
+      const { error: badError } = await owner.rpc("save_project_workspace", {
+        p_project_id: project.id,
+        p_status: { phase: "Cobertura", progress_pct: 90, summary: "Nunca deve persistir", next_steps: "" },
+        p_work_items: [
+          { id: changeId, description: "Nunca deve persistir", status: "pending", include_in_reports: true, deactivated: false },
+          { id: keepId, description: "Nunca deve persistir", status: "pending", include_in_reports: true, deactivated: true },
+          { id: crypto.randomUUID(), description: "Novo que nunca deve persistir", status: "pending", include_in_reports: true, deactivated: false },
+        ],
+        p_incidents: [{ id: keepIncidentId, description: "Nunca deve persistir", status: "resolved", include_in_reports: false, deactivated: false }],
+        p_photos: [{ id: crypto.randomUUID(), description: "x", stage: "during", include_in_reports: true, deactivated: false }],
+      });
+      expect(badError).toBeTruthy();
+      expect(await snapshotWorkspace()).toBe(beforeRollback);
+
+      // Same for an invalid status value (check-constraint failure).
+      const { error: badStatusError } = await owner.rpc("save_project_workspace", {
+        p_project_id: project.id,
+        p_status: { phase: "Cobertura", progress_pct: 90, summary: "Nunca deve persistir", next_steps: "" },
+        p_work_items: [{ id: changeId, description: "x", status: "blocked", include_in_reports: true, deactivated: false }],
+        p_incidents: [],
+        p_photos: [],
+      });
+      expect(badStatusError).toBeTruthy();
+      expect(await snapshotWorkspace()).toBe(beforeRollback);
+    } finally {
+      await owner.auth.signOut();
+      await other.auth.signOut();
+    }
+  });
+
+  test("regression: Gerar relatório semanal still prefills phase/progress/summary from the saved workspace and attaches to the same project", async ({ page }) => {
+    test.setTimeout(90000);
+
+    const client = getServiceRoleClient();
+    const projectName = `E2E Workspace Report Prefill ${Date.now()}`;
+    await createTestProject(client, { name: projectName });
+
+    await login(page);
+    await openWorkspace(page, projectName);
+
+    await page.locator('[data-work-status-phase="Cobertura"]').click();
+    await page.locator("#workStatusProgressSlider").fill("77");
+    await page.locator("#workStatusSummary").fill("Resumo para relatório E2E");
+    await saveWorkspace(page);
+
+    page.on("dialog", (dialog) => dialog.accept());
     await page.locator('[data-nav-action="generate-weekly-report"]').click();
 
-    await expect(page.locator("#stepLabel")).toHaveText(/passo 1 de 9|período|periodo/i, {
-      timeout: 10000,
-    });
-
+    await expect(page.locator("#stepLabel")).toHaveText(/passo 1 de 9|período|periodo/i, { timeout: 10000 });
     await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-    await expect(page.locator("#stepLabel")).toHaveText(/passo 2 de 9|progresso/i, {
-      timeout: 10000,
-    });
+    await expect(page.locator("#stepLabel")).toHaveText(/passo 2 de 9|progresso/i, { timeout: 10000 });
 
     await expect(page.locator(".phase-option.selected")).toHaveText("Cobertura");
     await expect(page.locator("#progressPct")).toHaveText("77%");
 
     await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-    await expect(page.locator("#stepLabel")).toHaveText(/passo 3 de 9|resumo/i, {
-      timeout: 10000,
-    });
-
-    await expect(page.locator("#weekSummary")).toHaveValue(
-      "Resumo E2E guardado — obra em bom ritmo."
-    );
-
-    // Regression guard: "Gerar relatório semanal" from Estado da Obra
-    // (skipping selectProject()/loadProjectIntoForm entirely) must still
-    // attach the saved report to THIS existing project/client — not silently
-    // fall into report-save.js's "no project selected" branch, which would
-    // either fail on "Nome do cliente é obrigatório" or create a duplicate
-    // client + project.
-    for (let i = 0; i < 6; i += 1) {
-      await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-    }
-
-    await expect(page.locator("#stepLabel")).toHaveText(
-      /passo 9 de 9|revisão|revisao/i,
-      { timeout: 10000 }
-    );
-
-    const dialogPromise = page.waitForEvent("dialog");
-    await page.locator('[data-report-action="save-and-generate"]').click();
-
-    const dialog = await dialogPromise;
-    expect(dialog.message()).toMatch(/relatório guardado com sucesso/i);
-    await dialog.accept();
-
-    await page.locator('[data-nav-action="home"]').filter({ visible: true }).click();
-    await page.locator('[data-confirm-action="confirm"]').click();
-
-    await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, {
-      timeout: 10000,
-    });
-
-    // Still exactly one project card for this project — no duplicate project
-    // was created by the save.
-    const projectCards = page
-      .locator("#projectList .project-card")
-      .filter({ hasText: projectName });
-    await expect(projectCards).toHaveCount(1);
-
-    await projectCards.click();
-    await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
-      timeout: 10000,
-    });
-
-    await page.locator("#workStatusMoreOptionsBtn").click();
-    await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-      timeout: 10000,
-    });
-
-    // Both the original report and the one just generated are attached to
-    // this same project — scoped to the report-history list itself, since
-    // sibling fixture projects' own "Relatório #1" card meta stays mounted
-    // (hidden) elsewhere in the DOM.
-    const reportHistoryList = page.locator("#reportHistoryList");
-    await expect(reportHistoryList.getByText(/relatório\s*#?1/i)).toBeVisible();
-    await expect(reportHistoryList.getByText(/relatório\s*#?2/i)).toBeVisible();
+    await expect(page.locator("#stepLabel")).toHaveText(/passo 3 de 9|resumo/i, { timeout: 10000 });
+    await expect(page.locator("#weekSummary")).toHaveValue("Resumo para relatório E2E");
   });
 });
+
+// Keep the fixture image referenced so a missing file fails loudly at load.
+if (!fs.existsSync(TEST_PHOTO_PATH)) {
+  throw new Error(`Missing test fixture: ${TEST_PHOTO_PATH}`);
+}

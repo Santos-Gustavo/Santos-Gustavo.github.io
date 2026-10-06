@@ -15,7 +15,11 @@ import { renderExtras } from "#projects/sections/extras.js";
 import { renderNextSteps } from "#projects/sections/next-steps.js";
 import { updateIncidentsUI, updatePhaseUI, syncProgressSlider } from "#ui/ui-controls.js";
 import { getOpenWorkItemsForPrefill, getSavedProjectStatusForPrefill } from "#projects/project-work-items.js";
-import { hasUnsavedWorkStatusChanges } from "#projects/project-work-items-ui.js";
+import {
+  hasUnsavedWorkStatusChanges,
+  confirmLeaveEstadoObraIfDirty,
+  confirmGenerateReportAllowed,
+} from "#projects/project-work-items-ui.js";
 import { getProjectStatusLabel, canCreateWeeklyReport, canCreateLegalFinancialReport } from "#projects/project-status-rules.js";
 import { renderProjectModePage } from "#projects/project-mode-page.js";
 import { openClientsPage } from "#clients/client-index.js";
@@ -457,21 +461,6 @@ function showPrefillNotice() {
   alert("Último relatório encontrado. Os dados foram pré-preenchidos. Atualize apenas o que mudou esta semana.");
 }
 
-// PROJECT-HUB-INTEGRATION-001 — guards leaving Estado da Obra (back button or
-// the "Gerar relatório semanal" shortcut) when Fase atual/Progresso
-// geral/Resumo da obra were edited but never saved. Resolves true when it's
-// safe to proceed (nothing unsaved, or the user confirmed leaving anyway).
-async function confirmLeaveEstadoObraIfDirty() {
-  if (!hasUnsavedWorkStatusChanges()) return true;
-
-  return confirmAction({
-    title: "Sair sem guardar?",
-    message: "Existem alterações por guardar. Quer sair sem guardar?",
-    confirmLabel: "Sair sem guardar",
-    cancelLabel: "Cancelar",
-  });
-}
-
 async function handleNavigationClick(event) {
   const trigger = event.target.closest("[data-nav-action]");
 
@@ -503,7 +492,7 @@ async function handleNavigationClick(event) {
   // select-mode/weekly) so it doesn't collide with the mode-picker tile's
   // identical data-mode="weekly" selector while both sit in the DOM at once.
   if (action === "generate-weekly-report") {
-    if (!(await confirmLeaveEstadoObraIfDirty())) return;
+    if (!(await confirmGenerateReportAllowed())) return;
 
     await selectMode("weekly");
     return;
@@ -522,6 +511,11 @@ async function handleNavigationClick(event) {
   }
 
   if (action === "home") {
+    if (hasUnsavedWorkStatusChanges()) {
+      if (await confirmLeaveEstadoObraIfDirty()) goHome();
+      return;
+    }
+
     const confirmed = await confirmAction({
       title: "Voltar ao início?",
       message: "Pode perder alterações que ainda não foram guardadas. Quer continuar?",
