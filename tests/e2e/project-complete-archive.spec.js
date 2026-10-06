@@ -63,12 +63,12 @@ async function createProject(page, { projectName, clientName, contractNum }) {
 
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 20000,
   });
 
-  await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/em curso/i, {
+  await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/em curso/i, {
     timeout: 10000,
   });
 }
@@ -89,21 +89,15 @@ async function selectProjectFromCurrentList(page, projectName) {
   await expect(projectCard).toHaveCount(1, { timeout: 15000 });
 
   // PROJECT-HUB-INTEGRATION-001 — the card itself opens Estado da Obra;
-  // "Mais opções" (the mode picker / lifecycle actions) now lives inside
-  // Estado da Obra's own header, not on this card.
+  // lifecycle actions, Legal / Financeiro and saved reports live there
+  // (POST-RELEASE-POLISH-001 removed the "Tipo de Relatório" page).
   await projectCard.first().click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 10000,
   });
 
-  await page.locator("#workStatusMoreOptionsBtn").click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-    timeout: 10000,
-  });
-
-  await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
+  await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
 }
 
 test("project can be completed and archived", async ({ page }) => {
@@ -139,7 +133,7 @@ test("project can be completed and archived", async ({ page }) => {
     .filter({ visible: true })
     .click();
 
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/concluída/i, {
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/concluída/i, {
     timeout: 15000,
   });
 
@@ -174,7 +168,7 @@ test("project can be completed and archived", async ({ page }) => {
 
   await selectProjectFromCurrentList(page, projectName);
 
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/concluída/i, {
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/concluída/i, {
     timeout: 10000,
   });
 
@@ -196,7 +190,7 @@ test("project can be completed and archived", async ({ page }) => {
     .filter({ visible: true })
     .click();
 
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/arquivada/i, {
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/arquivada/i, {
     timeout: 15000,
   });
 

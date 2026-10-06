@@ -74,7 +74,7 @@ test("created project appears in project list and can be reopened", async ({
 
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 20000,
   });
 
@@ -93,23 +93,16 @@ test("created project appears in project list and can be reopened", async ({
   });
 
   // PROJECT-HUB-INTEGRATION-001 — the card itself opens Estado da Obra;
-  // "Mais opções" (mode picker) now lives inside Estado da Obra's own header.
+  // Saved reports, Legal / Financeiro and lifecycle actions live there.
   await projectCard.click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 10000,
   });
 
-  await page.locator("#workStatusMoreOptionsBtn").click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-    timeout: 10000,
-  });
-
-  await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
-  // Exact text — "Relatório Semanal" is the mode-picker tile (it opens Estado
-  // da Obra since ESTADO-DA-OBRA-WORKSPACE-001 Phase 4); a loose /i regex could
-  // also match other report buttons that sit in the DOM at the same time.
-  await expect(page.getByText("Relatório Semanal", { exact: true })).toBeVisible();
+  await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
+  // The project hub offers both report paths.
+  await expect(page.locator("#workStatusGenerateReportBtn")).toBeVisible();
+  await expect(page.locator("#workStatusLegalBtn")).toBeVisible();
   await expect(page.getByText(/legal \/ financeiro/i)).toBeVisible();
 });

@@ -8,29 +8,29 @@ import {
   getProjectStatusLabel,
 } from "#projects/project-status-rules.js";
 
-export function renderProjectModePage(project) {
-  renderProjectModeHeader(project);
+// POST-RELEASE-POLISH-001 — the old "Tipo de Relatório" page is gone; the
+// project's status line and lifecycle actions (pausar, retomar, concluir,
+// arquivar, ocultar, reabrir — whichever the status rules allow) now render
+// in Estado da Obra's header.
+export function renderProjectHubActions(project) {
+  const status = document.getElementById("workStatusProjectStatus");
+
+  if (status) {
+    status.textContent = project ? getProjectStatusLabel(project.status) : "";
+  }
+
   renderProjectLifecycleActions(project);
-}
-
-function renderProjectModeHeader(project) {
-  const modeProjectLabel = document.getElementById("modeProjectLabel");
-
-  if (modeProjectLabel) {
-    modeProjectLabel.textContent = project?.name || "";
-  }
-
-  const modeProjectStatus = document.getElementById("modeProjectStatus");
-
-  if (modeProjectStatus) {
-    modeProjectStatus.textContent = getProjectStatusLabel(project?.status);
-  }
 }
 
 function renderProjectLifecycleActions(project) {
   const container = document.getElementById("projectLifecycleActions");
 
-  if (!container || !project?.id) {
+  if (!container) {
+    return;
+  }
+
+  if (!project?.id) {
+    container.innerHTML = "";
     return;
   }
 

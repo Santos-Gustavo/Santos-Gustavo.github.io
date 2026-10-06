@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createCanonicalReportFromModePage } from "./helpers/canonical-report-helper.js";
+import { createCanonicalReportInEstadoDaObra } from "./helpers/canonical-report-helper.js";
 
 const E2E_EMAIL =
   process.env.E2E_EMAIL ||
@@ -60,11 +60,11 @@ async function createProject(page, { projectName, clientName, contractNum }) {
 
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 20000,
   });
 
-  await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
+  await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
 }
 
 async function goBackToProjectList(page) {
@@ -83,21 +83,15 @@ async function selectProjectFromCurrentList(page, projectName) {
   await expect(projectCard).toHaveCount(1, { timeout: 15000 });
 
   // PROJECT-HUB-INTEGRATION-001 — the card itself opens Estado da Obra;
-  // "Mais opções" (the mode picker / lifecycle actions) now lives inside
-  // Estado da Obra's own header, not on this card.
+  // lifecycle actions, Legal / Financeiro and saved reports live there
+  // (POST-RELEASE-POLISH-001 removed the "Tipo de Relatório" page).
   await projectCard.first().click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 10000,
   });
 
-  await page.locator("#workStatusMoreOptionsBtn").click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-    timeout: 10000,
-  });
-
-  await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
+  await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
 }
 
 test("archived project still shows saved report history and evidence stays accessible", async ({
@@ -117,7 +111,7 @@ test("archived project still shows saved report history and evidence stays acces
 
   // ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — generated from the saved Estado
   // da Obra (ends back on the project list).
-  await createCanonicalReportFromModePage(page, {
+  await createCanonicalReportInEstadoDaObra(page, {
     progress: "45",
     summary: "Resumo E2E para validar evidência após arquivamento do projeto.",
     workDescription: "Trabalho de teste para validar evidência preservada após arquivamento.",
@@ -143,7 +137,7 @@ test("archived project still shows saved report history and evidence stays acces
     .filter({ visible: true })
     .click();
 
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/concluída/i, {
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/concluída/i, {
     timeout: 15000,
   });
 
@@ -157,7 +151,7 @@ test("archived project still shows saved report history and evidence stays acces
     .filter({ visible: true })
     .click();
 
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/arquivada/i, {
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/arquivada/i, {
     timeout: 15000,
   });
 

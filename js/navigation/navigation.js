@@ -20,8 +20,7 @@ import {
   confirmLeaveEstadoObraIfDirty,
   openProjectMasterSheet,
 } from "#projects/project-work-items-ui.js";
-import { getProjectStatusLabel, canCreateWeeklyReport, canCreateLegalFinancialReport } from "#projects/project-status-rules.js";
-import { renderProjectModePage } from "#projects/project-mode-page.js";
+import { canCreateWeeklyReport, canCreateLegalFinancialReport } from "#projects/project-status-rules.js";
 import { openClientsPage } from "#clients/client-index.js";
 import { openCompanyProfilePage } from "#company/company-index.js";
 import { confirmAction } from "#ui/confirm-dialog.js";
@@ -90,12 +89,6 @@ export function updateTopBar(id) {
   if (id === "clients") {
     fill.style.width = "0%";
     label.textContent = "Clientes";
-    return;
-  }
-
-  if (id === "mode") {
-    fill.style.width = "3%";
-    label.textContent = "Tipo de Relatório";
     return;
   }
 
@@ -194,25 +187,11 @@ export async function goNext() {
       return;
     }
 
-    const projectName =
-      document.getElementById("projectName")?.value || "Novo Projeto";
-
-    const modeProjectLabel = document.getElementById("modeProjectLabel");
-    if (modeProjectLabel) {
-      modeProjectLabel.textContent = projectName;
-    }
-
-    const modeProjectStatus = document.getElementById("modeProjectStatus");
-    if (modeProjectStatus) {
-      modeProjectStatus.textContent = getProjectStatusLabel(saved.project.status);
-    }
-
-    goToStepId("mode");
-
+    // A new project lands in Estado da Obra, the project hub (there is no
+    // "Tipo de Relatório" page any more).
     appState.currentProject = saved.project;
-
     upsertProjectInCache(saved.project);
-    renderProjectModePage(saved.project);
+    await openProjectMasterSheet(saved.project.id);
     return;
   }
 
@@ -250,12 +229,6 @@ export function goBack() {
     return;
   }
 
-  if (cur === "mode") {
-    goToStepId("projects");
-    renderProjectList();
-    return;
-  }
-
   if (cur === "estado-obra") {
     goToStepId("projects");
     renderProjectList();
@@ -280,7 +253,15 @@ export function goBack() {
   const idx = state.flow.indexOf(cur);
 
   if (idx <= 0) {
-    goToStepId("mode");
+    // Leaving the legal/financial wizard from its first step: back to the
+    // project's Estado da Obra, where it was started.
+    state.mode = "";
+    state.flow = null;
+    if (appState.currentProjectId) {
+      openProjectMasterSheet(appState.currentProjectId);
+    } else {
+      goHome();
+    }
   } else {
     goToStepId(state.flow[idx - 1]);
   }
@@ -316,16 +297,6 @@ export function goHome() {
   const progressFill = document.getElementById("progressFill");
   if (progressFill) {
     progressFill.style.width = "0%";
-  }
-
-  const modeProjectLabel = document.getElementById("modeProjectLabel");
-  if (modeProjectLabel) {
-    modeProjectLabel.textContent = "";
-  }
-
-  const modeProjectStatus = document.getElementById("modeProjectStatus");
-  if (modeProjectStatus) {
-    modeProjectStatus.textContent = "";
   }
 
   renderProjectList();
@@ -488,15 +459,14 @@ async function handleNavigationClick(event) {
     return;
   }
 
-  // ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — the mode page's "Relatório
-  // Semanal" tile opens Estado da Obra, where "Gerar relatório" exports the
-  // saved canonical state. The old weekly wizard (selectMode("weekly")) is no
-  // longer routed to from the product; its code stays until dead-code cleanup
-  // because the legal/financial wizard still shares it.
-  if (action === "open-estado-obra") {
-    if (appState.currentProjectId) {
-      await openProjectMasterSheet(appState.currentProjectId);
-    }
+  // POST-RELEASE-POLISH-001 — Estado da Obra's "Legal / Financeiro" button
+  // goes straight into the legal/financial wizard (the "Tipo de Relatório"
+  // page is gone). Weekly reports come from "Gerar relatório"; the old weekly
+  // wizard (selectMode("weekly")) is not routed to from the product — its
+  // code stays until dead-code cleanup because the legal wizard shares it.
+  if (action === "open-legal") {
+    if (!(await confirmLeaveEstadoObraIfDirty())) return;
+    await selectMode("legal");
     return;
   }
 

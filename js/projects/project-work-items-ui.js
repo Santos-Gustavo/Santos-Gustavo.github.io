@@ -20,7 +20,13 @@
 import { appState } from "#state/app-state.js";
 import { getProjectById } from "#projects/project-list.js";
 import { goToStepId } from "#navigation/navigation.js";
-import { canEditProject, canCreateWeeklyReport } from "#projects/project-status-rules.js";
+import {
+  canEditProject,
+  canCreateWeeklyReport,
+  canCreateLegalFinancialReport,
+} from "#projects/project-status-rules.js";
+import { renderProjectHubActions } from "#projects/project-mode-page.js";
+import { renderReportHistory } from "#reports/report-history.js";
 import { loadProjectIntoForm } from "#projects/project-form.js";
 import { JOB_TYPES, AREAS } from "#config/app-options.js";
 import { confirmAction } from "#ui/confirm-dialog.js";
@@ -141,8 +147,8 @@ export async function openProjectMasterSheet(projectId) {
   }
 
   appState.currentWorkStatusProjectId = project.id;
-  // Shared "current project" context — "Mais opções" (mode page, legal
-  // report, history) reads these.
+  // Shared "current project" context — the legal/financial wizard, the
+  // lifecycle actions and the report history read these.
   appState.currentCompanyId = project.companyId;
   appState.currentClientId = project.clientId;
   appState.currentProjectId = project.id;
@@ -157,6 +163,14 @@ export async function openProjectMasterSheet(projectId) {
   if (generateReportBtn) {
     generateReportBtn.hidden = !canCreateWeeklyReport(project);
   }
+
+  const legalBtn = document.getElementById("workStatusLegalBtn");
+  if (legalBtn) {
+    legalBtn.hidden = !canCreateLegalFinancialReport(project);
+  }
+
+  renderProjectHubActions(project);
+  renderReportHistory(project.id).catch(console.error);
 
   await loadAndRender(project);
 }
@@ -241,6 +255,7 @@ async function handleGenerateReport() {
     showGeneratedReport({ report, projectName: project.name });
     // The next report's automatic period now starts after this one.
     void prefillReportPeriod(project, loadToken);
+    renderReportHistory(project.id).catch(console.error);
   } catch (error) {
     console.error("Error generating report:", error);
     closePendingReportTab(reportTab);
@@ -258,11 +273,9 @@ async function handleGenerateReport() {
 function renderHeader(project) {
   const nameEl = document.getElementById("workStatusProjectLabel");
   const clientEl = document.getElementById("workStatusClientLabel");
-  const moreOptionsBtn = document.getElementById("workStatusMoreOptionsBtn");
 
   if (nameEl) nameEl.textContent = project.name || "";
   if (clientEl) clientEl.textContent = project.clientName ? `Cliente: ${project.clientName}` : "";
-  if (moreOptionsBtn) moreOptionsBtn.dataset.projectId = project.id;
 }
 
 // The screen stays read-only until the workspace has loaded: an edit made

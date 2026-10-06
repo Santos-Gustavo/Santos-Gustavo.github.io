@@ -162,49 +162,6 @@
     </div>
   </div>
 
-  <!-- LAYER 1: MODE PICKER -->
-  <div class="step" id="step-mode">
-    <div class="step-content">
-      <div class="step-header">
-        <h2>Tipo de Relatório</h2>
-        <p id="modeProjectLabel"></p>
-        <p id="modeProjectStatus" class="mode-project-status"></p>
-        <div
-          id="projectLifecycleActions"
-          class="project-lifecycle-actions"
-          aria-label="Ações da projeto"
-        ></div>
-      </div>
-      <div class="mode-picker">
-        <!-- Weekly reports are generated from the saved Estado da Obra
-             (ESTADO-DA-OBRA-WORKSPACE-001 Phase 4) — this tile opens it
-             instead of the old 9-step weekly wizard. -->
-        <div class="mode-card" data-nav-action="open-estado-obra">
-          <div class="mode-icon">📋</div>
-          <div class="mode-title">Relatório Semanal</div>
-          <div class="mode-desc">Gerado a partir do Estado da Obra guardado: progresso, trabalhos, incidentes, fotos e próximos passos.</div>
-        </div>
-        <div class="mode-card" data-nav-action="select-mode" data-mode="legal">
-          <div class="mode-icon">⚖️</div>
-          <div class="mode-title">Legal / Financeiro</div>
-          <div class="mode-desc">Trabalhos extra, alterações ao contrato, resumo financeiro acumulado e acuse de recibo com assinatura do cliente.</div>
-        </div>
-
-        
-        <div class="card">
-          <h3>Relatórios guardados</h3>
-          <div id="reportHistoryList">
-            <p class="empty-hint">Selecione um projeto para ver relatórios anteriores.</p>
-          </div>
-        </div>
-
-      </div>
-    </div>
-    <div class="nav-bar">
-      <button class="btn btn-back" data-nav-action="back">← Projetos</button>
-    </div>
-  </div>
-
   <!-- LAYER 0d: ESTADO DA OBRA — the canonical project workspace
        (ESTADO-DA-OBRA-WORKSPACE-001): status, work items, incidents, next steps
        and photos, edited as one local draft and persisted only via
@@ -214,15 +171,26 @@
       <div class="step-header">
         <h2>Estado da Obra</h2>
         <p id="workStatusProjectLabel"></p>
-        <p id="workStatusClientLabel" class="mode-project-status"></p>
-        <button
-          type="button"
-          class="btn-project-work-status work-status-more-options-btn"
-          data-project-action="more-options"
-          id="workStatusMoreOptionsBtn"
-        >
-          Mais opções
-        </button>
+        <p id="workStatusClientLabel" class="work-status-client-label"></p>
+        <p id="workStatusProjectStatus" class="mode-project-status"></p>
+        <!-- Estado da Obra is the project hub (the old "Tipo de Relatório"
+             page is gone): the legal/financial report and the project's
+             lifecycle actions start here. -->
+        <div class="work-status-header-actions">
+          <button
+            type="button"
+            class="btn-project-work-status work-status-more-options-btn"
+            data-nav-action="open-legal"
+            id="workStatusLegalBtn"
+          >
+            Legal / Financeiro
+          </button>
+        </div>
+        <div
+          id="projectLifecycleActions"
+          class="project-lifecycle-actions"
+          aria-label="Ações do projeto"
+        ></div>
       </div>
 
       <div class="card work-status-progress-card">
@@ -332,6 +300,13 @@
       </div>
 
       <div class="card report-result" id="workStatusReportResult" hidden></div>
+
+      <div class="card work-status-history-card">
+        <h3>Relatórios guardados</h3>
+        <div id="reportHistoryList">
+          <p class="empty-hint">A carregar relatórios...</p>
+        </div>
+      </div>
     </div>
     <!-- Sticky footer: the single manual save for the whole workspace draft
          (shown only while there is something to save or report) sits right

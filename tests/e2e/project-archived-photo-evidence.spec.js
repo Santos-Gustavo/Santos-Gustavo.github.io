@@ -1,6 +1,6 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
-import { createCanonicalReportFromModePage, readOpenedReport } from "./helpers/canonical-report-helper.js";
+import { createCanonicalReportInEstadoDaObra, readOpenedReport } from "./helpers/canonical-report-helper.js";
 
 const TEST_PHOTO_PATH = path.join(__dirname, "fixtures", "test-photo.png");
 
@@ -63,11 +63,11 @@ async function createProject(page, { projectName, clientName, contractNum }) {
 
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 20000,
   });
 
-  await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
+  await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
 }
 
 async function selectProjectFromCurrentList(page, projectName) {
@@ -78,21 +78,15 @@ async function selectProjectFromCurrentList(page, projectName) {
   await expect(projectCard).toHaveCount(1, { timeout: 15000 });
 
   // PROJECT-HUB-INTEGRATION-001 — the card itself opens Estado da Obra;
-  // "Mais opções" (the mode picker / lifecycle actions) now lives inside
-  // Estado da Obra's own header, not on this card.
+  // lifecycle actions, Legal / Financeiro and saved reports live there
+  // (POST-RELEASE-POLISH-001 removed the "Tipo de Relatório" page).
   await projectCard.first().click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 10000,
   });
 
-  await page.locator("#workStatusMoreOptionsBtn").click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-    timeout: 10000,
-  });
-
-  await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
+  await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
 }
 
 test("photo evidence attached to a report remains preserved after the project is archived", async ({
@@ -112,7 +106,7 @@ test("photo evidence attached to a report remains preserved after the project is
 
   // ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — the photo is added in Estado da
   // Obra and frozen into the report generated from the saved workspace.
-  await createCanonicalReportFromModePage(page, {
+  await createCanonicalReportInEstadoDaObra(page, {
     progress: "45",
     summary: "Resumo E2E para validar que a evidência fotográfica sobrevive ao arquivamento do projeto.",
     workDescription: "Trabalho de teste para validar evidência fotográfica preservada após arquivamento.",
@@ -141,7 +135,7 @@ test("photo evidence attached to a report remains preserved after the project is
     .filter({ visible: true })
     .click();
 
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/concluída/i, {
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/concluída/i, {
     timeout: 15000,
   });
 
@@ -155,7 +149,7 @@ test("photo evidence attached to a report remains preserved after the project is
     .filter({ visible: true })
     .click();
 
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/arquivada/i, {
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/arquivada/i, {
     timeout: 15000,
   });
 

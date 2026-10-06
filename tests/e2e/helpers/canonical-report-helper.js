@@ -7,10 +7,9 @@
 
 import { expect } from "@playwright/test";
 
-// From the mode page ("Mais opções" / right after creating a project), the
-// "Relatório Semanal" tile opens Estado da Obra.
-export async function openEstadoDaObraFromModePage(page) {
-  await page.locator('[data-nav-action="open-estado-obra"]').click();
+// A new project (and every project card) lands in Estado da Obra — the
+// project hub; there is no "Tipo de Relatório" page any more.
+export async function expectEstadoDaObraOpen(page) {
   await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, { timeout: 10000 });
   await waitForWorkspaceReady(page);
 }
@@ -66,11 +65,11 @@ export async function generateReportFromEstadoDaObra(page) {
 // Full flow used by the specs that previously walked the weekly wizard:
 // mode page → Estado da Obra → fill + save → Gerar relatório → back to the
 // project list.
-export async function createCanonicalReportFromModePage(
+export async function createCanonicalReportInEstadoDaObra(
   page,
   { progress = "45", summary, workDescription, nextSteps = "", photoPath = null }
 ) {
-  await openEstadoDaObraFromModePage(page);
+  await expectEstadoDaObraOpen(page);
 
   await page.locator("#workStatusProgressSlider").fill(String(progress));
   await page.locator("#workStatusSummary").fill(summary);

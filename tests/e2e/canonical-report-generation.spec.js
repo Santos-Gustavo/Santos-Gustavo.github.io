@@ -343,8 +343,6 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — canonical report generat
     expect(snapN1.photos.map((p) => p.description)).toEqual(["Foto mantida editada"]);
 
     // The old report still renders its old content from history.
-    await page.locator("#workStatusMoreOptionsBtn").click();
-    await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, { timeout: 10000 });
     const historyN = page.locator(`[data-report-history-card="${reportNId}"]`);
     await expect(historyN).toBeVisible({ timeout: 15000 });
     const reopenedN = await readOpenedReport(page, () => historyN.locator('[data-report-history-action="open"]').click());
@@ -354,7 +352,6 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — canonical report generat
     expect(reopenedN.text).not.toContain("Tarefa B oculta");
 
     // ---- L: client share link for the new canonical report --------------
-    await page.locator('[data-nav-action="open-estado-obra"]').click();
     await expect(page.locator("#step-estado-obra")).toHaveAttribute("data-workspace-state", "ready", { timeout: 15000 });
     const reportN2Id = await generateViaUi(page); // #003, same content as #N+1
     await page.locator('#workStatusReportResult [data-generated-report-action="share"]').click();
@@ -832,7 +829,6 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — canonical report generat
     try {
     await login(page);
     await openWorkspace(page, projectName);
-    await page.locator("#workStatusMoreOptionsBtn").click();
     const card = page.locator(`[data-report-history-card="${reportId}"]`);
     await expect(card).toBeVisible({ timeout: 15000 });
 
@@ -952,7 +948,6 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — canonical report generat
       // ... and the report renders the photo.
       await login(page);
       await openWorkspace(page, project.name);
-      await page.locator("#workStatusMoreOptionsBtn").click();
       const card = page.locator(`[data-report-history-card="${generated.id}"]`);
       await expect(card).toBeVisible({ timeout: 15000 });
       const opened = await readOpenedReport(page, () => card.locator('[data-report-history-action="open"]').click());
@@ -1043,7 +1038,6 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — canonical report generat
       expect((await getReport(client, reportId)).report_num).toBe(6);
 
       // An older report opened from history shows its own frozen period.
-      await page.locator("#workStatusMoreOptionsBtn").click();
       const card = page.locator(`[data-report-history-card="${first.id}"]`);
       await expect(card).toBeVisible({ timeout: 15000 });
       const opened = await readOpenedReport(page, () => card.locator('[data-report-history-action="open"]').click());

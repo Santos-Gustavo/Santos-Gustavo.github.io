@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
-  openEstadoDaObraFromModePage,
+  expectEstadoDaObraOpen,
   saveEstadoDaObra,
   generateReportFromEstadoDaObra,
   readOpenedReport,
@@ -106,7 +106,7 @@ async function createProject(page, { projectName, clientName, contractNum }) {
 
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 20000,
   });
 
@@ -351,14 +351,14 @@ test.describe("COMPANY-PROFILE-001 — single company profile", () => {
 
     await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
-    await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
+    await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
       timeout: 20000,
     });
 
     // ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — the weekly report is generated
     // from the saved Estado da Obra; generate_report reads the company row
     // server-side, so the edited name must be in the generated report.
-    await openEstadoDaObraFromModePage(page);
+    await expectEstadoDaObraOpen(page);
     await page.locator("#workStatusSummary").fill("Resumo E2E perfil da empresa.");
     await saveEstadoDaObra(page);
     await generateReportFromEstadoDaObra(page);

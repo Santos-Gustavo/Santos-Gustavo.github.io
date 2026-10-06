@@ -59,11 +59,11 @@ async function createProject(page, { projectName, clientName, contractNum }) {
 
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 20000,
   });
 
-  await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
+  await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
 }
 
 async function goBackToProjectList(page) {
@@ -101,7 +101,7 @@ test("archived project can be viewed but not edited or used to create new report
     .filter({ visible: true })
     .click();
 
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/concluída/i, {
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/concluída/i, {
     timeout: 15000,
   });
 
@@ -115,15 +115,13 @@ test("archived project can be viewed but not edited or used to create new report
     .filter({ visible: true })
     .click();
 
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/arquivada/i, {
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/arquivada/i, {
     timeout: 15000,
   });
 
-  // ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — "Relatório Semanal" opens Estado
-  // da Obra, which offers no "Gerar relatório" for an archived project (and
-  // generate_report rejects it server-side).
-  await page.locator('[data-nav-action="open-estado-obra"]').click();
-
+  // Archiving keeps the user in Estado da Obra, which then offers no "Gerar
+  // relatório" (generate_report also rejects it server-side) and no "Legal /
+  // Financeiro" — only the archived project's own lifecycle actions.
   await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 10000,
   });
@@ -131,28 +129,11 @@ test("archived project can be viewed but not edited or used to create new report
     timeout: 15000,
   });
   await expect(page.locator("#workStatusGenerateReportBtn")).toBeHidden();
-
-  await page.locator("#workStatusMoreOptionsBtn").click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-    timeout: 10000,
-  });
-
-  page.once("dialog", async (dialog) => {
-    expect(dialog.message()).toBe(
-      "Este projeto está arquivado. Não é possível criar novos relatórios legais/financeiros."
-    );
-    await dialog.accept();
-  });
-
-  await page
-    .locator('[data-nav-action="select-mode"][data-mode="legal"]')
-    .filter({ visible: true })
-    .click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-    timeout: 10000,
-  });
+  await expect(page.locator("#workStatusPeriodCard")).toBeHidden();
+  await expect(page.locator("#workStatusLegalBtn")).toBeHidden();
+  await expect(
+    page.locator("#projectLifecycleActions [data-project-lifecycle-action]")
+  ).toHaveText(["Ocultar projeto", "Reabrir projeto"]);
 
   await goBackToProjectList(page);
 

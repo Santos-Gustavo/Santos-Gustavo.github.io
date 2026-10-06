@@ -1145,7 +1145,29 @@ input:-webkit-autofill:focus {
   font-weight: 600;
 }
 
-.project-lifecycle-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.mode-project-status:empty { display: none; }
+/* display:inline-flex above would otherwise override the hidden attribute
+   (archived projects have no Legal / Financeiro). */
+.work-status-more-options-btn[hidden] { display: none; }
+.work-status-client-label { font-size: 13px; color: var(--muted); margin-top: 5px; }
+.work-status-header-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.project-lifecycle-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.project-lifecycle-actions:empty { display: none; }
+.project-lifecycle-actions .btn-secondary {
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.project-lifecycle-actions .btn-secondary:hover { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
+.work-status-history-card { margin-top: 16px; }
+.work-status-history-card h3 { font-size: 13px; color: var(--ink); margin-bottom: 10px; }
 
 .report-history-card { cursor: default; }
 .report-history-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }

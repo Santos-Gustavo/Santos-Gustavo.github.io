@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
-  createCanonicalReportFromModePage,
+  createCanonicalReportInEstadoDaObra,
   readOpenedReport,
 } from "./helpers/canonical-report-helper.js";
 
@@ -76,7 +76,7 @@ test("generated weekly report appears in saved reports", async ({ page }) => {
 
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 20000,
   });
 
@@ -85,7 +85,7 @@ test("generated weekly report appears in saved reports", async ({ page }) => {
   const summary =
     "Resumo E2E persistente para confirmar que o relatório semanal fica guardado e reaparece no projeto.";
 
-  await createCanonicalReportFromModePage(page, {
+  await createCanonicalReportInEstadoDaObra(page, {
     progress: "45",
     summary,
     workDescription: "Trabalho persistente de teste para validar relatório guardado.",
@@ -101,20 +101,14 @@ test("generated weekly report appears in saved reports", async ({ page }) => {
   });
 
   // PROJECT-HUB-INTEGRATION-001 — the card itself opens Estado da Obra;
-  // "Mais opções" (mode picker) now lives inside Estado da Obra's own header.
+  // Saved reports, Legal / Financeiro and lifecycle actions live there.
   await projectCard.click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 10000,
   });
 
-  await page.locator("#workStatusMoreOptionsBtn").click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-    timeout: 10000,
-  });
-
-  await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
+  await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
 
   await expect(page.getByText(/relatórios guardados/i)).toBeVisible();
 

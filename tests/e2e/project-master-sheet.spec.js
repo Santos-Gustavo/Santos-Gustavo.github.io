@@ -630,7 +630,7 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 — Estado da Obra canonical workspa
     expect(stillThereError).toBeNull();
   });
 
-  test("G: unsaved changes guard back, Mais opções and Gerar relatório", async ({ page }) => {
+  test("G: unsaved changes guard back, Gerar relatório, lifecycle actions and Legal / Financeiro", async ({ page }) => {
     test.setTimeout(60000);
 
     const client = getServiceRoleClient();
@@ -664,13 +664,26 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 — Estado da Obra canonical workspa
     await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i);
     await expect(page.locator("#workStatusSummary")).toHaveValue("Rascunho por guardar");
 
-    // Mais opções → leave prompt; confirming discards and leaves.
-    await page.locator("#workStatusMoreOptionsBtn").click();
+    // Pausar projeto → "save first" notice; nothing changes.
+    await page.locator('[data-project-lifecycle-action="pause"]').click();
+    await expect(page.locator("#confirmDialogMessage")).toHaveText(
+      "Existem alterações por guardar. Guarde as alterações antes de alterar o estado do projeto."
+    );
+    await page.locator('[data-confirm-action="confirm"]').click();
+    await expect(page.locator("#workStatusProjectStatus")).toHaveText(/em curso/i);
+    await expect(page.locator("#workStatusSummary")).toHaveValue("Rascunho por guardar");
+
+    // Legal / Financeiro → leave prompt; confirming discards and opens the
+    // legal wizard; its back button returns to Estado da Obra.
+    await page.locator("#workStatusLegalBtn").click();
     await expect(page.locator("#confirmDialogMessage")).toHaveText(
       "Existem alterações por guardar. Quer sair sem guardar?"
     );
     await page.locator('[data-confirm-action="confirm"]').click();
-    await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, { timeout: 10000 });
+    await expect(page.locator("#stepLabel")).toHaveText(/passo 1 de/i, { timeout: 10000 });
+    await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
+    await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, { timeout: 10000 });
+    await expect(page.locator("#step-estado-obra")).toHaveAttribute("data-workspace-state", "ready", { timeout: 15000 });
 
     // After a save, leaving doesn't prompt.
     await backToProjects(page);
@@ -910,8 +923,11 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 — Estado da Obra canonical workspa
     }
   });
 
-  test("regression: the old weekly wizard is unreachable — the mode page's Relatório Semanal opens Estado da Obra", async ({ page }) => {
-    test.setTimeout(60000);
+  // POST-RELEASE-POLISH-001 — Estado da Obra is the whole project hub: no
+  // "Tipo de Relatório" page, no route into the old weekly wizard; Legal /
+  // Financeiro, saved reports and the lifecycle actions are all here.
+  test("project hub: no Tipo de Relatório page; Legal / Financeiro, history and lifecycle actions live in Estado da Obra", async ({ page }) => {
+    test.setTimeout(90000);
 
     const client = getServiceRoleClient();
     const projectName = `E2E Workspace Routing ${Date.now()}`;
@@ -920,17 +936,44 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 — Estado da Obra canonical workspa
     await login(page);
     await openWorkspace(page, projectName);
 
+    await expect(page.locator("#step-mode")).toHaveCount(0);
+    await expect(page.locator("#workStatusMoreOptionsBtn")).toHaveCount(0);
+    await expect(page.locator('[data-nav-action="select-mode"][data-mode="weekly"]')).toHaveCount(0);
     await expect(page.locator('[data-nav-action="generate-weekly-report"]')).toHaveCount(0);
     await expect(page.locator("#workStatusGenerateReportBtn")).toHaveText("Gerar relatório");
+    await expect(page.locator("#workStatusLegalBtn")).toHaveText("Legal / Financeiro");
+    await expect(page.locator("#reportHistoryList")).toBeVisible();
+    await expect(page.locator("#workStatusProjectStatus")).toHaveText(/em curso/i);
 
-    await page.locator("#workStatusMoreOptionsBtn").click();
-    await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, { timeout: 10000 });
-    await expect(page.locator('[data-nav-action="select-mode"][data-mode="weekly"]')).toHaveCount(0);
+    // Active project: exactly Pausar projeto + Marcar como concluído.
+    const actions = page.locator("#projectLifecycleActions [data-project-lifecycle-action]");
+    await expect(actions).toHaveText(["Pausar projeto", "Marcar como concluído"]);
 
-    await page.locator('[data-nav-action="open-estado-obra"]').click();
+    // Legal / Financeiro opens the legal wizard directly; back returns here.
+    await page.locator("#workStatusLegalBtn").click();
+    await expect(page.locator("#stepLabel")).toHaveText(/passo 1 de/i, { timeout: 10000 });
+    await page.locator('[data-nav-action="back"]').filter({ visible: true }).click();
     await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, { timeout: 10000 });
     await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
-    await expect(page.locator("#step-estado-obra")).toHaveAttribute("data-workspace-state", "ready", { timeout: 15000 });
+
+    // Pausar projeto stays in Estado da Obra: status and actions update.
+    page.once("dialog", (dialog) => dialog.accept("Pausa E2E"));
+    await page.locator('[data-project-lifecycle-action="pause"]').click();
+    await expect(page.locator("#workStatusProjectStatus")).toHaveText(/pausada/i, { timeout: 15000 });
+    await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i);
+    await expect(actions).toHaveText(["Retomar projeto", "Marcar como concluído", "Arquivar projeto"]);
+
+    // Marcar como concluído: still here, report generation gone, legal stays.
+    page.once("dialog", (dialog) => dialog.accept("Conclusão E2E"));
+    await page.locator('[data-project-lifecycle-action="complete"]').click();
+    await expect(page.locator("#workStatusProjectStatus")).toHaveText(/concluída/i, { timeout: 15000 });
+    await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i);
+    await expect(page.locator("#workStatusGenerateReportBtn")).toBeHidden();
+    await expect(page.locator("#workStatusPeriodCard")).toBeHidden();
+    await expect(page.locator("#workStatusLegalBtn")).toBeVisible();
+
+    const { data: saved } = await client.from("projects").select("status").eq("name", projectName).single();
+    expect(saved.status).toBe(3);
   });
 
   // POST-RELEASE-POLISH-001 — phone widths: no horizontal overflow, 44px touch

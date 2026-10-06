@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
-  openEstadoDaObraFromModePage,
+  expectEstadoDaObraOpen,
   addWorkItemInEstadoDaObra,
   saveEstadoDaObra,
   generateReportFromEstadoDaObra,
@@ -131,14 +131,16 @@ test("user can create a project and generate a weekly report from Estado da Obra
 
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 20000,
   });
 
-  // The old weekly wizard is no longer reachable from the mode page.
+  // A new project lands straight in Estado da Obra: no "Tipo de Relatório"
+  // page, and no route into the old weekly wizard.
+  await expect(page.locator("#step-mode")).toHaveCount(0);
   await expect(page.locator('[data-nav-action="select-mode"][data-mode="weekly"]')).toHaveCount(0);
 
-  await openEstadoDaObraFromModePage(page);
+  await expectEstadoDaObraOpen(page);
 
   await page.locator("#workStatusProgressSlider").fill("35");
   await expect(page.locator("#workStatusProgressPct")).toHaveText("35%");
@@ -165,9 +167,7 @@ test("user can create a project and generate a weekly report from Estado da Obra
   expect(text).toContain("35%");
 
   // FIX 7/8 — review step header/home confirmation, via the legal flow.
-  await page.locator("#workStatusMoreOptionsBtn").click();
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, { timeout: 10000 });
-  await page.locator('[data-nav-action="select-mode"][data-mode="legal"]').click();
+  await page.locator('[data-nav-action="open-legal"]').click();
   // Walk "Seguinte" through the legal flow until its review step (#step12).
   for (let i = 0; i < 6 && !/\bactive\b/.test((await page.locator("#step12").getAttribute("class")) || ""); i += 1) {
     const label = await page.locator("#stepLabel").textContent();
