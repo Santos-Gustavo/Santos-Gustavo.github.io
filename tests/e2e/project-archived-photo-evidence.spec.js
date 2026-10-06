@@ -1,5 +1,6 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
+import { createCanonicalReportInEstadoDaObra, readOpenedReport } from "./helpers/canonical-report-helper.js";
 
 const TEST_PHOTO_PATH = path.join(__dirname, "fixtures", "test-photo.png");
 
@@ -62,153 +63,11 @@ async function createProject(page, { projectName, clientName, contractNum }) {
 
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 20000,
   });
 
-  await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
-}
-
-async function generateWeeklyReportWithPhoto(page) {
-  await page
-    .locator('[data-nav-action="select-mode"][data-mode="weekly"]')
-    .click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 1 de 9|período|periodo/i,
-    { timeout: 10000 }
-  );
-
-  await page.locator("#p-reportNum").fill("1");
-  await page.locator("#p-reportDate").fill("2026-08-20");
-  await page.locator("#p-periodStart").fill("2026-08-13");
-  await page.locator("#p-periodEnd").fill("2026-08-20");
-  await page.locator("#p-distributedTo").fill("Cliente · Arquivo");
-  await page.locator("#p-sentVia").selectOption({ label: "WhatsApp" });
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 2 de 9|progresso/i,
-    { timeout: 10000 }
-  );
-
-  await page.locator("#progressSlider").fill("45");
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 3 de 9|resumo/i,
-    { timeout: 10000 }
-  );
-
-  await page
-    .locator("#weekSummary")
-    .fill(
-      "Resumo E2E para validar que a evidência fotográfica sobrevive ao arquivamento do projeto."
-    );
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 4 de 9|trabalhos/i,
-    { timeout: 10000 }
-  );
-
-  await page.getByRole("button", { name: /adicionar trabalho/i }).click();
-
-  const workSelects = page.locator("select:visible");
-  const workDescription = page.locator("textarea:visible").first();
-
-  await workSelects.nth(0).selectOption({ label: "Pintura Interior" });
-  await workSelects.nth(1).selectOption({ label: "Sala" });
-  await workDescription.fill(
-    "Trabalho de teste para validar evidência fotográfica preservada após arquivamento."
-  );
-  await workSelects.nth(2).selectOption({ label: "Em curso" });
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/passo 5 de 9|fotos/i, {
-    timeout: 10000,
-  });
-
-  await page.locator('[data-photo-action="add"]').click();
-
-  const photoInput = page.locator("[data-photo-input]").first();
-
-  await expect(photoInput).toBeAttached();
-
-  await photoInput.setInputFiles(TEST_PHOTO_PATH);
-
-  await expect(page.locator(".item-card[data-photo-id] img").first()).toBeVisible({
-    timeout: 10000,
-  });
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 6 de 9|decisão|decisao/i,
-    { timeout: 10000 }
-  );
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 7 de 9|incidentes/i,
-    { timeout: 10000 }
-  );
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 8 de 9|próximos passos|proximos passos/i,
-    { timeout: 10000 }
-  );
-
-  await page
-    .getByRole("button", {
-      name: /adicionar próximo passo|adicionar proximo passo/i,
-    })
-    .click();
-
-  const nextStepInputs = page.locator("input:visible");
-  const nextStepTextareas = page.locator("textarea:visible");
-
-  if (await nextStepTextareas.count()) {
-    await nextStepTextareas
-      .first()
-      .fill("Validar que a foto do relatório continua acessível após o arquivamento.");
-  } else if (await nextStepInputs.count()) {
-    await nextStepInputs
-      .first()
-      .fill("Validar que a foto do relatório continua acessível após o arquivamento.");
-  }
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 9 de 9|revisão|revisao/i,
-    { timeout: 10000 }
-  );
-
-  await expect(page.locator("#reviewContent")).toContainText(/1\s*fotos?/i, {
-    timeout: 10000,
-  });
-
-  const generateButton = page.locator(
-    '[data-report-action="save-and-generate"]'
-  );
-
-  const dialogPromise = page.waitForEvent("dialog");
-
-  await generateButton.click();
-
-  const dialog = await dialogPromise;
-
-  expect(dialog.message()).toMatch(/relatório guardado com sucesso/i);
-
-  await dialog.accept();
+  await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
 }
 
 async function selectProjectFromCurrentList(page, projectName) {
@@ -219,21 +78,15 @@ async function selectProjectFromCurrentList(page, projectName) {
   await expect(projectCard).toHaveCount(1, { timeout: 15000 });
 
   // PROJECT-HUB-INTEGRATION-001 — the card itself opens Estado da Obra;
-  // "Mais opções" (the mode picker / lifecycle actions) now lives inside
-  // Estado da Obra's own header, not on this card.
+  // lifecycle actions, Legal / Financeiro and saved reports live there
+  // (POST-RELEASE-POLISH-001 removed the "Tipo de Relatório" page).
   await projectCard.first().click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 10000,
   });
 
-  await page.locator("#workStatusMoreOptionsBtn").click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-    timeout: 10000,
-  });
-
-  await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
+  await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
 }
 
 test("photo evidence attached to a report remains preserved after the project is archived", async ({
@@ -251,13 +104,13 @@ test("photo evidence attached to a report remains preserved after the project is
 
   await createProject(page, { projectName, clientName, contractNum });
 
-  await generateWeeklyReportWithPhoto(page);
-
-  await page.locator('[data-nav-action="home"]').filter({ visible: true }).click();
-  await page.locator('[data-confirm-action="confirm"]').click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, {
-    timeout: 10000,
+  // ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — the photo is added in Estado da
+  // Obra and frozen into the report generated from the saved workspace.
+  await createCanonicalReportInEstadoDaObra(page, {
+    progress: "45",
+    summary: "Resumo E2E para validar que a evidência fotográfica sobrevive ao arquivamento do projeto.",
+    workDescription: "Trabalho de teste para validar evidência fotográfica preservada após arquivamento.",
+    photoPath: TEST_PHOTO_PATH,
   });
 
   await selectProjectFromCurrentList(page, projectName);
@@ -282,7 +135,7 @@ test("photo evidence attached to a report remains preserved after the project is
     .filter({ visible: true })
     .click();
 
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/concluída/i, {
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/concluída/i, {
     timeout: 15000,
   });
 
@@ -296,7 +149,7 @@ test("photo evidence attached to a report remains preserved after the project is
     .filter({ visible: true })
     .click();
 
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/arquivada/i, {
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/arquivada/i, {
     timeout: 15000,
   });
 
@@ -314,4 +167,9 @@ test("photo evidence attached to a report remains preserved after the project is
 
   await expect(openReportButton.first()).toBeVisible({ timeout: 10000 });
   await expect(openReportButton.first()).toBeEnabled();
+
+  // The frozen photo still renders (signed from the snapshot's storagePath)
+  // after the project is archived.
+  const { html } = await readOpenedReport(page, () => openReportButton.first().click());
+  expect(html).toMatch(/<div class="photo-frame">\s*<img src="https:\/\/[^"]+"/);
 });

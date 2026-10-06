@@ -2,6 +2,9 @@
 
 import { getSignedPhotoUrls } from "#database/storage-service.js";
 
+// Signs every storage path a report snapshot references — its photos and,
+// since POST-RELEASE-POLISH-001, the company logo (company.logoPath →
+// company.logoUrl) — so the renderer only ever sees display URLs.
 export async function hydrateReportPhotoUrls(reportDocument) {
   if (!reportDocument || typeof reportDocument !== "object") {
     throw new Error("Documento de relatório inválido.");
@@ -10,14 +13,12 @@ export async function hydrateReportPhotoUrls(reportDocument) {
   const photos = Array.isArray(reportDocument.photos)
     ? reportDocument.photos
     : [];
+  const logoPath = reportDocument.company?.logoPath || null;
 
-  if (photos.length === 0) {
-    return reportDocument;
-  }
-
-  const storagePaths = photos
-    .map((photo) => photo.storagePath)
-    .filter(Boolean);
+  const storagePaths = [
+    ...photos.map((photo) => photo.storagePath),
+    logoPath,
+  ].filter(Boolean);
 
   if (storagePaths.length === 0) {
     return reportDocument;
@@ -27,6 +28,9 @@ export async function hydrateReportPhotoUrls(reportDocument) {
 
   return {
     ...reportDocument,
+    company: logoPath
+      ? { ...reportDocument.company, logoUrl: signedUrlsByPath.get(logoPath) || "" }
+      : reportDocument.company,
     photos: photos.map((photo) => {
       if (!photo.storagePath) {
         return photo;

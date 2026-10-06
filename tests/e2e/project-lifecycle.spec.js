@@ -69,12 +69,12 @@ test("project can be paused and resumed from the project page", async ({
 
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 20000,
   });
 
-  await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/em curso/i);
+  await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/em curso/i);
 
   page.once("dialog", async (dialog) => {
     expect(dialog.message()).toMatch(/pausar/i);
@@ -86,7 +86,7 @@ test("project can be paused and resumed from the project page", async ({
     .filter({ visible: true })
     .click();
 
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/pausada/i, {
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/pausada/i, {
     timeout: 15000,
   });
 
@@ -108,7 +108,7 @@ test("project can be paused and resumed from the project page", async ({
     .filter({ visible: true })
     .click();
 
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/em curso/i, {
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/em curso/i, {
     timeout: 15000,
   });
 

@@ -143,12 +143,22 @@ serve(async (req: Request) => {
 
     const snapshot = reportRow.snapshot_json as Record<string, unknown>;
     const photos = Array.isArray(snapshot.photos) ? snapshot.photos : [];
+    const company = (snapshot.company && typeof snapshot.company === "object")
+      ? snapshot.company as Record<string, unknown>
+      : null;
+    // Company logo (POST-RELEASE-POLISH-001). Like photo paths, it was
+    // checked against the report's own company folder by
+    // trg_reports_guard_snapshot when the snapshot was written.
+    const logoPath = typeof company?.logoPath === "string" && company.logoPath.trim() !== ""
+      ? company.logoPath
+      : null;
 
     const storagePaths = Array.from(
       new Set(
-        photos
-          .map((photo) => (photo && typeof photo === "object" ? (photo as Record<string, unknown>).storagePath : null))
-          .filter((path): path is string => typeof path === "string" && path.trim() !== ""),
+        [
+          ...photos.map((photo) => (photo && typeof photo === "object" ? (photo as Record<string, unknown>).storagePath : null)),
+          logoPath,
+        ].filter((path): path is string => typeof path === "string" && path.trim() !== ""),
       ),
     );
 
@@ -172,6 +182,9 @@ serve(async (req: Request) => {
 
     const hydratedSnapshot = {
       ...snapshot,
+      company: company && logoPath
+        ? { ...company, logoUrl: signedUrlByPath.get(logoPath) || "" }
+        : snapshot.company,
       photos: photos.map((photo) => {
         if (!photo || typeof photo !== "object") return photo;
 

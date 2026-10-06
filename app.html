@@ -162,64 +162,35 @@
     </div>
   </div>
 
-  <!-- LAYER 1: MODE PICKER -->
-  <div class="step" id="step-mode">
-    <div class="step-content">
-      <div class="step-header">
-        <h2>Tipo de Relatório</h2>
-        <p id="modeProjectLabel"></p>
-        <p id="modeProjectStatus" class="mode-project-status"></p>
-        <div
-          id="projectLifecycleActions"
-          class="project-lifecycle-actions"
-          aria-label="Ações da projeto"
-        ></div>
-      </div>
-      <div class="mode-picker">
-        <div class="mode-card" data-nav-action="select-mode" data-mode="weekly">
-          <div class="mode-icon">📋</div>
-          <div class="mode-title">Relatório Semanal</div>
-          <div class="mode-desc">Progresso do projeto, trabalhos realizados, fotos, alertas e próximos passos. Ideal para comunicação regular com o cliente.</div>
-        </div>
-        <div class="mode-card" data-nav-action="select-mode" data-mode="legal">
-          <div class="mode-icon">⚖️</div>
-          <div class="mode-title">Legal / Financeiro</div>
-          <div class="mode-desc">Trabalhos extra, alterações ao contrato, resumo financeiro acumulado e acuse de recibo com assinatura do cliente.</div>
-        </div>
-
-        
-        <div class="card">
-          <h3>Relatórios guardados</h3>
-          <div id="reportHistoryList">
-            <p class="empty-hint">Selecione um projeto para ver relatórios anteriores.</p>
-          </div>
-        </div>
-
-      </div>
-    </div>
-    <div class="nav-bar">
-      <button class="btn btn-back" data-nav-action="back">← Projetos</button>
-    </div>
-  </div>
-
-  <!-- LAYER 0d: ESTADO DA OBRA (PROJECT-MASTER-SHEET-001) — single-page master
-       sheet per project: consolidated Pendentes/Em curso/Concluídas/Incidentes
-       from existing reports, with a quick-tap status control. Not a task board —
-       no drag-and-drop, no multi-column layout, stays inside the mobile frame. -->
+  <!-- LAYER 0d: ESTADO DA OBRA — the canonical project workspace
+       (ESTADO-DA-OBRA-WORKSPACE-001): status, work items, incidents, next steps
+       and photos, edited as one local draft and persisted only via
+       "Guardar alterações". Not a task board — stays inside the mobile frame. -->
   <div class="step" id="step-estado-obra">
     <div class="step-content">
       <div class="step-header">
         <h2>Estado da Obra</h2>
         <p id="workStatusProjectLabel"></p>
-        <p id="workStatusClientLabel" class="mode-project-status"></p>
-        <button
-          type="button"
-          class="btn-project-work-status work-status-more-options-btn"
-          data-project-action="more-options"
-          id="workStatusMoreOptionsBtn"
-        >
-          Mais opções
-        </button>
+        <p id="workStatusClientLabel" class="work-status-client-label"></p>
+        <p id="workStatusProjectStatus" class="mode-project-status"></p>
+        <!-- Estado da Obra is the project hub (the old "Tipo de Relatório"
+             page is gone): the legal/financial report and the project's
+             lifecycle actions start here. -->
+        <div class="work-status-header-actions">
+          <button
+            type="button"
+            class="btn-project-work-status work-status-more-options-btn"
+            data-nav-action="open-legal"
+            id="workStatusLegalBtn"
+          >
+            Legal / Financeiro
+          </button>
+        </div>
+        <div
+          id="projectLifecycleActions"
+          class="project-lifecycle-actions"
+          aria-label="Ações do projeto"
+        ></div>
       </div>
 
       <div class="card work-status-progress-card">
@@ -249,12 +220,12 @@
           placeholder="Ex: Obra em fase de acabamentos, sem atrasos face ao previsto..."
         ></textarea>
 
-        <div class="work-status-save-row">
-          <button type="button" class="btn-add" data-work-status-action="save" id="workStatusSaveBtn">
-            Guardar alterações
-          </button>
-          <span class="work-status-save-hint" id="workStatusSaveHint"></span>
-        </div>
+        <h3 class="work-status-field-title">Próximos passos</h3>
+        <textarea
+          id="workStatusNextSteps"
+          class="work-status-summary"
+          placeholder="Um passo por linha. Ex: Encomendar azulejos"
+        ></textarea>
       </div>
 
       <div class="work-status-section">
@@ -284,22 +255,82 @@
       <div class="work-status-section">
         <h3 class="work-status-section-title work-status-section-title--incidents" id="workStatusIncidentsHeading">Incidentes</h3>
         <div id="workStatusIncidentsList"></div>
+        <button
+          type="button"
+          class="btn-add"
+          data-work-status-action="add-incident"
+          id="workStatusAddIncidentBtn"
+        >
+          + Adicionar incidente
+        </button>
+        <div class="item-card work-status-add-form" id="workStatusAddIncidentForm" hidden></div>
       </div>
 
       <div class="work-status-section">
-        <h3 class="work-status-section-title" id="workStatusNextStepsHeading">Próximos Passos</h3>
-        <div id="workStatusNextStepsList"></div>
+        <h3 class="work-status-section-title" id="workStatusPhotosHeading">Fotografias</h3>
+        <div id="workStatusPhotosList"></div>
+        <button
+          type="button"
+          class="btn-add"
+          data-work-status-action="add-photo"
+          id="workStatusAddPhotoBtn"
+        >
+          + Adicionar foto
+        </button>
+        <input type="file" id="workStatusPhotoInput" accept="image/*" hidden />
+      </div>
+
+      <!-- Phase 4 — result of "Gerar relatório" (loading / success with
+           Ver PDF + Partilhar / error). Filled by js/reports/report-generation-panel.js. -->
+      <!-- Period of the next "Gerar relatório" — prefilled with the automatic
+           period (day after the last report → today), editable. Not part of
+           the workspace draft: never marks it dirty, never saved on its own. -->
+      <div class="card work-status-period-card" id="workStatusPeriodCard">
+        <h3>Período do relatório</h3>
+        <div class="work-status-period-row">
+          <div class="field">
+            <label for="workStatusPeriodStart">De</label>
+            <input type="date" id="workStatusPeriodStart" />
+          </div>
+          <div class="field">
+            <label for="workStatusPeriodEnd">Até</label>
+            <input type="date" id="workStatusPeriodEnd" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card report-result" id="workStatusReportResult" hidden></div>
+
+      <div class="card work-status-history-card">
+        <h3>Relatórios guardados</h3>
+        <div id="reportHistoryList">
+          <p class="empty-hint">A carregar relatórios...</p>
+        </div>
       </div>
     </div>
-    <div class="nav-bar">
-      <button class="btn btn-back" data-nav-action="back">Voltar às obras</button>
-      <button
-        class="btn btn-generate"
-        data-nav-action="generate-weekly-report"
-        id="workStatusGenerateReportBtn"
-      >
-        Gerar relatório semanal
-      </button>
+    <!-- Sticky footer: the single manual save for the whole workspace draft
+         (shown only while there is something to save or report) sits right
+         above the nav bar, so it's reachable from any section. It lives
+         outside .step-content because that element is an overflow container,
+         which would pin a sticky child to its own (non-scrolling) box. -->
+    <div class="work-status-footer">
+      <div class="work-status-save-row work-status-save-bar" id="workStatusSaveBar">
+        <button type="button" class="btn-add" data-work-status-action="save" id="workStatusSaveBtn">
+          Guardar alterações
+        </button>
+        <span class="work-status-save-hint" id="workStatusSaveHint"></span>
+      </div>
+      <div class="nav-bar">
+        <button class="btn btn-back" data-nav-action="back">Voltar às obras</button>
+        <button
+          type="button"
+          class="btn btn-generate"
+          data-work-status-action="generate-report"
+          id="workStatusGenerateReportBtn"
+        >
+          Gerar relatório
+        </button>
+      </div>
     </div>
   </div>
 
@@ -329,6 +360,23 @@
         <div class="field"><label>Email</label><input type="email" id="companyEmail" placeholder="joao@empresa.pt" /></div>
       </div>
       <div class="field"><label>Morada</label><input type="text" id="companyAddress" placeholder="Rua das Acácias 14, Sintra" /></div>
+
+      <!-- Saved immediately on upload/removal (js/company/company-logo.js),
+           not by "Guardar". Any picture is normalised to the same size. -->
+      <div class="field company-logo-field">
+        <label>Logótipo</label>
+        <div class="company-logo-row">
+          <div class="company-logo-preview" id="companyLogoPreview">
+            <span class="company-logo-empty">Sem logótipo</span>
+          </div>
+          <div class="company-logo-actions">
+            <button type="button" class="btn-add" id="companyLogoUploadBtn">Carregar logótipo</button>
+            <button type="button" class="btn-cancel-work-item" id="companyLogoRemoveBtn" hidden>Remover logótipo</button>
+          </div>
+        </div>
+        <p class="company-logo-hint" id="companyLogoHint"></p>
+        <input type="file" id="companyLogoInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden />
+      </div>
     </div>
     <div class="nav-bar">
       <button class="btn btn-back" data-company-action="cancel">Cancelar</button>

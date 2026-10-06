@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createCanonicalReportInEstadoDaObra } from "./helpers/canonical-report-helper.js";
 
 const E2E_EMAIL =
   process.env.E2E_EMAIL ||
@@ -59,137 +60,11 @@ async function createProject(page, { projectName, clientName, contractNum }) {
 
   await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
 
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 20000,
   });
 
-  await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
-}
-
-async function generateWeeklyReport(page) {
-  await page
-    .locator('[data-nav-action="select-mode"][data-mode="weekly"]')
-    .click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 1 de 9|período|periodo/i,
-    { timeout: 10000 }
-  );
-
-  await page.locator("#p-reportNum").fill("1");
-  await page.locator("#p-reportDate").fill("2026-08-20");
-  await page.locator("#p-periodStart").fill("2026-08-13");
-  await page.locator("#p-periodEnd").fill("2026-08-20");
-  await page.locator("#p-distributedTo").fill("Cliente · Arquivo");
-  await page.locator("#p-sentVia").selectOption({ label: "WhatsApp" });
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 2 de 9|progresso/i,
-    { timeout: 10000 }
-  );
-
-  await page.locator("#progressSlider").fill("45");
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 3 de 9|resumo/i,
-    { timeout: 10000 }
-  );
-
-  await page
-    .locator("#weekSummary")
-    .fill(
-      "Resumo E2E para validar que a evidência do relatório sobrevive ao arquivamento do projeto."
-    );
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 4 de 9|trabalhos/i,
-    { timeout: 10000 }
-  );
-
-  await page.getByRole("button", { name: /adicionar trabalho/i }).click();
-
-  const workSelects = page.locator("select:visible");
-  const workDescription = page.locator("textarea:visible").first();
-
-  await workSelects.nth(0).selectOption({ label: "Pintura Interior" });
-  await workSelects.nth(1).selectOption({ label: "Sala" });
-  await workDescription.fill(
-    "Trabalho de teste para validar evidência preservada após arquivamento."
-  );
-  await workSelects.nth(2).selectOption({ label: "Em curso" });
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/passo 5 de 9|fotos/i, {
-    timeout: 10000,
-  });
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 6 de 9|decisão|decisao/i,
-    { timeout: 10000 }
-  );
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 7 de 9|incidentes/i,
-    { timeout: 10000 }
-  );
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 8 de 9|próximos passos|proximos passos/i,
-    { timeout: 10000 }
-  );
-
-  await page
-    .getByRole("button", {
-      name: /adicionar próximo passo|adicionar proximo passo/i,
-    })
-    .click();
-
-  const nextStepInputs = page.locator("input:visible");
-  const nextStepTextareas = page.locator("textarea:visible");
-
-  if (await nextStepTextareas.count()) {
-    await nextStepTextareas
-      .first()
-      .fill("Validar que o relatório continua acessível após o arquivamento.");
-  } else if (await nextStepInputs.count()) {
-    await nextStepInputs
-      .first()
-      .fill("Validar que o relatório continua acessível após o arquivamento.");
-  }
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 9 de 9|revisão|revisao/i,
-    { timeout: 10000 }
-  );
-
-  const generateButton = page.locator(
-    '[data-report-action="save-and-generate"]'
-  );
-
-  const dialogPromise = page.waitForEvent("dialog");
-
-  await generateButton.click();
-
-  const dialog = await dialogPromise;
-
-  expect(dialog.message()).toMatch(/relatório guardado com sucesso/i);
-
-  await dialog.accept();
+  await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
 }
 
 async function goBackToProjectList(page) {
@@ -208,21 +83,15 @@ async function selectProjectFromCurrentList(page, projectName) {
   await expect(projectCard).toHaveCount(1, { timeout: 15000 });
 
   // PROJECT-HUB-INTEGRATION-001 — the card itself opens Estado da Obra;
-  // "Mais opções" (the mode picker / lifecycle actions) now lives inside
-  // Estado da Obra's own header, not on this card.
+  // lifecycle actions, Legal / Financeiro and saved reports live there
+  // (POST-RELEASE-POLISH-001 removed the "Tipo de Relatório" page).
   await projectCard.first().click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
     timeout: 10000,
   });
 
-  await page.locator("#workStatusMoreOptionsBtn").click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-    timeout: 10000,
-  });
-
-  await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
+  await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
 }
 
 test("archived project still shows saved report history and evidence stays accessible", async ({
@@ -240,13 +109,12 @@ test("archived project still shows saved report history and evidence stays acces
 
   await createProject(page, { projectName, clientName, contractNum });
 
-  await generateWeeklyReport(page);
-
-  await page.locator('[data-nav-action="home"]').filter({ visible: true }).click();
-  await page.locator('[data-confirm-action="confirm"]').click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, {
-    timeout: 10000,
+  // ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — generated from the saved Estado
+  // da Obra (ends back on the project list).
+  await createCanonicalReportInEstadoDaObra(page, {
+    progress: "45",
+    summary: "Resumo E2E para validar evidência após arquivamento do projeto.",
+    workDescription: "Trabalho de teste para validar evidência preservada após arquivamento.",
   });
 
   await selectProjectFromCurrentList(page, projectName);
@@ -269,7 +137,7 @@ test("archived project still shows saved report history and evidence stays acces
     .filter({ visible: true })
     .click();
 
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/concluída/i, {
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/concluída/i, {
     timeout: 15000,
   });
 
@@ -283,7 +151,7 @@ test("archived project still shows saved report history and evidence stays acces
     .filter({ visible: true })
     .click();
 
-  await expect(page.locator("#modeProjectStatus")).toHaveText(/arquivada/i, {
+  await expect(page.locator("#workStatusProjectStatus")).toHaveText(/arquivada/i, {
     timeout: 15000,
   });
 

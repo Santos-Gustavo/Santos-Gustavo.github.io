@@ -10,11 +10,16 @@ import { archiveOrHideProject } from "#projects/project-archive.js";
 
 import {
   newProject,
-  selectProject,
   editProject,
 } from "#projects/project-selection.js";
 
-import { openProjectMasterSheet } from "#projects/project-work-items-ui.js";
+import {
+  openProjectMasterSheet,
+  hasUnsavedWorkStatusChanges,
+} from "#projects/project-work-items-ui.js";
+
+import { goHome } from "#navigation/navigation.js";
+import { confirmAction } from "#ui/confirm-dialog.js";
 
 import {
   clearProjectForm,
@@ -64,11 +69,9 @@ async function handleProjectClick(event) {
   }
 
   if (action === "select") {
-    // PROJECT-HUB-INTEGRATION-001 — Estado da Obra is now the hub: clicking a
-    // project opens it directly instead of the old mode-picker page. The mode
-    // picker (Legal/Financeiro report, histórico, ações do projeto) is still
-    // reachable via "Mais opções" — now a button inside Estado da Obra itself
-    // (app.html #workStatusMoreOptionsBtn) rather than on this card.
+    // PROJECT-HUB-INTEGRATION-001 / POST-RELEASE-POLISH-001 — Estado da Obra
+    // is the project hub: report generation, Legal / Financeiro, saved
+    // reports and lifecycle actions all live there.
     await openProjectMasterSheet(projectId);
     return;
   }
@@ -80,11 +83,6 @@ async function handleProjectClick(event) {
 
   if (action === "archive-hide") {
     await archiveOrHideProject(projectId);
-    return;
-  }
-
-  if (action === "more-options") {
-    selectProject(projectId);
   }
 }
 
@@ -104,6 +102,18 @@ async function handleProjectLifecycleClick(event) {
 
   if (!project) {
     alert("Projeto não encontrado.");
+    return;
+  }
+
+  // A status change reloads Estado da Obra (and can make it read-only), which
+  // would drop an unsaved draft — never silently.
+  if (hasUnsavedWorkStatusChanges()) {
+    await confirmAction({
+      title: "Alterações por guardar",
+      message: "Existem alterações por guardar. Guarde as alterações antes de alterar o estado do projeto.",
+      confirmLabel: "OK",
+      cancelLabel: null,
+    });
     return;
   }
 
@@ -142,20 +152,19 @@ async function handleProjectLifecycleClick(event) {
       updatedProject = await reopenProject(project, { reason: trimmedReason });
     }
 
-    if (updatedProject) {
-      appState.currentProject = updatedProject;
-    }
+    if (!updatedProject) return;
 
+    // Refreshes appState.projectsCache with the new status.
     await renderProjectList();
 
-    if (updatedProject) {
-      selectProject(updatedProject.id);
+    // A hidden project leaves the normal views; everything else stays in its
+    // Estado da Obra, re-rendered for the new status (actions, read-only, …).
+    if (action === "hide") {
+      goHome();
+      return;
     }
 
-    if (updatedProject) {
-      appState.currentProject = updatedProject;
-      selectProject(projectId);
-    }
+    await openProjectMasterSheet(projectId);
   } catch (error) {
     console.error("Error changing project lifecycle:", error);
     alert("Erro ao alterar estado do projeto: " + error.message);

@@ -55,6 +55,55 @@ export async function uploadProjectPhoto({
   };
 }
 
+// Estado da Obra's live photo collection is project-scoped, not tied to any
+// report, so it gets its own folder. The first segment stays the company id —
+// that's what the bucket's storage RLS policies key on.
+export async function uploadWorkspacePhoto({ blob, companyId, projectId, fileName, contentType }) {
+  if (!companyId) throw new Error("companyId é obrigatório para guardar fotografia.");
+  if (!projectId) throw new Error("projectId é obrigatório para guardar fotografia.");
+  if (!fileName) throw new Error("fileName é obrigatório para guardar fotografia.");
+
+  const storagePath = `${companyId}/${projectId}/workspace/${fileName}`;
+
+  const { data, error } = await supabaseClient.storage
+    .from(PHOTO_BUCKET)
+    .upload(storagePath, blob, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: contentType || blob.type || "image/jpeg",
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  return { storagePath: data.path };
+}
+
+// Company logo (Dados da Empresa). Always a new unique file — never
+// overwritten or deleted, because generated reports keep pointing at the logo
+// they were frozen with. {company_id}/company/ matches the bucket's storage
+// RLS (first segment = own company) and companies.logo_url's DB check.
+export async function uploadCompanyLogo({ blob, companyId }) {
+  if (!companyId) throw new Error("companyId é obrigatório para guardar o logótipo.");
+
+  const storagePath = `${companyId}/company/logo-${crypto.randomUUID()}.png`;
+
+  const { data, error } = await supabaseClient.storage
+    .from(PHOTO_BUCKET)
+    .upload(storagePath, blob, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: "image/png",
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  return { storagePath: data.path };
+}
+
 export async function getSignedPhotoUrl(storagePath) {
   if (!storagePath) return null;
 

@@ -562,6 +562,20 @@ async function deleteProjectsDeep(client, projectIds) {
     await deleteInBatches(client, "reports", "id", reportIds);
   }
 
+  // Estado da Obra's project-scoped photos: rows cascade with the project,
+  // but their storage objects would be orphaned. Test teardown only — the
+  // product itself never hard-deletes these.
+  const workspacePhotos = await selectInBatches(client, "project_photos", "storage_path", "project_id", projectIds);
+  const workspacePaths = workspacePhotos.map((photo) => photo.storage_path).filter(Boolean);
+
+  for (const batch of chunkArray(workspacePaths, STORAGE_DELETE_BATCH_SIZE)) {
+    const { error: storageError } = await client.storage.from(STORAGE_BUCKET).remove(batch);
+
+    if (storageError) {
+      console.warn(`[E2E cleanup] Failed to remove ${batch.length} workspace photo object(s): ${storageError.message}`);
+    }
+  }
+
   return deleteInBatches(client, "projects", "id", projectIds);
 }
 

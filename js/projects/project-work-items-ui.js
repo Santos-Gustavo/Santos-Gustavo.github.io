@@ -1,39 +1,56 @@
 // js/projects/project-work-items-ui.js
 //
-// PROJECT-MASTER-SHEET-001 — "Ver Estado da Obra" screen: a single mobile-first page
-// consolidating a project's Pendentes / Em curso / Concluídas / Incidentes from its
-// reports, with a quick-tap status control per work item.
+// ESTADO-DA-OBRA-WORKSPACE-001 — Estado da Obra is the canonical project
+// workspace. It reads ONLY project_status_state / project_work_items /
+// project_incidents / project_photos (js/database/db-project-workspace.js)
+// and never derives current state from reports.* or project_work_item_status.
+//
+// Editing model: one local workspace draft. Every edit (phase, progress,
+// summary, next steps, work items, incidents, photo metadata, hide/show,
+// remove) only changes the draft and marks the screen dirty. Nothing is
+// persisted until "Guardar alterações", which sends the changes through the
+// single transactional save_project_workspace RPC. The one deliberate
+// exception is "Adicionar foto": an explicit upload action that stores the
+// file and inserts its project_photos row immediately.
+//
+// Phase 4 — "Gerar relatório" is a pure export of the SAVED workspace: it
+// only ever sends the project id to generate_report, which reads canonical
+// state server-side. It never runs while the draft is dirty.
 
 import { appState } from "#state/app-state.js";
 import { getProjectById } from "#projects/project-list.js";
 import { goToStepId } from "#navigation/navigation.js";
-import { canEditProject, canCreateWeeklyReport } from "#projects/project-status-rules.js";
+import {
+  canEditProject,
+  canCreateWeeklyReport,
+  canCreateLegalFinancialReport,
+} from "#projects/project-status-rules.js";
+import { renderProjectHubActions } from "#projects/project-mode-page.js";
+import { renderReportHistory } from "#reports/report-history.js";
 import { loadProjectIntoForm } from "#projects/project-form.js";
 import { JOB_TYPES, AREAS } from "#config/app-options.js";
+import { confirmAction } from "#ui/confirm-dialog.js";
 import {
-  loadProjectWorkState,
-  setWorkItemStatus,
-  addWorkItem,
-  loadSavedProjectStatus,
-  saveEditableProjectStatus,
-} from "#projects/project-work-items.js";
+  loadProjectWorkspace,
+  saveProjectWorkspace,
+  addWorkspacePhoto,
+} from "#database/db-project-workspace.js";
+import { generateCanonicalReport, getLatestReportDate } from "#database/db-reports.js";
+import {
+  initReportGenerationPanel,
+  clearGeneratedReportPanel,
+  showReportGenerating,
+  showReportGenerationError,
+  showGeneratedReport,
+  openPendingReportTab,
+  announceGeneratedReport,
+  closePendingReportTab,
+} from "#reports/report-generation-panel.js";
 
-// One action per item, not a 3-way picker — an open item (Pendente or Em curso)
-// only ever offers "Marcar como concluída"; a completed item only ever offers
-// "Reabrir" (back to Em curso — a reopened item is being worked on again, not
-// back to untouched). Keeps the tap surface to a single obvious choice instead
-// of asking the contractor to pick from three states every time.
-const REOPEN_STATUS = "progress";
-const COMPLETE_STATUS = "done";
-
-// Same 8 phase labels as the weekly report's own step 3 (app.html #phasePicker)
-// — deliberately a separate, self-contained picker here (own class names, own
-// data attribute) rather than reusing .phase-option/[data-phase]: those are
-// wired to a *global* delegated handler (js/ui/ui-controls.js) that writes
-// straight to appState.phase, the live report-draft field. Estado da Obra's
-// phase is a local, unsaved draft until "Guardar alterações" — sharing the
-// element would either overwrite the in-progress report draft or get silently
-// overwritten by it.
+// Same 8 phase labels as the weekly report's own step 3 — deliberately a
+// separate, self-contained picker (own class names/data attribute) so it never
+// touches the global .phase-option handler that writes appState.phase, the
+// live report-draft field.
 const PHASE_OPTIONS = [
   "Fundações",
   "Estrutura e Alvenaria",
@@ -45,39 +62,80 @@ const PHASE_OPTIONS = [
   "Concluído",
 ];
 
-// PROJECT-HUB-INTEGRATION-001 — explicit manual save, no autosave (dirty
-// state / debounce / partial-save-error complexity isn't worth it for this
-// MVP). `saved` is the last value known to be persisted (or the report-derived
-// fallback, treated as already "saved" — there's nothing to lose by leaving
-// without touching it); `draft` is what's currently on screen. The two are
-// compared to decide whether "Guardar alterações" is enabled and whether
-// leaving the screen should warn.
-let saved = { phase: "", progressPct: 0, summary: "" };
-let draft = { phase: "", progressPct: 0, summary: "" };
-
-// PROJECT-HUB-INTEGRATION-001 — "+ Adicionar trabalho" opens the same fields
-// as adding a work item on a weekly report (js/projects/sections/works.js's
-// renderWorkCard: Tipo de trabalho / Área / Descrição / Estado) instead of a
-// bare free-text prompt. This is its own local draft, submitted immediately
-// on "Adicionar" (not part of the Guardar alterações draft above).
-const NEW_WORK_ITEM_STATUS_OPTIONS = [
-  { value: "blocked", label: "Pendente / Bloqueado" },
-  { value: "progress", label: "Em curso" },
-  { value: "done", label: "Concluído" },
+const WORK_STATUS_OPTIONS = [
+  { value: "pending", label: "Pendente" },
+  { value: "in_progress", label: "Em curso" },
+  { value: "done", label: "Concluída" },
 ];
 
+const INCIDENT_STATUS_LABELS = { open: "Em aberto", resolved: "Resolvido" };
+
+const PHOTO_STAGE_OPTIONS = [
+  { value: "before", label: "Antes" },
+  { value: "during", label: "Durante" },
+  { value: "after", label: "Depois" },
+];
+
+const HIDDEN_FROM_REPORTS_LABEL = "Oculto dos próximos relatórios";
+
+// `baseline` is the last state known to be persisted; `draft` is what's on
+// screen. Removed items stay in the draft with deactivated = true (that's
+// what tells the RPC "the user explicitly removed this") and are simply not
+// rendered.
+let baseline = emptyWorkspace();
+let draft = emptyWorkspace();
+let editable = false;
+let saving = false;
+let generating = false;
+let uploadingPhoto = false;
+let statusMessage = { text: "", tone: "" };
+
+let editingWorkItemId = null;
+let editingIncidentId = null;
 let addWorkItemFormOpen = false;
-let newWorkItemDraft = { type: "", area: "", desc: "", status: "blocked" };
+let newWorkItemDraft = emptyNewWorkItem();
+let addIncidentFormOpen = false;
+let newIncidentDescription = "";
 
 let initialized = false;
+
+function emptyWorkspace() {
+  return {
+    phase: "",
+    progressPct: 0,
+    summary: "",
+    nextSteps: "",
+    workItems: [],
+    incidents: [],
+    photos: [],
+  };
+}
+
+function emptyNewWorkItem() {
+  return { type: "", area: "", description: "", status: "pending" };
+}
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
 
 export function initProjectWorkItemsUi() {
   if (initialized) return;
   initialized = true;
 
+  initReportGenerationPanel();
+
   document.addEventListener("click", handleWorkStatusClick);
   document.addEventListener("input", handleWorkStatusInput);
-  document.addEventListener("change", handleWorkStatusInput);
+  document.addEventListener("change", handleWorkStatusChange);
+
+  // Tab close / reload with unsaved edits — the in-app navigation guard
+  // (confirmLeaveEstadoObraIfDirty) can't cover these.
+  window.addEventListener("beforeunload", (event) => {
+    if (!hasUnsavedWorkStatusChanges()) return;
+    event.preventDefault();
+    event.returnValue = "";
+  });
 }
 
 export async function openProjectMasterSheet(projectId) {
@@ -89,16 +147,8 @@ export async function openProjectMasterSheet(projectId) {
   }
 
   appState.currentWorkStatusProjectId = project.id;
-  // The "Gerar relatório semanal" shortcut on this screen calls the same
-  // selectMode("weekly") every other entry point uses, which reads these —
-  // set them here too so opening Estado da Obra straight from a project card
-  // (skipping selectProject()) still lets that shortcut work. currentCompanyId
-  // / currentClientId matter just as much as currentProjectId: report-save.js
-  // only attaches a new report to this project when all three are set —
-  // without them it silently falls through to its "no project selected"
-  // branch and creates a brand-new client + project instead. loadProjectIntoForm
-  // fills the #clientName/#projectName/... DOM fields report-document-builder.js
-  // reads from, same as selectProject() does for the "Mais opções" path.
+  // Shared "current project" context — the legal/financial wizard, the
+  // lifecycle actions and the report history read these.
   appState.currentCompanyId = project.companyId;
   appState.currentClientId = project.clientId;
   appState.currentProjectId = project.id;
@@ -114,150 +164,482 @@ export async function openProjectMasterSheet(projectId) {
     generateReportBtn.hidden = !canCreateWeeklyReport(project);
   }
 
-  await renderMasterSheet(project);
+  const legalBtn = document.getElementById("workStatusLegalBtn");
+  if (legalBtn) {
+    legalBtn.hidden = !canCreateLegalFinancialReport(project);
+  }
+
+  renderProjectHubActions(project);
+  renderReportHistory(project.id).catch(console.error);
+
+  await loadAndRender(project);
 }
 
-// Exported for navigation.js — guards the "Voltar às obras" / "Gerar
-// relatório semanal" actions on this screen with a confirm dialog when there
-// are edits that were never saved. Gated on currentStepId so a stale draft
-// left over from a previous visit can never misfire once the user has moved
-// on to an unrelated screen.
+// Exported for navigation.js / project-index.js. Gated on currentStepId so a
+// stale draft from a previous visit can never misfire on an unrelated screen.
 export function hasUnsavedWorkStatusChanges() {
   if (appState.currentStepId !== "estado-obra") return false;
+  return isDirty();
+}
 
-  return (
-    draft.phase !== saved.phase ||
-    draft.progressPct !== saved.progressPct ||
-    draft.summary !== saved.summary
-  );
+// Resolves true when it's safe to leave Estado da Obra (nothing unsaved, or
+// the user explicitly chose to discard). Never saves or discards silently.
+export async function confirmLeaveEstadoObraIfDirty() {
+  if (!hasUnsavedWorkStatusChanges()) return true;
+
+  return confirmAction({
+    title: "Sair sem guardar?",
+    message: "Existem alterações por guardar. Quer sair sem guardar?",
+    confirmLabel: "Sair sem guardar",
+    cancelLabel: "Cancelar",
+  });
+}
+
+// "Gerar relatório" — never from draft data. A dirty workspace must be saved
+// first, and only when the user explicitly picks "Guardar alterações"; the
+// report is then generated from what was just persisted.
+async function handleGenerateReport() {
+  if (generating || saving) return;
+
+  const projectId = appState.currentWorkStatusProjectId;
+  const project = projectId ? getProjectById(projectId) : null;
+  if (!project) return;
+
+  if (!canCreateWeeklyReport(project)) {
+    alert("Só é possível gerar relatórios para obras em curso ou pausadas.");
+    return;
+  }
+
+  // Still loading: there is no saved state on screen to export yet.
+  if (document.getElementById("step-estado-obra")?.dataset.workspaceState !== "ready") return;
+
+  // Checked before the save prompt, so nobody saves only to hit a date error.
+  const period = readReportPeriod();
+  if (period.error) {
+    showReportGenerationError(period.error);
+    return;
+  }
+
+  if (isDirty()) {
+    const wantsSave = await confirmAction({
+      title: "Alterações por guardar",
+      message: "Existem alterações por guardar. Guarde as alterações antes de gerar o relatório.",
+      confirmLabel: "Guardar alterações",
+      cancelLabel: "Cancelar",
+    });
+
+    if (!wantsSave) return;
+    if (!(await handleSave())) return;
+    if (isDirty()) return;
+  }
+
+  // Must run synchronously in the click (before any await on the clean path)
+  // or the browser blocks the new tab. After the "Guardar alterações" detour
+  // it may be blocked; announceGeneratedReport then offers a button instead.
+  const reportTab = openPendingReportTab();
+
+  generating = true;
+  editable = false;
+  renderAll();
+  showReportGenerating();
+
+  try {
+    const report = await generateCanonicalReport(project.id, {
+      periodStart: period.periodStart,
+      periodEnd: period.periodEnd,
+    });
+    // Generated and saved even if the user has since left this project:
+    // still open it and confirm.
+    void announceGeneratedReport({ report, tab: reportTab });
+    if (appState.currentWorkStatusProjectId !== project.id) return;
+    showGeneratedReport({ report, projectName: project.name });
+    // The next report's automatic period now starts after this one.
+    void prefillReportPeriod(project, loadToken);
+    renderReportHistory(project.id).catch(console.error);
+  } catch (error) {
+    console.error("Error generating report:", error);
+    closePendingReportTab(reportTab);
+    if (appState.currentWorkStatusProjectId !== project.id) return;
+    showReportGenerationError(error.message);
+  } finally {
+    generating = false;
+    if (appState.currentWorkStatusProjectId === project.id) {
+      editable = canEditProject(project);
+      renderAll();
+    }
+  }
 }
 
 function renderHeader(project) {
   const nameEl = document.getElementById("workStatusProjectLabel");
   const clientEl = document.getElementById("workStatusClientLabel");
-  const moreOptionsBtn = document.getElementById("workStatusMoreOptionsBtn");
 
-  if (nameEl) {
-    nameEl.textContent = project.name || "";
-  }
-
-  if (clientEl) {
-    clientEl.textContent = project.clientName ? `Cliente: ${project.clientName}` : "";
-  }
-
-  // "Mais opções" (Tipo de Relatório / histórico / ações do projeto) now
-  // lives on Estado da Obra itself, not the project list card — the card's
-  // own click already opens Estado da Obra directly. handleProjectClick in
-  // project-index.js reads this same data-project-id off the button.
-  if (moreOptionsBtn) {
-    moreOptionsBtn.dataset.projectId = project.id;
-  }
+  if (nameEl) nameEl.textContent = project.name || "";
+  if (clientEl) clientEl.textContent = project.clientName ? `Cliente: ${project.clientName}` : "";
 }
 
-async function renderMasterSheet(project) {
-  const editable = canEditProject(project);
+// The screen stays read-only until the workspace has loaded: an edit made
+// against the empty placeholder draft would otherwise be silently replaced
+// when the load resolves. loadToken drops a slow load for a project the user
+// has already navigated away from.
+let loadToken = 0;
 
-  addWorkItemFormOpen = false;
-  newWorkItemDraft = { type: "", area: "", desc: "", status: "blocked" };
+async function loadAndRender(project) {
+  const token = ++loadToken;
 
-  setListLoading("workStatusPendingList");
-  setListLoading("workStatusProgressList");
-  setListLoading("workStatusDoneList");
-  setListLoading("workStatusIncidentsList");
-  setListLoading("workStatusNextStepsList");
+  editable = false;
+  resetTransientUiState();
+  statusMessage = { text: "", tone: "" };
+  clearGeneratedReportPanel();
+
+  baseline = emptyWorkspace();
+  draft = emptyWorkspace();
+
+  setReportPeriodFields("", "");
+  void prefillReportPeriod(project, token);
+
+  setWorkspaceState("loading");
+  renderAll();
+  setListsMessage("A carregar...");
 
   try {
-    const [state, savedStatus] = await Promise.all([
-      loadProjectWorkState(project.id),
-      loadSavedProjectStatus(project.id),
-    ]);
+    const workspace = await loadProjectWorkspace(project.id);
+    if (token !== loadToken) return;
 
-    saved = savedStatus || { phase: state.phase, progressPct: state.progressPct, summary: "" };
-    draft = { ...saved };
-
-    renderEditablePanel(editable);
-
-    renderWorkList({
-      containerId: "workStatusPendingList",
-      headingId: "workStatusPendingHeading",
-      headingLabel: "Pendentes",
-      items: state.pendentes,
-      accent: "pending",
-      editable,
-      emptyMessage: "Sem trabalhos pendentes registados.",
-    });
-
-    renderWorkList({
-      containerId: "workStatusProgressList",
-      headingId: "workStatusProgressHeading",
-      headingLabel: "Em curso",
-      items: state.emCurso,
-      accent: "progress",
-      editable,
-      emptyMessage: "Sem trabalhos em curso registados.",
-    });
-
-    renderWorkList({
-      containerId: "workStatusDoneList",
-      headingId: "workStatusDoneHeading",
-      headingLabel: "Concluídas",
-      items: state.concluidas,
-      accent: "done",
-      editable,
-      emptyMessage: "Sem trabalhos concluídos registados.",
-    });
-
-    renderIncidentsList(state.incidentes);
-    renderNextStepsList(state.proximosPassos);
+    baseline = workspace;
+    draft = clone(workspace);
+    editable = canEditProject(project);
+    renderAll();
+    setWorkspaceState("ready");
   } catch (error) {
+    if (token !== loadToken) return;
     console.error("Error loading Estado da Obra:", error);
-
-    const message = `Erro ao carregar estado da obra: ${escapeHtml(error.message)}`;
-
-    setListError("workStatusPendingList", message);
-    setListError("workStatusProgressList", message);
-    setListError("workStatusDoneList", message);
-    setListError("workStatusIncidentsList", message);
-    setListError("workStatusNextStepsList", message);
+    setListsMessage(`Erro ao carregar estado da obra: ${escapeHtml(error.message)}`);
+    setWorkspaceState("error");
   }
 }
 
-function renderEditablePanel(editable) {
-  renderPhasePicker(editable);
-  renderProgressSlider();
-  renderSummaryField(editable);
+function setWorkspaceState(state) {
+  const step = document.getElementById("step-estado-obra");
+  if (step) step.dataset.workspaceState = state;
+  renderReportPeriodFields();
+}
 
+// --- report period ("Período do relatório") ---------------------------------
+//
+// Prefilled with the automatic period generate_report would pick (day after
+// the latest non-deleted report → today, or the last 7 days for a first
+// report; "today" in Europe/Lisbon). Whatever the fields show is what gets
+// sent; the server validates it again.
+
+function lisbonToday() {
+  // en-CA formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Lisbon" }).format(new Date());
+}
+
+function shiftIsoDate(isoDate, days) {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+function setReportPeriodFields(start, end) {
+  const startEl = document.getElementById("workStatusPeriodStart");
+  const endEl = document.getElementById("workStatusPeriodEnd");
+  const today = lisbonToday();
+  if (startEl) {
+    startEl.value = start;
+    startEl.max = today;
+  }
+  if (endEl) {
+    endEl.value = end;
+    endEl.max = today;
+  }
+}
+
+async function prefillReportPeriod(project, token) {
+  const today = lisbonToday();
+  let previous = null;
+
+  try {
+    previous = await getLatestReportDate(project.id);
+  } catch (error) {
+    console.error("Error loading latest report date:", error);
+  }
+
+  if (token !== loadToken) return;
+
+  const start = previous ? [shiftIsoDate(previous, 1), today].sort()[0] : shiftIsoDate(today, -7);
+  setReportPeriodFields(start, today);
+}
+
+function readReportPeriod() {
+  const periodStart = document.getElementById("workStatusPeriodStart")?.value || "";
+  const periodEnd = document.getElementById("workStatusPeriodEnd")?.value || "";
+
+  if (!periodStart || !periodEnd) {
+    return { error: "Indique as duas datas do período do relatório." };
+  }
+  if (periodStart > periodEnd) {
+    return { error: "A data de início do período não pode ser posterior à data de fim." };
+  }
+  if (periodEnd > lisbonToday()) {
+    return { error: "O período do relatório não pode terminar depois de hoje." };
+  }
+
+  return { periodStart, periodEnd };
+}
+
+function renderReportPeriodFields() {
+  const project = getProjectById(appState.currentWorkStatusProjectId);
+  const card = document.getElementById("workStatusPeriodCard");
+  const canGenerate = Boolean(project && canCreateWeeklyReport(project));
+  const ready = document.getElementById("step-estado-obra")?.dataset.workspaceState === "ready";
+
+  if (card) card.hidden = !canGenerate;
+
+  for (const id of ["workStatusPeriodStart", "workStatusPeriodEnd"]) {
+    const input = document.getElementById(id);
+    if (input) input.disabled = !canGenerate || !ready || generating;
+  }
+}
+
+function resetTransientUiState() {
+  editingWorkItemId = null;
+  editingIncidentId = null;
+  addWorkItemFormOpen = false;
+  newWorkItemDraft = emptyNewWorkItem();
+  addIncidentFormOpen = false;
+  newIncidentDescription = "";
+}
+
+// --- dirty tracking ---------------------------------------------------------
+
+function workItemSignature(item) {
+  return JSON.stringify([item.type, item.area, item.description, item.status, item.includeInReports, item.deactivated]);
+}
+
+function incidentSignature(incident) {
+  return JSON.stringify([incident.description, incident.status, incident.includeInReports, incident.deactivated]);
+}
+
+function photoSignature(photo) {
+  return JSON.stringify([photo.area, photo.description, photo.worker, photo.stage, photo.includeInReports, photo.deactivated]);
+}
+
+// Only items that are new, changed, or explicitly removed relative to the
+// baseline. Unchanged rows are never sent, so a save can't overwrite them
+// with stale values; rows missing from the payload are never deactivated.
+function changedEntries(draftList, baselineList, signature) {
+  const baselineById = new Map(baselineList.map((entry) => [entry.id, entry]));
+
+  return draftList.filter((entry) => {
+    const original = baselineById.get(entry.id);
+    if (!original) return !entry.deactivated;
+    return signature(entry) !== signature(original);
+  });
+}
+
+function buildChanges() {
+  return {
+    status:
+      draft.phase !== baseline.phase ||
+      draft.progressPct !== baseline.progressPct ||
+      draft.summary !== baseline.summary ||
+      draft.nextSteps !== baseline.nextSteps,
+    workItems: changedEntries(draft.workItems, baseline.workItems, workItemSignature),
+    incidents: changedEntries(draft.incidents, baseline.incidents, incidentSignature),
+    photos: changedEntries(draft.photos, baseline.photos, photoSignature),
+  };
+}
+
+function isDirty() {
+  const changes = buildChanges();
+  return (
+    changes.status ||
+    changes.workItems.length > 0 ||
+    changes.incidents.length > 0 ||
+    changes.photos.length > 0
+  );
+}
+
+// --- rendering --------------------------------------------------------------
+
+function renderAll() {
+  renderPhasePicker();
+  renderProgressSlider();
+  renderTextFields();
+  renderWorkLists();
+  renderAddWorkItemForm();
+  renderIncidents();
+  renderPhotos();
+  updateSaveButtonState();
+  renderReportPeriodFields();
+}
+
+function renderPhasePicker() {
+  const el = document.getElementById("workStatusPhasePicker");
+  if (!el) return;
+
+  el.innerHTML = PHASE_OPTIONS.map(
+    (phase) => `
+    <div
+      class="work-status-phase-option${phase === draft.phase ? " selected" : ""}"
+      data-work-status-phase="${escapeHtml(phase)}"
+    >${escapeHtml(phase)}</div>
+  `
+  ).join("");
+
+  el.classList.toggle("is-readonly", !editable);
+}
+
+function renderProgressSlider() {
   const slider = document.getElementById("workStatusProgressSlider");
+  const fill = document.getElementById("workStatusProgressFill");
+  const pct = document.getElementById("workStatusProgressPct");
+
   if (slider) {
+    slider.value = String(draft.progressPct);
     slider.disabled = !editable;
   }
+  if (fill) fill.style.width = `${draft.progressPct}%`;
+  if (pct) pct.textContent = `${draft.progressPct}%`;
+}
 
-  if (!editable) {
-    addWorkItemFormOpen = false;
+function renderTextFields() {
+  const summary = document.getElementById("workStatusSummary");
+  if (summary) {
+    summary.value = draft.summary;
+    summary.disabled = !editable;
   }
 
-  const addWorkItemBtn = document.getElementById("workStatusAddWorkItemBtn");
-  if (addWorkItemBtn) {
-    addWorkItemBtn.hidden = !editable || addWorkItemFormOpen;
+  const nextSteps = document.getElementById("workStatusNextSteps");
+  if (nextSteps) {
+    nextSteps.value = draft.nextSteps;
+    nextSteps.disabled = !editable;
+  }
+}
+
+function liveWorkItems() {
+  return draft.workItems.filter((item) => !item.deactivated);
+}
+
+function renderWorkLists() {
+  const items = liveWorkItems();
+
+  renderWorkList({
+    containerId: "workStatusPendingList",
+    headingId: "workStatusPendingHeading",
+    headingLabel: "Pendentes",
+    items: items.filter((item) => item.status === "pending"),
+    accent: "pending",
+    emptyMessage: "Sem trabalhos pendentes registados.",
+  });
+
+  renderWorkList({
+    containerId: "workStatusProgressList",
+    headingId: "workStatusProgressHeading",
+    headingLabel: "Em curso",
+    items: items.filter((item) => item.status === "in_progress"),
+    accent: "progress",
+    emptyMessage: "Sem trabalhos em curso registados.",
+  });
+
+  renderWorkList({
+    containerId: "workStatusDoneList",
+    headingId: "workStatusDoneHeading",
+    headingLabel: "Concluídas",
+    items: items.filter((item) => item.status === "done"),
+    accent: "done",
+    emptyMessage: "Sem trabalhos concluídos registados.",
+  });
+
+  const addBtn = document.getElementById("workStatusAddWorkItemBtn");
+  if (addBtn) addBtn.hidden = !editable || addWorkItemFormOpen;
+}
+
+function renderWorkList({ containerId, headingId, headingLabel, items, accent, emptyMessage }) {
+  const heading = document.getElementById(headingId);
+  if (heading) heading.textContent = `${headingLabel} (${items.length})`;
+
+  const el = document.getElementById(containerId);
+  if (!el) return;
+
+  if (items.length === 0) {
+    el.innerHTML = `<p class="empty-hint">${escapeHtml(emptyMessage)}</p>`;
+    return;
   }
 
-  renderAddWorkItemForm();
+  el.innerHTML = items.map((item) => renderWorkItemCard(item, accent)).join("");
+}
 
-  const saveBtn = document.getElementById("workStatusSaveBtn");
-  if (saveBtn) {
-    saveBtn.hidden = !editable;
-  }
+function renderWorkItemCard(item, accent) {
+  const id = escapeHtml(item.id);
+  const title = [item.type, item.area].filter(Boolean).join(" · ") || "Trabalho";
+  const isEditing = editable && editingWorkItemId === item.id;
+  const disabled = editable ? "" : "disabled";
 
-  updateSaveButtonState();
+  const body = isEditing
+    ? `
+      <div class="field">
+        <label>Tipo de trabalho</label>
+        <select data-ws-kind="work" data-ws-id="${id}" data-ws-field="type">
+          <option value="">— Selecionar —</option>
+          ${renderSelectOptions(JOB_TYPES, item.type)}
+        </select>
+      </div>
+      <div class="field">
+        <label>Área</label>
+        <select data-ws-kind="work" data-ws-id="${id}" data-ws-field="area">
+          <option value="">— Selecionar —</option>
+          ${renderSelectOptions(AREAS, item.area)}
+        </select>
+      </div>
+      <div class="field">
+        <label>Descrição</label>
+        <textarea data-ws-kind="work" data-ws-id="${id}" data-ws-field="description">${escapeHtml(item.description)}</textarea>
+      </div>
+    `
+    : `
+      <div class="work-status-item-title">${escapeHtml(title)}</div>
+      ${item.description ? `<div class="work-status-item-desc">${escapeHtml(item.description)}</div>` : ""}
+    `;
+
+  return `
+    <div class="work-status-item-card work-status-item-card--${accent}${item.includeInReports ? "" : " is-hidden-from-reports"}" data-work-item-id="${id}">
+      ${body}
+      ${item.includeInReports ? "" : `<div class="work-status-hidden-badge">${HIDDEN_FROM_REPORTS_LABEL}</div>`}
+
+      <div class="field work-status-inline-field">
+        <label>Estado</label>
+        <select data-ws-kind="work" data-ws-id="${id}" data-ws-field="status" ${disabled}>
+          ${WORK_STATUS_OPTIONS.map(
+            (option) =>
+              `<option value="${option.value}"${option.value === item.status ? " selected" : ""}>${option.label}</option>`
+          ).join("")}
+        </select>
+      </div>
+
+      ${
+        editable
+          ? `<div class="work-status-item-actions">
+              <button type="button" class="work-status-item-btn" data-ws-action="toggle-edit-work" data-ws-id="${id}">${isEditing ? "Concluir edição" : "Editar"}</button>
+              <button type="button" class="work-status-item-btn" data-ws-action="toggle-report-work" data-ws-id="${id}">${item.includeInReports ? "Ocultar do relatório" : "Mostrar no relatório"}</button>
+              <button type="button" class="work-status-item-btn work-status-item-btn--danger" data-ws-action="remove-work" data-ws-id="${id}">Remover</button>
+            </div>`
+          : ""
+      }
+    </div>
+  `;
 }
 
 function renderAddWorkItemForm() {
   const container = document.getElementById("workStatusAddWorkItemForm");
   if (!container) return;
 
-  container.hidden = !addWorkItemFormOpen;
+  const open = editable && addWorkItemFormOpen;
+  container.hidden = !open;
 
-  if (!addWorkItemFormOpen) {
+  if (!open) {
     container.innerHTML = "";
     return;
   }
@@ -282,15 +664,15 @@ function renderAddWorkItemForm() {
     <div class="field">
       <label>Descrição</label>
       <textarea
-        data-add-work-field="desc"
+        data-add-work-field="description"
         placeholder="Ex: Aplicação de primário nas paredes da sala"
-      >${escapeHtml(newWorkItemDraft.desc)}</textarea>
+      >${escapeHtml(newWorkItemDraft.description)}</textarea>
     </div>
 
     <div class="field">
       <label>Estado</label>
       <select data-add-work-field="status">
-        ${NEW_WORK_ITEM_STATUS_OPTIONS.map(
+        ${WORK_STATUS_OPTIONS.map(
           (option) =>
             `<option value="${option.value}"${option.value === newWorkItemDraft.status ? " selected" : ""}>${option.label}</option>`
         ).join("")}
@@ -298,234 +680,464 @@ function renderAddWorkItemForm() {
     </div>
 
     <div class="work-status-add-form-actions">
-      <button type="button" class="btn-add" data-work-status-action="submit-add-work-item">Adicionar</button>
-      <button type="button" class="btn-cancel-work-item" data-work-status-action="cancel-add-work-item">Cancelar</button>
+      <button type="button" class="btn-add" data-ws-action="submit-add-work-item">Adicionar</button>
+      <button type="button" class="btn-cancel-work-item" data-ws-action="cancel-add-work-item">Cancelar</button>
     </div>
   `;
 }
 
-function renderSelectOptions(options, selectedValue) {
-  return options
-    .map((option) => {
-      const selected = option === selectedValue ? " selected" : "";
-      return `<option value="${escapeHtml(option)}"${selected}>${escapeHtml(option)}</option>`;
-    })
-    .join("");
-}
+function renderIncidents() {
+  const incidents = draft.incidents.filter((incident) => !incident.deactivated);
 
-function renderPhasePicker(editable) {
-  const el = document.getElementById("workStatusPhasePicker");
-  if (!el) return;
+  const heading = document.getElementById("workStatusIncidentsHeading");
+  if (heading) heading.textContent = `Incidentes (${incidents.length})`;
 
-  el.innerHTML = PHASE_OPTIONS.map((phase) => `
-    <div
-      class="work-status-phase-option${phase === draft.phase ? " selected" : ""}"
-      data-work-status-phase="${escapeHtml(phase)}"
-    >${escapeHtml(phase)}</div>
-  `).join("");
-
-  el.classList.toggle("is-readonly", !editable);
-}
-
-function renderProgressSlider() {
-  const slider = document.getElementById("workStatusProgressSlider");
-  const fill = document.getElementById("workStatusProgressFill");
-  const pct = document.getElementById("workStatusProgressPct");
-
-  if (slider) {
-    slider.value = String(draft.progressPct);
+  const el = document.getElementById("workStatusIncidentsList");
+  if (el) {
+    el.innerHTML =
+      incidents.length === 0
+        ? `<p class="empty-hint">Sem incidentes registados.</p>`
+        : incidents.map(renderIncidentCard).join("");
   }
 
-  if (fill) {
-    fill.style.width = `${draft.progressPct}%`;
-  }
+  const addBtn = document.getElementById("workStatusAddIncidentBtn");
+  if (addBtn) addBtn.hidden = !editable || addIncidentFormOpen;
 
-  if (pct) {
-    pct.textContent = `${draft.progressPct}%`;
+  const form = document.getElementById("workStatusAddIncidentForm");
+  if (form) {
+    const open = editable && addIncidentFormOpen;
+    form.hidden = !open;
+    form.innerHTML = open
+      ? `
+        <div class="field">
+          <label>Descrição do incidente</label>
+          <textarea data-add-incident-field="description" placeholder="Ex: Atraso na entrega de material">${escapeHtml(newIncidentDescription)}</textarea>
+        </div>
+        <div class="work-status-add-form-actions">
+          <button type="button" class="btn-add" data-ws-action="submit-add-incident">Adicionar</button>
+          <button type="button" class="btn-cancel-work-item" data-ws-action="cancel-add-incident">Cancelar</button>
+        </div>
+      `
+      : "";
   }
 }
 
-function renderSummaryField(editable) {
-  const textarea = document.getElementById("workStatusSummary");
-  if (!textarea) return;
+function renderIncidentCard(incident) {
+  const id = escapeHtml(incident.id);
+  const isEditing = editable && editingIncidentId === incident.id;
+  const resolved = incident.status === "resolved";
 
-  textarea.value = draft.summary;
-  textarea.disabled = !editable;
+  const body = isEditing
+    ? `<div class="field">
+        <label>Descrição</label>
+        <textarea data-ws-kind="incident" data-ws-id="${id}" data-ws-field="description">${escapeHtml(incident.description)}</textarea>
+      </div>`
+    : `<div class="work-status-item-desc">${escapeHtml(incident.description)}</div>`;
+
+  return `
+    <div class="work-status-item-card work-status-incident-card${resolved ? " is-resolved" : ""}${incident.includeInReports ? "" : " is-hidden-from-reports"}" data-incident-id="${id}">
+      ${body}
+      <div class="work-status-item-meta" data-incident-status>${INCIDENT_STATUS_LABELS[incident.status] || incident.status}</div>
+      ${incident.includeInReports ? "" : `<div class="work-status-hidden-badge">${HIDDEN_FROM_REPORTS_LABEL}</div>`}
+      ${
+        editable
+          ? `<div class="work-status-item-actions">
+              <button type="button" class="work-status-item-btn" data-ws-action="toggle-edit-incident" data-ws-id="${id}">${isEditing ? "Concluir edição" : "Editar"}</button>
+              <button type="button" class="work-status-item-btn" data-ws-action="toggle-resolve-incident" data-ws-id="${id}">${resolved ? "Reabrir" : "Resolver"}</button>
+              <button type="button" class="work-status-item-btn" data-ws-action="toggle-report-incident" data-ws-id="${id}">${incident.includeInReports ? "Ocultar do relatório" : "Mostrar no relatório"}</button>
+              <button type="button" class="work-status-item-btn work-status-item-btn--danger" data-ws-action="remove-incident" data-ws-id="${id}">Remover</button>
+            </div>`
+          : ""
+      }
+    </div>
+  `;
+}
+
+function renderPhotos() {
+  const photos = draft.photos.filter((photo) => !photo.deactivated);
+
+  const heading = document.getElementById("workStatusPhotosHeading");
+  if (heading) heading.textContent = `Fotografias (${photos.length})`;
+
+  const el = document.getElementById("workStatusPhotosList");
+  if (el) {
+    el.innerHTML =
+      photos.length === 0
+        ? `<p class="empty-hint">Sem fotografias registadas.</p>`
+        : photos.map(renderPhotoCard).join("");
+  }
+
+  const addBtn = document.getElementById("workStatusAddPhotoBtn");
+  if (addBtn) {
+    addBtn.hidden = !editable;
+    addBtn.disabled = uploadingPhoto;
+    addBtn.textContent = uploadingPhoto ? "A carregar fotografia..." : "+ Adicionar foto";
+  }
+}
+
+function renderPhotoCard(photo) {
+  const id = escapeHtml(photo.id);
+  const disabled = editable ? "" : "disabled";
+
+  return `
+    <div class="work-status-item-card work-status-photo-card${photo.includeInReports ? "" : " is-hidden-from-reports"}" data-photo-id="${id}">
+      ${photo.signedUrl ? `<img class="work-status-photo-img" src="${escapeHtml(photo.signedUrl)}" alt="${escapeHtml(photo.description || "Fotografia da obra")}" />` : ""}
+      ${photo.includeInReports ? "" : `<div class="work-status-hidden-badge">${HIDDEN_FROM_REPORTS_LABEL}</div>`}
+
+      <div class="field">
+        <label>Legenda</label>
+        <input type="text" data-ws-kind="photo" data-ws-id="${id}" data-ws-field="description" value="${escapeHtml(photo.description)}" ${disabled} />
+      </div>
+      <div class="field">
+        <label>Área</label>
+        <select data-ws-kind="photo" data-ws-id="${id}" data-ws-field="area" ${disabled}>
+          <option value="">— Selecionar —</option>
+          ${renderSelectOptions(AREAS, photo.area)}
+        </select>
+      </div>
+      <div class="field">
+        <label>Trabalhador</label>
+        <input type="text" data-ws-kind="photo" data-ws-id="${id}" data-ws-field="worker" value="${escapeHtml(photo.worker)}" ${disabled} />
+      </div>
+      <div class="field">
+        <label>Fase da fotografia</label>
+        <select data-ws-kind="photo" data-ws-id="${id}" data-ws-field="stage" ${disabled}>
+          ${PHOTO_STAGE_OPTIONS.map(
+            (option) =>
+              `<option value="${option.value}"${option.value === photo.stage ? " selected" : ""}>${option.label}</option>`
+          ).join("")}
+        </select>
+      </div>
+
+      ${
+        editable
+          ? `<div class="work-status-item-actions">
+              <button type="button" class="work-status-item-btn" data-ws-action="toggle-report-photo" data-ws-id="${id}">${photo.includeInReports ? "Ocultar do relatório" : "Mostrar no relatório"}</button>
+              <button type="button" class="work-status-item-btn work-status-item-btn--danger" data-ws-action="remove-photo" data-ws-id="${id}">Remover</button>
+            </div>`
+          : ""
+      }
+    </div>
+  `;
 }
 
 function updateSaveButtonState() {
+  const bar = document.getElementById("workStatusSaveBar");
   const btn = document.getElementById("workStatusSaveBtn");
   const hint = document.getElementById("workStatusSaveHint");
-  const dirty = hasUnsavedWorkStatusChanges();
+  const dirty = isDirty();
 
   if (btn) {
-    btn.disabled = !dirty;
+    btn.disabled = !dirty || saving || generating;
+    btn.textContent = saving ? "A guardar..." : "Guardar alterações";
+  }
+
+  const generateBtn = document.getElementById("workStatusGenerateReportBtn");
+  if (generateBtn) {
+    generateBtn.disabled = saving || generating;
+    generateBtn.textContent = generating ? "A gerar relatório..." : "Gerar relatório";
   }
 
   if (hint) {
-    hint.textContent = dirty ? "Existem alterações por guardar." : "";
+    if (saving) {
+      hint.textContent = "";
+    } else if (statusMessage.text && (statusMessage.tone === "error" || !dirty)) {
+      hint.textContent = statusMessage.text;
+    } else {
+      hint.textContent = dirty ? "Existem alterações por guardar." : "";
+    }
+    hint.classList.toggle("is-success", !saving && !dirty && statusMessage.tone === "success");
+  }
+
+  // The sticky save bar only takes footer space while there is something to
+  // save, a save in flight, or a save result to read.
+  if (bar) bar.hidden = !editable || (!dirty && !saving && !hint?.textContent);
+}
+
+function setListsMessage(message) {
+  for (const id of [
+    "workStatusPendingList",
+    "workStatusProgressList",
+    "workStatusDoneList",
+    "workStatusIncidentsList",
+    "workStatusPhotosList",
+  ]) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = `<p class="empty-hint">${message}</p>`;
   }
 }
 
-function renderWorkList({ containerId, headingId, headingLabel, items, accent, editable, emptyMessage }) {
-  const heading = document.getElementById(headingId);
-  if (heading) {
-    heading.textContent = `${headingLabel} (${items.length})`;
-  }
+// --- event handling ---------------------------------------------------------
 
-  const el = document.getElementById(containerId);
-  if (!el) return;
-
-  if (items.length === 0) {
-    el.innerHTML = `<p class="empty-hint">${escapeHtml(emptyMessage)}</p>`;
-    return;
-  }
-
-  el.innerHTML = items.map((item) => renderWorkItemCard(item, accent, editable)).join("");
+function findEntry(kind, id) {
+  const list = kind === "work" ? draft.workItems : kind === "incident" ? draft.incidents : draft.photos;
+  return list.find((entry) => entry.id === id) || null;
 }
 
-function renderWorkItemCard(item, accent, editable) {
-  const title = [item.type, item.area].filter(Boolean).join(" · ") || "Trabalho";
-  const meta = item.sourceReportNum
-    ? `Relatório #${escapeHtml(item.sourceReportNum)} · ${escapeHtml(formatShortDate(item.sourceReportDate))}`
-    : "";
-
-  const isDone = item.status === COMPLETE_STATUS;
-  const actionLabel = isDone ? "Reabrir" : "Marcar como concluída";
-  const actionStatus = isDone ? REOPEN_STATUS : COMPLETE_STATUS;
-  const actionClass = isDone ? "work-status-item-action--reopen" : "work-status-item-action--complete";
-
-  return `
-    <div class="work-status-item-card work-status-item-card--${accent}">
-      <div class="work-status-item-title">${escapeHtml(title)}</div>
-      ${item.desc ? `<div class="work-status-item-desc">${escapeHtml(item.desc)}</div>` : ""}
-      ${meta ? `<div class="work-status-item-meta">${meta}</div>` : ""}
-
-      <button
-        type="button"
-        class="work-status-item-action ${actionClass}"
-        data-work-status-action="set-status"
-        data-item-id="${escapeHtml(item.id)}"
-        data-status="${escapeHtml(actionStatus)}"
-        data-source-report-id="${escapeHtml(item.sourceReportId || "")}"
-        ${editable ? "" : "disabled"}
-      >
-        ${escapeHtml(actionLabel)}
-      </button>
-    </div>
-  `;
-}
-
-function renderIncidentsList(incidents) {
-  const heading = document.getElementById("workStatusIncidentsHeading");
-  if (heading) {
-    heading.textContent = `Incidentes (${incidents.length})`;
-  }
-
-  const el = document.getElementById("workStatusIncidentsList");
-  if (!el) return;
-
-  if (incidents.length === 0) {
-    el.innerHTML = `<p class="empty-hint">Sem incidentes registados.</p>`;
-    return;
-  }
-
-  el.innerHTML = incidents
-    .map((incident) => {
-      const meta = incident.sourceReportNum
-        ? `Relatório #${escapeHtml(incident.sourceReportNum)} · ${escapeHtml(formatShortDate(incident.sourceReportDate))}`
-        : "";
-
-      return `
-        <div class="work-status-item-card work-status-incident-card">
-          <div class="work-status-item-desc">${escapeHtml(incident.desc)}</div>
-          ${meta ? `<div class="work-status-item-meta">${meta}</div>` : ""}
-        </div>
-      `;
-    })
-    .join("");
-}
-
-function renderNextStepsList(nextSteps) {
-  const heading = document.getElementById("workStatusNextStepsHeading");
-  if (heading) {
-    heading.textContent = `Próximos Passos (${nextSteps.length})`;
-  }
-
-  const el = document.getElementById("workStatusNextStepsList");
-  if (!el) return;
-
-  if (nextSteps.length === 0) {
-    el.innerHTML = `<p class="empty-hint">Sem próximos passos registados.</p>`;
-    return;
-  }
-
-  el.innerHTML = nextSteps
-    .map((nextStep) => {
-      const meta = nextStep.sourceReportNum
-        ? `Relatório #${escapeHtml(nextStep.sourceReportNum)} · ${escapeHtml(formatShortDate(nextStep.sourceReportDate))}`
-        : "";
-
-      return `
-        <div class="work-status-item-card work-status-nextstep-card">
-          <div class="work-status-item-desc">${escapeHtml(nextStep.desc)}</div>
-          ${nextStep.date ? `<div class="work-status-item-meta">Data prevista: ${escapeHtml(formatShortDate(nextStep.date))}</div>` : ""}
-          ${meta ? `<div class="work-status-item-meta">${meta}</div>` : ""}
-        </div>
-      `;
-    })
-    .join("");
+// Any draft edit: a new edit supersedes the last save/error message.
+function markEdited() {
+  statusMessage = { text: "", tone: "" };
 }
 
 async function handleWorkStatusClick(event) {
   const phaseOption = event.target.closest("[data-work-status-phase]");
   if (phaseOption) {
-    handlePhaseOptionClick(phaseOption);
+    if (!requireEditableProject()) return;
+    draft.phase = phaseOption.dataset.workStatusPhase;
+    markEdited();
+    renderPhasePicker();
+    updateSaveButtonState();
     return;
   }
 
   const saveBtn = event.target.closest('[data-work-status-action="save"]');
   if (saveBtn) {
     event.preventDefault();
-    await handleSaveClick(saveBtn);
+    await handleSave();
     return;
   }
 
-  const addWorkItemBtn = event.target.closest('[data-work-status-action="add-work-item"]');
-  if (addWorkItemBtn) {
+  const generateBtn = event.target.closest('[data-work-status-action="generate-report"]');
+  if (generateBtn) {
     event.preventDefault();
-    handleOpenAddWorkItemForm();
+    await handleGenerateReport();
     return;
   }
 
-  const cancelAddWorkItemBtn = event.target.closest(
-    '[data-work-status-action="cancel-add-work-item"]'
-  );
-  if (cancelAddWorkItemBtn) {
+  const addWorkBtn = event.target.closest('[data-work-status-action="add-work-item"]');
+  if (addWorkBtn) {
     event.preventDefault();
-    handleCancelAddWorkItem();
+    if (!requireEditableProject()) return;
+    addWorkItemFormOpen = true;
+    newWorkItemDraft = emptyNewWorkItem();
+    renderWorkLists();
+    renderAddWorkItemForm();
     return;
   }
 
-  const submitAddWorkItemBtn = event.target.closest(
-    '[data-work-status-action="submit-add-work-item"]'
-  );
-  if (submitAddWorkItemBtn) {
+  const addIncidentBtn = event.target.closest('[data-work-status-action="add-incident"]');
+  if (addIncidentBtn) {
     event.preventDefault();
-    await handleSubmitAddWorkItem(submitAddWorkItemBtn);
+    if (!requireEditableProject()) return;
+    addIncidentFormOpen = true;
+    newIncidentDescription = "";
+    renderIncidents();
     return;
   }
 
-  const statusBtn = event.target.closest('[data-work-status-action="set-status"]');
-  if (statusBtn) {
+  const addPhotoBtn = event.target.closest('[data-work-status-action="add-photo"]');
+  if (addPhotoBtn) {
     event.preventDefault();
-    await handleSetStatusClick(statusBtn);
+    if (!requireEditableProject()) return;
+    document.getElementById("workStatusPhotoInput")?.click();
+    return;
   }
+
+  const actionEl = event.target.closest("[data-ws-action]");
+  if (!actionEl) return;
+
+  event.preventDefault();
+  handleDraftAction(actionEl.dataset.wsAction, actionEl.dataset.wsId);
+}
+
+function handleDraftAction(action, id) {
+  if (!requireEditableProject()) return;
+
+  switch (action) {
+    case "submit-add-work-item": {
+      if (!newWorkItemDraft.description.trim()) {
+        alert("Descreva o trabalho antes de adicionar.");
+        return;
+      }
+      draft.workItems.push({
+        id: crypto.randomUUID(),
+        type: newWorkItemDraft.type,
+        area: newWorkItemDraft.area,
+        description: newWorkItemDraft.description.trim(),
+        status: newWorkItemDraft.status,
+        includeInReports: true,
+        firstReportId: null,
+        deactivated: false,
+      });
+      addWorkItemFormOpen = false;
+      newWorkItemDraft = emptyNewWorkItem();
+      break;
+    }
+    case "cancel-add-work-item":
+      addWorkItemFormOpen = false;
+      newWorkItemDraft = emptyNewWorkItem();
+      break;
+    case "toggle-edit-work":
+      editingWorkItemId = editingWorkItemId === id ? null : id;
+      break;
+    case "toggle-report-work": {
+      const item = findEntry("work", id);
+      if (item) item.includeInReports = !item.includeInReports;
+      break;
+    }
+    case "remove-work": {
+      removeEntry("work", id);
+      if (editingWorkItemId === id) editingWorkItemId = null;
+      break;
+    }
+    case "submit-add-incident": {
+      if (!newIncidentDescription.trim()) {
+        alert("Descreva o incidente antes de adicionar.");
+        return;
+      }
+      draft.incidents.push({
+        id: crypto.randomUUID(),
+        description: newIncidentDescription.trim(),
+        status: "open",
+        includeInReports: true,
+        deactivated: false,
+      });
+      addIncidentFormOpen = false;
+      newIncidentDescription = "";
+      break;
+    }
+    case "cancel-add-incident":
+      addIncidentFormOpen = false;
+      newIncidentDescription = "";
+      break;
+    case "toggle-edit-incident":
+      editingIncidentId = editingIncidentId === id ? null : id;
+      break;
+    case "toggle-resolve-incident": {
+      const incident = findEntry("incident", id);
+      if (incident) incident.status = incident.status === "resolved" ? "open" : "resolved";
+      break;
+    }
+    case "toggle-report-incident": {
+      const incident = findEntry("incident", id);
+      if (incident) incident.includeInReports = !incident.includeInReports;
+      break;
+    }
+    case "remove-incident":
+      removeEntry("incident", id);
+      if (editingIncidentId === id) editingIncidentId = null;
+      break;
+    case "toggle-report-photo": {
+      const photo = findEntry("photo", id);
+      if (photo) photo.includeInReports = !photo.includeInReports;
+      break;
+    }
+    case "remove-photo":
+      removeEntry("photo", id);
+      break;
+    default:
+      return;
+  }
+
+  markEdited();
+  renderAll();
+}
+
+// Removal of a persisted row = explicit deactivation in the draft (sent to
+// the RPC as deactivated: true). A row that was never saved is just dropped.
+function removeEntry(kind, id) {
+  const list = kind === "work" ? draft.workItems : kind === "incident" ? draft.incidents : draft.photos;
+  const baselineList = kind === "work" ? baseline.workItems : kind === "incident" ? baseline.incidents : baseline.photos;
+  const index = list.findIndex((entry) => entry.id === id);
+  if (index === -1) return;
+
+  if (baselineList.some((entry) => entry.id === id)) {
+    list[index].deactivated = true;
+  } else {
+    list.splice(index, 1);
+  }
+}
+
+// Text-like inputs: update the draft without re-rendering, so focus/caret
+// aren't lost mid-typing.
+function handleWorkStatusInput(event) {
+  const target = event.target;
+  if (!target?.closest?.("#step-estado-obra")) return;
+
+  if (target.id === "workStatusProgressSlider") {
+    if (!editable) return;
+    draft.progressPct = Math.max(0, Math.min(100, Number(target.value) || 0));
+    markEdited();
+    renderProgressSlider();
+    updateSaveButtonState();
+    return;
+  }
+
+  if (target.id === "workStatusSummary") {
+    if (!editable) return;
+    draft.summary = target.value;
+    markEdited();
+    updateSaveButtonState();
+    return;
+  }
+
+  if (target.id === "workStatusNextSteps") {
+    if (!editable) return;
+    draft.nextSteps = target.value;
+    markEdited();
+    updateSaveButtonState();
+    return;
+  }
+
+  const addWorkField = target.closest("[data-add-work-field]");
+  if (addWorkField) {
+    newWorkItemDraft[addWorkField.dataset.addWorkField] = addWorkField.value;
+    return;
+  }
+
+  const addIncidentField = target.closest("[data-add-incident-field]");
+  if (addIncidentField) {
+    newIncidentDescription = addIncidentField.value;
+    return;
+  }
+
+  const field = target.closest("[data-ws-field]");
+  if (field && field.tagName !== "SELECT") {
+    if (!editable) return;
+    const entry = findEntry(field.dataset.wsKind, field.dataset.wsId);
+    if (!entry) return;
+    entry[field.dataset.wsField] = field.value;
+    markEdited();
+    updateSaveButtonState();
+  }
+}
+
+// Selects: a status change moves a work item between lists, so re-render.
+function handleWorkStatusChange(event) {
+  const target = event.target;
+  if (!target?.closest?.("#step-estado-obra")) return;
+
+  if (target.id === "workStatusPhotoInput") {
+    handlePhotoFileSelected(target);
+    return;
+  }
+
+  const field = target.closest("[data-ws-field]");
+  if (!field || field.tagName !== "SELECT") return;
+  if (!requireEditableProject()) return;
+
+  const entry = findEntry(field.dataset.wsKind, field.dataset.wsId);
+  if (!entry) return;
+
+  entry[field.dataset.wsField] = field.value;
+  markEdited();
+
+  if (field.dataset.wsKind === "work" && field.dataset.wsField === "status") {
+    renderWorkLists();
+  }
+
+  updateSaveButtonState();
 }
 
 function requireEditableProject() {
   const projectId = appState.currentWorkStatusProjectId;
   const project = projectId ? getProjectById(projectId) : null;
+
+  // Still loading (or load failed): controls are already rendered disabled,
+  // this just makes sure a stray event can't edit the placeholder draft.
+  if (project && canEditProject(project) && !editable) {
+    return null;
+  }
 
   if (!project) {
     alert("Projeto não encontrado.");
@@ -540,160 +1152,99 @@ function requireEditableProject() {
   return project;
 }
 
-function handlePhaseOptionClick(phaseOption) {
-  if (!requireEditableProject()) return;
+// Resolves true when the draft is persisted (or there was nothing to save).
+async function handleSave() {
+  if (saving || generating) return false;
+  if (!isDirty()) return true;
 
-  draft.phase = phaseOption.dataset.workStatusPhase;
-  renderPhasePicker(true);
-  updateSaveButtonState();
-}
-
-function handleWorkStatusInput(event) {
-  const target = event.target;
-
-  if (target?.id === "workStatusProgressSlider") {
-    draft.progressPct = Math.max(0, Math.min(100, Number(target.value) || 0));
-    renderProgressSlider();
-    updateSaveButtonState();
-    return;
-  }
-
-  if (target?.id === "workStatusSummary") {
-    draft.summary = target.value;
-    updateSaveButtonState();
-    return;
-  }
-
-  const addWorkField = target?.closest?.("[data-add-work-field]");
-  if (addWorkField) {
-    const key = addWorkField.dataset.addWorkField;
-    if (key === "type" || key === "area" || key === "desc" || key === "status") {
-      newWorkItemDraft[key] = addWorkField.value;
-    }
-  }
-}
-
-async function handleSaveClick(button) {
   const project = requireEditableProject();
-  if (!project) return;
+  if (!project) return false;
 
-  button.disabled = true;
+  const changes = buildChanges();
+  saving = true;
+  updateSaveButtonState();
 
   try {
-    await saveEditableProjectStatus({
+    await saveProjectWorkspace({
       projectId: project.id,
-      companyId: project.companyId,
-      phase: draft.phase,
-      progressPct: draft.progressPct,
-      summary: draft.summary,
+      status: draft,
+      workItems: changes.workItems,
+      incidents: changes.incidents,
+      photos: changes.photos,
     });
-
-    saved = { ...draft };
-    updateSaveButtonState();
-    alert("Alterações guardadas.");
   } catch (error) {
     console.error("Error saving Estado da Obra:", error);
-    alert("Erro ao guardar alterações: " + error.message);
-    button.disabled = false;
-  }
-}
-
-function handleOpenAddWorkItemForm() {
-  if (!requireEditableProject()) return;
-
-  addWorkItemFormOpen = true;
-  newWorkItemDraft = { type: "", area: "", desc: "", status: "blocked" };
-
-  const addWorkItemBtn = document.getElementById("workStatusAddWorkItemBtn");
-  if (addWorkItemBtn) {
-    addWorkItemBtn.hidden = true;
+    saving = false;
+    // The draft is left exactly as it was so nothing typed is lost.
+    statusMessage = { text: `Erro ao guardar alterações: ${error.message}`, tone: "error" };
+    updateSaveButtonState();
+    return false;
   }
 
-  renderAddWorkItemForm();
-}
+  saving = false;
 
-function handleCancelAddWorkItem() {
-  addWorkItemFormOpen = false;
-  newWorkItemDraft = { type: "", area: "", desc: "", status: "blocked" };
-
-  const addWorkItemBtn = document.getElementById("workStatusAddWorkItemBtn");
-  if (addWorkItemBtn) {
-    addWorkItemBtn.hidden = false;
+  try {
+    const fresh = await loadProjectWorkspace(project.id);
+    baseline = fresh;
+    draft = clone(fresh);
+  } catch (error) {
+    // Saved, but the re-read failed: the draft we sent is what's persisted.
+    console.error("Error reloading Estado da Obra after save:", error);
+    draft.workItems = draft.workItems.filter((item) => !item.deactivated);
+    draft.incidents = draft.incidents.filter((incident) => !incident.deactivated);
+    draft.photos = draft.photos.filter((photo) => !photo.deactivated);
+    baseline = clone(draft);
   }
 
-  renderAddWorkItemForm();
+  resetTransientUiState();
+  statusMessage = { text: "Alterações guardadas.", tone: "success" };
+  renderAll();
+  return true;
 }
 
-async function handleSubmitAddWorkItem(button) {
+async function handlePhotoFileSelected(input) {
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file) return;
+
   const project = requireEditableProject();
   if (!project) return;
 
-  if (!newWorkItemDraft.desc.trim()) {
-    alert("Descreva o trabalho antes de adicionar.");
-    return;
-  }
-
-  button.disabled = true;
+  uploadingPhoto = true;
+  renderPhotos();
 
   try {
-    await addWorkItem({
+    const photo = await addWorkspacePhoto({
       projectId: project.id,
-      type: newWorkItemDraft.type,
-      area: newWorkItemDraft.area,
-      desc: newWorkItemDraft.desc,
-      status: newWorkItemDraft.status,
+      companyId: project.companyId,
+      file,
     });
 
-    await renderMasterSheet(project);
+    // Already persisted — it joins the baseline too, so it doesn't count as
+    // an unsaved change, and any other pending draft edits stay untouched.
+    baseline.photos.push(clone(photo));
+    draft.photos.push(photo);
   } catch (error) {
-    console.error("Error adding work item:", error);
-    alert("Erro ao adicionar trabalho: " + error.message);
-    button.disabled = false;
+    console.error("Error uploading photo:", error);
+    alert("Erro ao adicionar fotografia: " + error.message);
+  } finally {
+    uploadingPhoto = false;
+    renderPhotos();
+    updateSaveButtonState();
   }
 }
 
-async function handleSetStatusClick(button) {
-  const project = requireEditableProject();
-  if (!project) return;
+// A value saved before the option list changed (or backfilled from a legacy
+// report) still shows as selected instead of silently reading as blank.
+function renderSelectOptions(options, selectedValue) {
+  const all = selectedValue && !options.includes(selectedValue) ? [selectedValue, ...options] : options;
 
-  const itemId = button.dataset.itemId;
-  const status = button.dataset.status;
-  const sourceReportId = button.dataset.sourceReportId || null;
-
-  button.disabled = true;
-
-  try {
-    await setWorkItemStatus({ projectId: project.id, itemId, status, sourceReportId });
-    await renderMasterSheet(project);
-  } catch (error) {
-    console.error("Error saving work item status:", error);
-    alert("Erro ao guardar alteração: " + error.message);
-
-    button.disabled = false;
-  }
-}
-
-function setListLoading(containerId) {
-  const el = document.getElementById(containerId);
-  if (el) {
-    el.innerHTML = `<p class="empty-hint">A carregar...</p>`;
-  }
-}
-
-function setListError(containerId, message) {
-  const el = document.getElementById(containerId);
-  if (el) {
-    el.innerHTML = `<p class="empty-hint">${message}</p>`;
-  }
-}
-
-function formatShortDate(value) {
-  if (!value) return "—";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-
-  return date.toLocaleDateString("pt-PT");
+  return all
+    .map((option) => {
+      const selected = option === selectedValue ? " selected" : "";
+      return `<option value="${escapeHtml(option)}"${selected}>${escapeHtml(option)}</option>`;
+    })
+    .join("");
 }
 
 function escapeHtml(value) {

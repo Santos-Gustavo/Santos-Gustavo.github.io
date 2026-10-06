@@ -74,8 +74,8 @@ async function openProjectWithReport(page, projectName, reportId) {
   });
 
   // PROJECT-HUB-INTEGRATION-001 — the card itself opens Estado da Obra;
-  // "Mais opções" (mode picker) now lives inside Estado da Obra's own
-  // header. Exact-text `has` filter, not `hasText` (substring) — the sibling
+  // Legal / Financeiro, saved reports and lifecycle actions live there too.
+  // Exact-text `has` filter, not `hasText` (substring) — the sibling
   // fixture "E2E Fixture Project B" would otherwise also match a filter on
   // "E2E Fixture Project".
   await page
@@ -87,11 +87,6 @@ async function openProjectWithReport(page, projectName, reportId) {
     timeout: 10000,
   });
 
-  await page.locator("#workStatusMoreOptionsBtn").click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
-    timeout: 10000,
-  });
 
   await expect(
     page.locator(`[data-report-history-card="${reportId}"]`)

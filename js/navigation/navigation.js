@@ -15,9 +15,12 @@ import { renderExtras } from "#projects/sections/extras.js";
 import { renderNextSteps } from "#projects/sections/next-steps.js";
 import { updateIncidentsUI, updatePhaseUI, syncProgressSlider } from "#ui/ui-controls.js";
 import { getOpenWorkItemsForPrefill, getSavedProjectStatusForPrefill } from "#projects/project-work-items.js";
-import { hasUnsavedWorkStatusChanges } from "#projects/project-work-items-ui.js";
-import { getProjectStatusLabel, canCreateWeeklyReport, canCreateLegalFinancialReport } from "#projects/project-status-rules.js";
-import { renderProjectModePage } from "#projects/project-mode-page.js";
+import {
+  hasUnsavedWorkStatusChanges,
+  confirmLeaveEstadoObraIfDirty,
+  openProjectMasterSheet,
+} from "#projects/project-work-items-ui.js";
+import { canCreateWeeklyReport, canCreateLegalFinancialReport } from "#projects/project-status-rules.js";
 import { openClientsPage } from "#clients/client-index.js";
 import { openCompanyProfilePage } from "#company/company-index.js";
 import { confirmAction } from "#ui/confirm-dialog.js";
@@ -86,12 +89,6 @@ export function updateTopBar(id) {
   if (id === "clients") {
     fill.style.width = "0%";
     label.textContent = "Clientes";
-    return;
-  }
-
-  if (id === "mode") {
-    fill.style.width = "3%";
-    label.textContent = "Tipo de Relatório";
     return;
   }
 
@@ -190,25 +187,11 @@ export async function goNext() {
       return;
     }
 
-    const projectName =
-      document.getElementById("projectName")?.value || "Novo Projeto";
-
-    const modeProjectLabel = document.getElementById("modeProjectLabel");
-    if (modeProjectLabel) {
-      modeProjectLabel.textContent = projectName;
-    }
-
-    const modeProjectStatus = document.getElementById("modeProjectStatus");
-    if (modeProjectStatus) {
-      modeProjectStatus.textContent = getProjectStatusLabel(saved.project.status);
-    }
-
-    goToStepId("mode");
-
+    // A new project lands in Estado da Obra, the project hub (there is no
+    // "Tipo de Relatório" page any more).
     appState.currentProject = saved.project;
-
     upsertProjectInCache(saved.project);
-    renderProjectModePage(saved.project);
+    await openProjectMasterSheet(saved.project.id);
     return;
   }
 
@@ -246,12 +229,6 @@ export function goBack() {
     return;
   }
 
-  if (cur === "mode") {
-    goToStepId("projects");
-    renderProjectList();
-    return;
-  }
-
   if (cur === "estado-obra") {
     goToStepId("projects");
     renderProjectList();
@@ -276,7 +253,15 @@ export function goBack() {
   const idx = state.flow.indexOf(cur);
 
   if (idx <= 0) {
-    goToStepId("mode");
+    // Leaving the legal/financial wizard from its first step: back to the
+    // project's Estado da Obra, where it was started.
+    state.mode = "";
+    state.flow = null;
+    if (appState.currentProjectId) {
+      openProjectMasterSheet(appState.currentProjectId);
+    } else {
+      goHome();
+    }
   } else {
     goToStepId(state.flow[idx - 1]);
   }
@@ -312,16 +297,6 @@ export function goHome() {
   const progressFill = document.getElementById("progressFill");
   if (progressFill) {
     progressFill.style.width = "0%";
-  }
-
-  const modeProjectLabel = document.getElementById("modeProjectLabel");
-  if (modeProjectLabel) {
-    modeProjectLabel.textContent = "";
-  }
-
-  const modeProjectStatus = document.getElementById("modeProjectStatus");
-  if (modeProjectStatus) {
-    modeProjectStatus.textContent = "";
   }
 
   renderProjectList();
@@ -457,21 +432,6 @@ function showPrefillNotice() {
   alert("Último relatório encontrado. Os dados foram pré-preenchidos. Atualize apenas o que mudou esta semana.");
 }
 
-// PROJECT-HUB-INTEGRATION-001 — guards leaving Estado da Obra (back button or
-// the "Gerar relatório semanal" shortcut) when Fase atual/Progresso
-// geral/Resumo da obra were edited but never saved. Resolves true when it's
-// safe to proceed (nothing unsaved, or the user confirmed leaving anyway).
-async function confirmLeaveEstadoObraIfDirty() {
-  if (!hasUnsavedWorkStatusChanges()) return true;
-
-  return confirmAction({
-    title: "Sair sem guardar?",
-    message: "Existem alterações por guardar. Quer sair sem guardar?",
-    confirmLabel: "Sair sem guardar",
-    cancelLabel: "Cancelar",
-  });
-}
-
 async function handleNavigationClick(event) {
   const trigger = event.target.closest("[data-nav-action]");
 
@@ -499,13 +459,14 @@ async function handleNavigationClick(event) {
     return;
   }
 
-  // Shortcut button on Estado da Obra — deliberately its own action (not
-  // select-mode/weekly) so it doesn't collide with the mode-picker tile's
-  // identical data-mode="weekly" selector while both sit in the DOM at once.
-  if (action === "generate-weekly-report") {
+  // POST-RELEASE-POLISH-001 — Estado da Obra's "Legal / Financeiro" button
+  // goes straight into the legal/financial wizard (the "Tipo de Relatório"
+  // page is gone). Weekly reports come from "Gerar relatório"; the old weekly
+  // wizard (selectMode("weekly")) is not routed to from the product — its
+  // code stays until dead-code cleanup because the legal wizard shares it.
+  if (action === "open-legal") {
     if (!(await confirmLeaveEstadoObraIfDirty())) return;
-
-    await selectMode("weekly");
+    await selectMode("legal");
     return;
   }
 
@@ -522,6 +483,11 @@ async function handleNavigationClick(event) {
   }
 
   if (action === "home") {
+    if (hasUnsavedWorkStatusChanges()) {
+      if (await confirmLeaveEstadoObraIfDirty()) goHome();
+      return;
+    }
+
     const confirmed = await confirmAction({
       title: "Voltar ao início?",
       message: "Pode perder alterações que ainda não foram guardadas. Quer continuar?",

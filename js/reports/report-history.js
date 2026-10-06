@@ -67,6 +67,11 @@ export async function renderReportHistory(projectId = null) {
 }
 
 export async function openSavedReport(reportId) {
+  return openHtmlReportPreview(await renderSavedReportHtml(reportId));
+}
+
+// The saved report row's snapshot_json, rendered — never live workspace data.
+export async function renderSavedReportHtml(reportId) {
   if (!reportId) {
     throw new Error("reportId é obrigatório.");
   }
@@ -82,9 +87,7 @@ export async function openSavedReport(reportId) {
   }
 
   const hydrated = await hydrateReportPhotoUrls(report.snapshotJson);
-  const html = renderReportHtml(hydrated);
-
-  return openHtmlReportPreview(html);
+  return renderReportHtml(hydrated);
 }
 
 function renderReportHistoryItem(report, shareStatus) {

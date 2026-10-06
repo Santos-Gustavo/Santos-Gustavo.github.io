@@ -74,7 +74,7 @@ function renderHeader(report) {
     <header class="header">
       <div class="header-top">
         <div class="logo-area">
-          <div class="logo-placeholder">LOGO</div>
+          ${renderLogo(report)}
 
           <div>
             <div class="company-name">${escapeHtml(report.company.name || "Empresa de Construção")}</div>
@@ -92,7 +92,7 @@ function renderHeader(report) {
       <div class="header-info">
         ${infoItem("Projeto", report.project.name)}
         ${infoItem("Localização", report.project.location)}
-        ${infoItem("Data do Relatório", formatLongDate(report.meta.reportDate))}
+        ${renderReportDateItem(report)}
         ${infoItem("Cliente", report.project.clientName)}
         ${infoItem("Responsável de Projeto", report.company.responsible)}
         ${infoItem("N.º Contrato", report.project.contractNumber, true)}
@@ -116,7 +116,21 @@ function renderSummary(report) {
   `;
 }
 
-function renderWeeklyReport(report) {
+// Canonical snapshots (generate_report) store the Estado da Obra vocabulary
+// pending/in_progress/done; legacy snapshots store blocked/progress/done.
+// Both render identically — legacy "blocked" was always shown as "Pendente".
+function toDisplayWorkStatus(status) {
+  if (status === "pending") return "blocked";
+  if (status === "in_progress") return "progress";
+  return status;
+}
+
+function renderWeeklyReport(sourceReport) {
+  const report = {
+    ...sourceReport,
+    works: sourceReport.works.map((work) => ({ ...work, status: toDisplayWorkStatus(work.status) })),
+  };
+
   const done = report.works.filter((work) => work.status === "done").length;
   const progress = report.works.filter((work) => work.status === "progress").length;
   const blocked = report.works.filter((work) => work.status === "blocked").length;
@@ -376,9 +390,17 @@ function renderIncidents(incidents) {
 
   return incidents.items
     .map((incident) => {
+      // status only exists on canonical snapshots (open/resolved).
+      const statusTag =
+        incident.status === "resolved"
+          ? `<span class="work-tag done">Resolvido</span> `
+          : incident.status === "open"
+            ? `<span class="work-tag blocked">Em aberto</span> `
+            : "";
+
       return `
         <div class="incident-row">
-          ${escapeHtml(incident.description || "—")}
+          ${statusTag}${escapeHtml(incident.description || "—")}
         </div>
       `;
     })
@@ -573,6 +595,7 @@ body{font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;font-size:13px;color
 .header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
 .logo-area{display:flex;align-items:center;gap:14px}
 .logo-placeholder{width:44px;height:44px;border:2px solid #d7ccb3;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#3f5368;text-align:center;background:#ffffff}
+.logo-image{flex:0 0 64px;width:64px;height:64px;object-fit:contain;border-radius:6px;background:#ffffff;display:block}
 .company-name{font-family:'Space Grotesk',Arial,sans-serif;font-size:20px;font-weight:700;color:#16263a}
 .company-tagline{font-size:11px;color:#3f5368;margin-top:2px}
 .report-badge{text-align:right}
@@ -673,6 +696,44 @@ body{font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;font-size:13px;color
 .print-btn{position:fixed;bottom:24px;right:24px;background:#16263a;color:#f4f1e8;border:none;border-radius:6px;padding:14px 20px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:999}
 .muted{color:#3f5368}
 </style>`;
+}
+
+// Company logo (company.logoUrl, signed from the snapshot's company.logoPath)
+// in a fixed box with object-fit: contain, so every logo renders at the same
+// size. Reports without one keep the original "LOGO" placeholder unchanged.
+function renderLogo(report) {
+  const logoUrl = report.company?.logoUrl;
+  if (!logoUrl) {
+    return `<div class="logo-placeholder">LOGO</div>`;
+  }
+
+  return `<img class="logo-image" src="${escapeHtml(logoUrl)}" alt="${escapeHtml(report.company.name || "Logótipo")}" />`;
+}
+
+// The period is shown only on canonical reports (generate_report, which
+// derives it server-side). Legacy snapshots stored a wizard-prefilled period
+// that was never displayed and is often stale, so they render exactly as
+// before.
+function renderReportDateItem(report) {
+  const { periodStart, periodEnd } = report.meta;
+  if (report.source !== "canonical" || !periodStart || !periodEnd) {
+    return infoItem("Data do Relatório", formatLongDate(report.meta.reportDate));
+  }
+
+  return `
+    <div class="info-item">
+      <div class="info-label">Data do Relatório</div>
+      <div class="info-value">${escapeHtml(formatLongDate(report.meta.reportDate))}</div>
+      <div class="info-value mono" data-report-period>Período ${escapeHtml(formatPeriodDate(periodStart))} – ${escapeHtml(formatPeriodDate(periodEnd))}</div>
+    </div>
+  `;
+}
+
+// "2026-09-30" -> "30/09/2026" without going through Date, so the viewer's
+// time zone can never shift a date-only value by a day.
+function formatPeriodDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value));
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : formatShortDate(value);
 }
 
 function infoItem(label, value, mono = false) {

@@ -806,6 +806,7 @@ input:-webkit-autofill:focus {
   align-items: center;
   justify-content: center;
   margin-top: 10px;
+  min-height: 44px;
   padding: 8px 14px;
   border-radius: 7px;
   font-size: 12.5px;
@@ -1017,6 +1018,78 @@ input:-webkit-autofill:focus {
 .work-status-item-action--reopen { background: var(--input-bg); border-color: var(--border); color: var(--muted); }
 .work-status-item-action--reopen:not(:disabled):hover { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
 
+/* ESTADO-DA-OBRA-WORKSPACE-001 — canonical workspace editing. */
+/* POST-RELEASE-POLISH-001 — the save bar + nav bar form one sticky footer
+   (see app.html). The nav bar inside it no longer sticks on its own. */
+.work-status-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  background: white;
+}
+.work-status-footer .nav-bar { position: static; }
+.work-status-save-bar {
+  padding: 10px 20px;
+  margin-top: 0;
+  background: var(--paper, var(--input-bg));
+  border-top: 1px solid var(--border);
+}
+.work-status-save-bar .btn-add { min-height: 44px; }
+/* "Voltar às obras" on one line instead of three in a fixed 80px column. */
+.work-status-footer .btn-back { flex: 0 0 auto; padding: 14px; white-space: nowrap; }
+.work-status-footer .btn-generate { min-width: 0; }
+.work-status-save-bar[hidden],
+.work-status-section .btn-add[hidden],
+.work-status-add-form[hidden],
+[data-confirm-action][hidden] { display: none; }
+.work-status-save-hint.is-success { color: var(--forest); }
+
+.work-status-inline-field { margin-bottom: 10px; }
+.work-status-item-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.work-status-item-btn {
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.work-status-item-btn:hover { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
+.work-status-item-btn--danger { color: var(--rust); }
+.work-status-item-btn--danger:hover { background: var(--rust-soft); border-color: var(--rust); color: var(--rust); }
+.work-status-hidden-badge {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  margin-bottom: 10px;
+}
+/* Hidden-from-reports reads from the dashed outline + badge, not from
+   fading the card — opacity pushed its labels/buttons below 4.5:1. */
+.work-status-item-card.is-hidden-from-reports {
+  border-top-style: dashed;
+  border-right-style: dashed;
+  border-bottom-style: dashed;
+}
+.work-status-incident-card.is-resolved { background: var(--input-bg); border-color: var(--border); }
+.work-status-photo-img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
 .project-card-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
 /* ---------- CLIENT DIRECTORY ---------- */
@@ -1072,7 +1145,29 @@ input:-webkit-autofill:focus {
   font-weight: 600;
 }
 
-.project-lifecycle-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.mode-project-status:empty { display: none; }
+/* display:inline-flex above would otherwise override the hidden attribute
+   (archived projects have no Legal / Financeiro). */
+.work-status-more-options-btn[hidden] { display: none; }
+.work-status-client-label { font-size: 13px; color: var(--muted); margin-top: 5px; }
+.work-status-header-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.project-lifecycle-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.project-lifecycle-actions:empty { display: none; }
+.project-lifecycle-actions .btn-secondary {
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.project-lifecycle-actions .btn-secondary:hover { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
+.work-status-history-card { margin-top: 16px; }
+.work-status-history-card h3 { font-size: 13px; color: var(--ink); margin-bottom: 10px; }
 
 .report-history-card { cursor: default; }
 .report-history-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -1142,3 +1237,55 @@ input:-webkit-autofill:focus {
   border-color: var(--brass);
   color: var(--brass-deep);
 }
+/* ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — "Gerar relatório" result panel. */
+/* POST-RELEASE-POLISH-001 — company logo (Dados da Empresa). Fixed box,
+   object-fit: contain — any logo shows at the same size. */
+.company-logo-row { display: flex; align-items: center; gap: 14px; }
+.company-logo-preview {
+  flex: 0 0 96px;
+  width: 96px;
+  height: 96px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.company-logo-img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.company-logo-empty { font-size: 11.5px; color: var(--muted); text-align: center; padding: 6px; }
+.company-logo-actions { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+.company-logo-actions .btn-add { margin-top: 0; min-height: 44px; padding: 10px 12px; }
+.company-logo-actions .btn-add:disabled { opacity: 0.5; cursor: default; }
+.company-logo-actions .btn-cancel-work-item { min-height: 44px; padding: 10px 12px; }
+.company-logo-actions [hidden] { display: none; }
+.company-logo-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+.work-status-period-card { margin-bottom: 0; }
+.work-status-period-card[hidden] { display: none; }
+.work-status-period-card h3 { font-size: 13px; color: var(--ink); margin-bottom: 10px; }
+.work-status-period-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.work-status-period-row .field { margin-bottom: 0; min-width: 0; }
+.work-status-period-row input[type="date"] { width: 100%; min-width: 0; min-height: 44px; }
+.report-result { margin-top: 16px; }
+.report-result[hidden] { display: none; }
+.report-result-text { font-size: 14px; color: var(--ink); margin-bottom: 10px; }
+.report-result-period { display: block; margin-top: 2px; font-size: 12.5px; color: var(--muted); }
+.report-result-text--error { color: var(--danger); margin-bottom: 0; }
+.report-result[data-state="loading"] .report-result-text { color: var(--muted); margin-bottom: 0; }
+.report-result-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.report-result-actions .secondary {
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--ink);
+  border-radius: 6px;
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.report-result-actions .secondary:hover { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
+.report-result-actions .secondary:disabled { opacity: 0.6; cursor: default; }
+.report-result-share[hidden] { display: none; }
