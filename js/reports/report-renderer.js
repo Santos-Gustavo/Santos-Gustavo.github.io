@@ -74,7 +74,7 @@ function renderHeader(report) {
     <header class="header">
       <div class="header-top">
         <div class="logo-area">
-          <div class="logo-placeholder">LOGO</div>
+          ${renderLogo(report)}
 
           <div>
             <div class="company-name">${escapeHtml(report.company.name || "Empresa de Construção")}</div>
@@ -595,6 +595,7 @@ body{font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;font-size:13px;color
 .header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
 .logo-area{display:flex;align-items:center;gap:14px}
 .logo-placeholder{width:44px;height:44px;border:2px solid #d7ccb3;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#3f5368;text-align:center;background:#ffffff}
+.logo-image{flex:0 0 64px;width:64px;height:64px;object-fit:contain;border-radius:6px;background:#ffffff;display:block}
 .company-name{font-family:'Space Grotesk',Arial,sans-serif;font-size:20px;font-weight:700;color:#16263a}
 .company-tagline{font-size:11px;color:#3f5368;margin-top:2px}
 .report-badge{text-align:right}
@@ -695,6 +696,18 @@ body{font-family:'IBM Plex Sans',Arial,Helvetica,sans-serif;font-size:13px;color
 .print-btn{position:fixed;bottom:24px;right:24px;background:#16263a;color:#f4f1e8;border:none;border-radius:6px;padding:14px 20px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:999}
 .muted{color:#3f5368}
 </style>`;
+}
+
+// Company logo (company.logoUrl, signed from the snapshot's company.logoPath)
+// in a fixed box with object-fit: contain, so every logo renders at the same
+// size. Reports without one keep the original "LOGO" placeholder unchanged.
+function renderLogo(report) {
+  const logoUrl = report.company?.logoUrl;
+  if (!logoUrl) {
+    return `<div class="logo-placeholder">LOGO</div>`;
+  }
+
+  return `<img class="logo-image" src="${escapeHtml(logoUrl)}" alt="${escapeHtml(report.company.name || "Logótipo")}" />`;
 }
 
 // The period is shown only on canonical reports (generate_report, which

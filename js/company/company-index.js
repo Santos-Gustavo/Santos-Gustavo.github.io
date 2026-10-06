@@ -6,6 +6,7 @@ import {
   populateCompanyForm,
   saveCompanyProfileFromForm,
 } from "#company/company-profile.js";
+import { initCompanyLogo, renderCompanyLogo } from "#company/company-logo.js";
 import { goToStepId, goHome } from "#navigation/navigation.js";
 
 let initialized = false;
@@ -14,6 +15,7 @@ export function initCompanyProfile() {
   if (initialized) return;
   initialized = true;
 
+  initCompanyLogo();
   document.addEventListener("click", handleCompanyClick);
 }
 
@@ -22,6 +24,7 @@ export function initCompanyProfile() {
 export async function openCompanyProfilePage() {
   const company = await loadPrimaryCompanyIntoState();
   populateCompanyForm(company);
+  renderCompanyLogo(company).catch(console.error);
 
   const isFirstTimeSetup = !company;
   setFirstTimeSetupNotice(isFirstTimeSetup);

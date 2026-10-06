@@ -83,6 +83,27 @@ export async function createCompanyProfile(values) {
   return data;
 }
 
+// Sets (storage path) or clears (null) the company logo. Separate from the
+// profile form save: the logo is persisted as soon as it's uploaded/removed.
+export async function updateCompanyLogo(companyId, logoPath) {
+  const user = await requireUser();
+
+  if (!companyId) {
+    throw new Error("ID da empresa em falta.");
+  }
+
+  const { data, error } = await supabaseClient
+    .from("companies")
+    .update({ logo_url: logoPath || null, updated_at: new Date().toISOString() })
+    .eq("id", companyId)
+    .eq("owner_id", user.id)
+    .select()
+    .single();
+
+  throwIfDbError(error, "Erro ao guardar o logótipo.");
+  return data;
+}
+
 export async function updateCompanyById(companyId, values) {
   const user = await requireUser();
 

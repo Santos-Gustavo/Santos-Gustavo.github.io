@@ -1,21 +1,140 @@
--- POST-RELEASE-POLISH-001 — user-chosen report period.
+-- POST-RELEASE-POLISH-001 — user-chosen report period + company logo.
 --
--- generate_report gains two optional parameters, p_period_start and
--- p_period_end (Estado da Obra's "Período do relatório" De / Até fields):
+-- 1. Company logo (Dados da Empresa → Logótipo)
+--    * companies.logo_url holds a storage path under {company_id}/company/
+--      or null (enforced by trg_companies_logo_path; every existing row is
+--      null today).
+--    * generate_report freezes it into snapshot_json.company.logoPath.
+--    * guard_report_snapshot rejects a snapshot whose company.logoPath is
+--      outside the report's own company folder — get-shared-report signs it
+--      with the service role, exactly like photo paths.
 --
---   * both null  -> the automatic period from 20261007120000 (unchanged)
---   * both given -> used as-is after validation: start <= end, end not after
---                   today (Europe/Lisbon), at most one year long
---   * only one   -> rejected
+-- 2. User-chosen report period
+--    generate_report gains two optional parameters, p_period_start and
+--    p_period_end (Estado da Obra's "Período do relatório" De / Até):
+--      * both null  -> the automatic period from 20261007120000 (unchanged)
+--      * both given -> used as-is after validation: start <= end, end not
+--                      after today (Europe/Lisbon), at most one year long
+--      * only one   -> rejected
+--    report_date stays the generation day.
 --
--- report_date stays the generation day. Content, numbering, locking,
--- ownership/eligibility checks and write-once rules are unchanged; the body
--- is 20261007120000's plus the period lines.
+-- Everything else in both functions is identical to 20261007120000.
 --
--- The signature changes, so the old one-argument function is dropped first:
--- keeping both overloads would make PostgREST's call with only p_project_id
--- ambiguous. Apply this BEFORE deploying the frontend that sends the dates;
--- the old frontend keeps working against the new function (defaults).
+-- The generate_report signature changes, so the old one-argument function is
+-- dropped first: keeping both overloads would make PostgREST's call with only
+-- p_project_id ambiguous. Apply this BEFORE deploying the frontend that sends
+-- the dates; the old frontend keeps working against the new function.
+
+-- ---------------------------------------------------------------------------
+-- 1a. companies.logo_url
+-- ---------------------------------------------------------------------------
+
+create or replace function public.enforce_company_logo_path()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $$
+declare
+  v_prefix text := new.id::text || '/company/';
+begin
+  if new.logo_url is null then
+    return new;
+  end if;
+
+  if left(new.logo_url, length(v_prefix)) <> v_prefix
+     or substr(new.logo_url, length(v_prefix) + 1) !~ '^[A-Za-z0-9_-][A-Za-z0-9._-]*$' then
+    raise exception 'Caminho de logótipo inválido para esta empresa.' using errcode = '42501';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_companies_logo_path on public.companies;
+
+create trigger trg_companies_logo_path
+before insert or update of logo_url on public.companies
+for each row execute function public.enforce_company_logo_path();
+
+-- ---------------------------------------------------------------------------
+-- 1b. reports snapshot guard (20261007120000's version + company logo check)
+-- ---------------------------------------------------------------------------
+
+create or replace function public.guard_report_snapshot()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $$
+declare
+  v_company_id uuid;
+  v_prefix text;
+  v_path text;
+begin
+  if tg_op = 'UPDATE' and old.snapshot_json is not null then
+    if new.snapshot_json is distinct from old.snapshot_json
+       or new.snapshot_version is distinct from old.snapshot_version
+       or new.project_id is distinct from old.project_id
+       or new.report_num is distinct from old.report_num
+       or new.report_date is distinct from old.report_date
+       or new.period_start is distinct from old.period_start
+       or new.period_end is distinct from old.period_end
+       or new.phase is distinct from old.phase
+       or new.progress_pct is distinct from old.progress_pct
+       or new.week_summary is distinct from old.week_summary
+       or new.works is distinct from old.works
+       or new.incidents is distinct from old.incidents
+       or new.next_steps is distinct from old.next_steps
+       or new.extras is distinct from old.extras then
+      raise exception 'Relatório já gerado — o conteúdo não pode ser alterado.' using errcode = '42501';
+    end if;
+
+    return new;
+  end if;
+
+  if new.snapshot_json is null then
+    return new;
+  end if;
+
+  select p.company_id into v_company_id
+  from public.projects p
+  where p.id = new.project_id;
+
+  if v_company_id is null then
+    raise exception 'Projeto inválido para este relatório.' using errcode = '42501';
+  end if;
+
+  -- Company logo: only this report's own company's logo folder.
+  v_path := new.snapshot_json -> 'company' ->> 'logoPath';
+  if coalesce(v_path, '') <> ''
+     and left(v_path, length(v_company_id::text || '/company/')) <> v_company_id::text || '/company/' then
+    raise exception 'Logótipo fora da pasta desta empresa — relatório não guardado.' using errcode = '42501';
+  end if;
+
+  if jsonb_typeof(new.snapshot_json -> 'photos') is distinct from 'array' then
+    return new;
+  end if;
+
+  v_prefix := v_company_id::text || '/' || new.project_id::text || '/';
+
+  for v_path in
+    select photo ->> 'storagePath'
+    from jsonb_array_elements(new.snapshot_json -> 'photos') as photo
+  loop
+    if coalesce(v_path, '') <> ''
+       and left(v_path, length(v_prefix)) <> v_prefix then
+      raise exception 'Fotografia fora da pasta deste projeto — relatório não guardado.' using errcode = '42501';
+    end if;
+  end loop;
+
+  return new;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 2. generate_report (period parameters + company logo)
+-- ---------------------------------------------------------------------------
 
 drop function if exists public.generate_report(uuid);
 
@@ -234,7 +353,8 @@ begin
       'impic', coalesce(v_company.impic, ''),
       'responsible', coalesce(v_company.responsible, ''),
       'phone', coalesce(v_company.phone, ''),
-      'email', coalesce(v_company.email, '')
+      'email', coalesce(v_company.email, ''),
+      'logoPath', v_company.logo_url
     ),
     'project', jsonb_build_object(
       'id', v_project.id,

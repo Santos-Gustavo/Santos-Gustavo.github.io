@@ -38,6 +38,9 @@ export function buildCurrentReportDocument(options = {}) {
       responsible: state.currentCompany?.responsible || values.responsible || "",
       phone: state.currentCompany?.phone || values.companyPhone || "",
       email: state.currentCompany?.email || values.companyEmail || "",
+      // Storage path of the company logo, frozen with the report (signed at
+      // render time). null → the renderer's "LOGO" placeholder.
+      logoPath: state.currentCompany?.logo_url || null,
     },
 
     project: {

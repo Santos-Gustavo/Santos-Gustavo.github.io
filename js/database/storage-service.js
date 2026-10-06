@@ -80,6 +80,30 @@ export async function uploadWorkspacePhoto({ blob, companyId, projectId, fileNam
   return { storagePath: data.path };
 }
 
+// Company logo (Dados da Empresa). Always a new unique file — never
+// overwritten or deleted, because generated reports keep pointing at the logo
+// they were frozen with. {company_id}/company/ matches the bucket's storage
+// RLS (first segment = own company) and companies.logo_url's DB check.
+export async function uploadCompanyLogo({ blob, companyId }) {
+  if (!companyId) throw new Error("companyId é obrigatório para guardar o logótipo.");
+
+  const storagePath = `${companyId}/company/logo-${crypto.randomUUID()}.png`;
+
+  const { data, error } = await supabaseClient.storage
+    .from(PHOTO_BUCKET)
+    .upload(storagePath, blob, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: "image/png",
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  return { storagePath: data.path };
+}
+
 export async function getSignedPhotoUrl(storagePath) {
   if (!storagePath) return null;
 
