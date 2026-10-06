@@ -314,6 +314,23 @@
 
       <!-- Phase 4 — result of "Gerar relatório" (loading / success with
            Ver PDF + Partilhar / error). Filled by js/reports/report-generation-panel.js. -->
+      <!-- Period of the next "Gerar relatório" — prefilled with the automatic
+           period (day after the last report → today), editable. Not part of
+           the workspace draft: never marks it dirty, never saved on its own. -->
+      <div class="card work-status-period-card" id="workStatusPeriodCard">
+        <h3>Período do relatório</h3>
+        <div class="work-status-period-row">
+          <div class="field">
+            <label for="workStatusPeriodStart">De</label>
+            <input type="date" id="workStatusPeriodStart" />
+          </div>
+          <div class="field">
+            <label for="workStatusPeriodEnd">Até</label>
+            <input type="date" id="workStatusPeriodEnd" />
+          </div>
+        </div>
+      </div>
+
       <div class="card report-result" id="workStatusReportResult" hidden></div>
     </div>
     <!-- Sticky footer: the single manual save for the whole workspace draft

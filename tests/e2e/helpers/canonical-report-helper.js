@@ -44,14 +44,22 @@ export async function saveEstadoDaObra(page) {
 }
 
 // Clicks "Gerar relatório" on a clean workspace and waits for the success
-// panel. Returns the generated report number shown in the panel.
+// panel; the report also opens in a new tab and a "Relatório gerado" pop-up
+// confirms it — both are dismissed here. Returns the generated report id.
 export async function generateReportFromEstadoDaObra(page) {
+  const tabPromise = page.waitForEvent("popup");
   await page.locator("#workStatusGenerateReportBtn").click();
   const panel = page.locator("#workStatusReportResult");
   await expect(panel).toHaveAttribute("data-state", "success", { timeout: 20000 });
   await expect(panel.locator('[data-generated-report-action="view-pdf"]')).toBeVisible();
   await expect(panel.locator('[data-generated-report-action="share"]')).toBeVisible();
   const reportId = await panel.getAttribute("data-report-id");
+
+  await expect(page.locator("#confirmDialogTitle")).toHaveText("Relatório gerado", { timeout: 20000 });
+  await page.locator('[data-confirm-action="confirm"]').click();
+  await expect(page.locator("#confirmDialog")).toBeHidden();
+  (await tabPromise).close();
+
   return { reportId };
 }
 

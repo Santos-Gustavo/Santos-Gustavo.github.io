@@ -132,12 +132,33 @@ async function openWorkspace(page, projectName) {
   await expect(page.locator("#step-estado-obra")).toHaveAttribute("data-workspace-state", "ready", { timeout: 15000 });
 }
 
-async function generateViaUi(page) {
+// Clicks "Gerar relatório", waits for success, checks the report opened in a
+// new tab and the "Relatório gerado" pop-up, then dismisses both. Returns the
+// report id, plus the auto-opened tab's text when { withTabText: true }.
+async function generateViaUi(page, { withTabText = false } = {}) {
   await expect(page.locator("#workStatusGenerateReportBtn")).toBeEnabled();
+  const tabPromise = page.waitForEvent("popup");
   await page.locator("#workStatusGenerateReportBtn").click();
   const panel = page.locator("#workStatusReportResult");
   await expect(panel).toHaveAttribute("data-state", "success", { timeout: 20000 });
-  return panel.getAttribute("data-report-id");
+  const reportId = await panel.getAttribute("data-report-id");
+  const reportNum = (await panel.locator("strong").textContent()).trim();
+
+  await expect(page.locator("#confirmDialogTitle")).toHaveText("Relatório gerado", { timeout: 20000 });
+  await expect(page.locator("#confirmDialogMessage")).toHaveText(
+    `O relatório ${reportNum} foi gerado e guardado. Foi aberto num novo separador.`
+  );
+  await expect(page.locator('[data-confirm-action="cancel"]')).toBeHidden();
+  await page.locator('[data-confirm-action="confirm"]').click();
+  await expect(page.locator("#confirmDialog")).toBeHidden();
+
+  const tab = await tabPromise;
+  await expect.poll(() => tab.url(), { timeout: 15000 }).toMatch(/^blob:/);
+  await tab.waitForLoadState("load");
+  const tabText = withTabText ? await tab.locator("body").innerText() : null;
+  await tab.close();
+
+  return withTabText ? { reportId, tabText } : reportId;
 }
 
 async function saveWorkspace(page) {
@@ -489,6 +510,126 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — canonical report generat
     const reports = await reportsForProject(client, project.id);
     expect(reports).toHaveLength(1);
     expect(reports[0].snapshot_json.progress.weekSummary).toBe("Rascunho não guardado");
+  });
+
+  test("new tab blocked by the browser: the pop-up still confirms and offers Abrir relatório", async ({ page }) => {
+    test.setTimeout(60000);
+
+    const client = getServiceRoleClient();
+    const projectName = `E2E Report Gen Blocked Tab ${Date.now()}`;
+    const { project } = await createTestProject(client, { name: projectName });
+    await seedWorkspace(client, { project, status: { phase: "Fundações", progressPct: 10, summary: "Separador bloqueado" } });
+
+    // Simulate a popup blocker for the click-time placeholder tab only.
+    await page.addInitScript(() => {
+      const original = window.open;
+      window.open = (url, ...rest) => (url === "" ? null : original.call(window, url, ...rest));
+    });
+
+    await login(page);
+    await openWorkspace(page, projectName);
+    await page.locator("#workStatusGenerateReportBtn").click();
+    await expect(page.locator("#workStatusReportResult")).toHaveAttribute("data-state", "success", { timeout: 20000 });
+
+    await expect(page.locator("#confirmDialogTitle")).toHaveText("Relatório gerado");
+    await expect(page.locator("#confirmDialogMessage")).toHaveText("O relatório #001 foi gerado e guardado.");
+    await expect(page.locator('[data-confirm-action="cancel"]')).toHaveText("Fechar");
+
+    const opened = await readOpenedReport(page, () =>
+      page.locator('[data-confirm-action="confirm"]', { hasText: "Abrir relatório" }).click()
+    );
+    expect(opened.text).toContain("Separador bloqueado");
+    await expect(page.locator("#confirmDialog")).toBeHidden();
+    expect((await reportsForProject(client, project.id)).map((r) => r.report_num)).toEqual([1]);
+  });
+
+  // POST-RELEASE-POLISH-001 (20261008120000_generate_report_period_choice.sql)
+  // — "Período do relatório" De / Até: prefilled with the automatic period,
+  // editable, validated in the UI and again by generate_report.
+  test("chosen period: prefilled, editable, validated client- and server-side, frozen into the report", async ({ page }) => {
+    test.setTimeout(90000);
+
+    const client = getServiceRoleClient();
+    const owner = await signInOwner();
+    const projectName = `E2E Report Gen Chosen Period ${Date.now()}`;
+    const { project } = await createTestProject(client, { name: projectName });
+    await seedWorkspace(client, { project, status: { phase: "Fundações", progressPct: 10, summary: "Período escolhido" } });
+
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Lisbon" }).format(new Date());
+    const shift = (isoDate, days) => {
+      const [y, m, d] = isoDate.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+    };
+    const pt = (isoDate) => isoDate.split("-").reverse().join("/");
+
+    try {
+      // Server-side validation: nothing is created for a bad period.
+      const bad = [
+        [{ p_period_start: shift(today, -3) }, /duas datas/],
+        [{ p_period_start: shift(today, -1), p_period_end: shift(today, -2) }, /posterior/],
+        [{ p_period_start: shift(today, -1), p_period_end: shift(today, 1) }, /depois de hoje/],
+        [{ p_period_start: shift(today, -400), p_period_end: today }, /mais de um ano/],
+      ];
+      for (const [period, message] of bad) {
+        const { data, error } = await owner.rpc("generate_report", { p_project_id: project.id, ...period });
+        expect(data).toBeNull();
+        expect(error?.message).toMatch(message);
+      }
+      expect(await reportsForProject(client, project.id)).toEqual([]);
+
+      // Explicit dates are used as given.
+      const { data: explicit, error: explicitError } = await owner.rpc("generate_report", {
+        p_project_id: project.id,
+        p_period_start: shift(today, -20),
+        p_period_end: shift(today, -14),
+      });
+      expect(explicitError).toBeNull();
+      expect([explicit.period_start, explicit.period_end]).toEqual([shift(today, -20), shift(today, -14)]);
+      expect(explicit.snapshot_json.meta).toMatchObject({ periodStart: shift(today, -20), periodEnd: shift(today, -14) });
+      expect(explicit.report_date).toBe(today);
+
+      // UI: prefilled with the automatic period (day after #001 → today, clamped).
+      let rpcCalls = 0;
+      page.on("request", (request) => {
+        if (request.url().includes("/rest/v1/rpc/generate_report")) rpcCalls += 1;
+      });
+      await login(page);
+      await openWorkspace(page, projectName);
+      const start = page.locator("#workStatusPeriodStart");
+      const end = page.locator("#workStatusPeriodEnd");
+      await expect(start).toHaveValue(today);
+      await expect(end).toHaveValue(today);
+      await expect(start).toBeEnabled();
+
+      // Invalid in the UI: no RPC call, no save prompt, no tab.
+      await start.fill(shift(today, -1));
+      await end.fill(shift(today, -2));
+      await page.locator("#workStatusGenerateReportBtn").click();
+      await expect(page.locator("#workStatusReportResult")).toHaveAttribute("data-state", "error");
+      await expect(page.locator("#workStatusReportResult")).toContainText("não pode ser posterior");
+      await expect(page.locator("#confirmDialog")).toBeHidden();
+      expect(rpcCalls).toBe(0);
+      expect(page.context().pages()).toHaveLength(1);
+
+      // Changing the dates does not make the workspace "unsaved".
+      await expect(page.locator("#workStatusSaveBar")).toBeHidden();
+
+      // A chosen period is frozen into the report and shown.
+      await start.fill(shift(today, -5));
+      await end.fill(shift(today, -1));
+      const { reportId, tabText } = await generateViaUi(page, { withTabText: true });
+      const expected = `Período ${pt(shift(today, -5))} – ${pt(shift(today, -1))}`;
+      expect(tabText).toContain(expected);
+      await expect(page.locator("#workStatusReportResult [data-report-period]")).toHaveText(expected);
+      const saved = await getReport(client, reportId);
+      expect([saved.report_num, saved.period_start, saved.period_end]).toEqual([2, shift(today, -5), shift(today, -1)]);
+
+      // Then the fields move on to the next automatic period.
+      await expect(start).toHaveValue(today);
+      await expect(end).toHaveValue(today);
+    } finally {
+      await owner.auth.signOut();
+    }
   });
 
   test("H: concurrent generation never duplicates report_num; a double click generates once", async ({ page }) => {
@@ -889,8 +1030,11 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — canonical report generat
       // UI: success panel and the rendered report show the period.
       await login(page);
       await openWorkspace(page, projectName);
-      const reportId = await generateViaUi(page);
+      const { reportId, tabText } = await generateViaUi(page, { withTabText: true });
       const expected = `Período ${pt(today)} – ${pt(today)}`;
+      // The report auto-opened in a new tab is the saved #006.
+      expect(tabText).toContain("#006");
+      expect(tabText).toContain(expected);
       await expect(page.locator("#workStatusReportResult [data-report-period]")).toHaveText(expected);
       const viewed = await readOpenedReport(page, () =>
         page.locator('#workStatusReportResult [data-generated-report-action="view-pdf"]').click()

@@ -1216,6 +1216,12 @@ input:-webkit-autofill:focus {
   color: var(--brass-deep);
 }
 /* ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — "Gerar relatório" result panel. */
+.work-status-period-card { margin-bottom: 0; }
+.work-status-period-card[hidden] { display: none; }
+.work-status-period-card h3 { font-size: 13px; color: var(--ink); margin-bottom: 10px; }
+.work-status-period-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.work-status-period-row .field { margin-bottom: 0; min-width: 0; }
+.work-status-period-row input[type="date"] { width: 100%; min-width: 0; min-height: 44px; }
 .report-result { margin-top: 16px; }
 .report-result[hidden] { display: none; }
 .report-result-text { font-size: 14px; color: var(--ink); margin-bottom: 10px; }
@@ -1228,6 +1234,7 @@ input:-webkit-autofill:focus {
   background: var(--input-bg);
   color: var(--ink);
   border-radius: 6px;
+  min-height: 44px;
   padding: 8px 14px;
   font-size: 13px;
   font-weight: 600;

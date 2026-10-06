@@ -34,18 +34,40 @@ export async function createReport({
   return data;
 }
 
+// report_date of the project's latest non-deleted report (or null) — used to
+// prefill the "Período do relatório" fields with the same automatic period
+// generate_report would pick.
+export async function getLatestReportDate(projectId) {
+  const { data, error } = await supabaseClient
+    .from("reports")
+    .select("report_date")
+    .eq("project_id", projectId)
+    .is("deleted_at", null)
+    .order("report_num", { ascending: false })
+    .limit(1);
+
+  throwIfDbError(error, "Erro ao carregar o último relatório.");
+  return data?.[0]?.report_date || null;
+}
+
 // ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — "Gerar relatório". Sends only the
-// project id: generate_report reads the saved canonical Estado da Obra,
-// allocates the report number and freezes the snapshot in one transaction
-// (supabase/migrations/20261006140000_generate_report_rpc.sql).
-export async function generateCanonicalReport(projectId) {
+// project id and, optionally, the chosen period (YYYY-MM-DD): generate_report
+// reads the saved canonical Estado da Obra, allocates the report number and
+// freezes the snapshot in one transaction
+// (supabase/migrations/20261006140000_generate_report_rpc.sql,
+// 20261008120000_generate_report_period_choice.sql).
+export async function generateCanonicalReport(projectId, { periodStart = null, periodEnd = null } = {}) {
   if (!projectId) {
     throw new Error("projectId é obrigatório para gerar relatório.");
   }
 
-  const { data, error } = await supabaseClient.rpc("generate_report", {
-    p_project_id: projectId,
-  });
+  const params = { p_project_id: projectId };
+  if (periodStart || periodEnd) {
+    params.p_period_start = periodStart || null;
+    params.p_period_end = periodEnd || null;
+  }
+
+  const { data, error } = await supabaseClient.rpc("generate_report", params);
 
   throwIfDbError(error, "Erro ao gerar relatório.");
 

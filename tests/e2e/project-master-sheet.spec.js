@@ -1015,6 +1015,19 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 — Estado da Obra canonical workspa
     const { data: saved } = await client.from("project_status_state").select("summary").eq("project_id", project.id).single();
     expect(saved.summary).toBe("Resumo alterado no telemóvel");
 
+    // Regression: "Gerar relatório" (sticky footer) from the top of a long
+    // page — the result panel at the end of the page must come into view,
+    // otherwise the click looks like it did nothing and users click again.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.locator("#workStatusGenerateReportBtn").click();
+    const result = page.locator("#workStatusReportResult");
+    await expect(result).toHaveAttribute("data-state", "success", { timeout: 20000 });
+    await expect(result.locator('[data-generated-report-action="view-pdf"]')).toBeInViewport();
+    await expect(result.locator('[data-generated-report-action="share"]')).toBeInViewport();
+    await expect(page.locator("#confirmDialogTitle")).toHaveText("Relatório gerado", { timeout: 20000 });
+    await page.locator('[data-confirm-action="confirm"]').click();
+    await expect(page.locator("#confirmDialog")).toBeHidden();
+
     // Editing forms open: still no overflow / small targets.
     await page.locator('[data-ws-action="toggle-edit-work"]').first().click();
     await page.locator('[data-ws-action="toggle-edit-incident"]').first().click();

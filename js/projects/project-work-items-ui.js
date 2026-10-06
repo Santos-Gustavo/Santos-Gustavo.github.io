@@ -29,13 +29,16 @@ import {
   saveProjectWorkspace,
   addWorkspacePhoto,
 } from "#database/db-project-workspace.js";
-import { generateCanonicalReport } from "#database/db-reports.js";
+import { generateCanonicalReport, getLatestReportDate } from "#database/db-reports.js";
 import {
   initReportGenerationPanel,
   clearGeneratedReportPanel,
   showReportGenerating,
   showReportGenerationError,
   showGeneratedReport,
+  openPendingReportTab,
+  announceGeneratedReport,
+  closePendingReportTab,
 } from "#reports/report-generation-panel.js";
 
 // Same 8 phase labels as the weekly report's own step 3 — deliberately a
@@ -196,6 +199,13 @@ async function handleGenerateReport() {
   // Still loading: there is no saved state on screen to export yet.
   if (document.getElementById("step-estado-obra")?.dataset.workspaceState !== "ready") return;
 
+  // Checked before the save prompt, so nobody saves only to hit a date error.
+  const period = readReportPeriod();
+  if (period.error) {
+    showReportGenerationError(period.error);
+    return;
+  }
+
   if (isDirty()) {
     const wantsSave = await confirmAction({
       title: "Alterações por guardar",
@@ -209,17 +219,31 @@ async function handleGenerateReport() {
     if (isDirty()) return;
   }
 
+  // Must run synchronously in the click (before any await on the clean path)
+  // or the browser blocks the new tab. After the "Guardar alterações" detour
+  // it may be blocked; announceGeneratedReport then offers a button instead.
+  const reportTab = openPendingReportTab();
+
   generating = true;
   editable = false;
   renderAll();
   showReportGenerating();
 
   try {
-    const report = await generateCanonicalReport(project.id);
+    const report = await generateCanonicalReport(project.id, {
+      periodStart: period.periodStart,
+      periodEnd: period.periodEnd,
+    });
+    // Generated and saved even if the user has since left this project:
+    // still open it and confirm.
+    void announceGeneratedReport({ report, tab: reportTab });
     if (appState.currentWorkStatusProjectId !== project.id) return;
     showGeneratedReport({ report, projectName: project.name });
+    // The next report's automatic period now starts after this one.
+    void prefillReportPeriod(project, loadToken);
   } catch (error) {
     console.error("Error generating report:", error);
+    closePendingReportTab(reportTab);
     if (appState.currentWorkStatusProjectId !== project.id) return;
     showReportGenerationError(error.message);
   } finally {
@@ -258,6 +282,9 @@ async function loadAndRender(project) {
   baseline = emptyWorkspace();
   draft = emptyWorkspace();
 
+  setReportPeriodFields("", "");
+  void prefillReportPeriod(project, token);
+
   setWorkspaceState("loading");
   renderAll();
   setListsMessage("A carregar...");
@@ -282,6 +309,85 @@ async function loadAndRender(project) {
 function setWorkspaceState(state) {
   const step = document.getElementById("step-estado-obra");
   if (step) step.dataset.workspaceState = state;
+  renderReportPeriodFields();
+}
+
+// --- report period ("Período do relatório") ---------------------------------
+//
+// Prefilled with the automatic period generate_report would pick (day after
+// the latest non-deleted report → today, or the last 7 days for a first
+// report; "today" in Europe/Lisbon). Whatever the fields show is what gets
+// sent; the server validates it again.
+
+function lisbonToday() {
+  // en-CA formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Lisbon" }).format(new Date());
+}
+
+function shiftIsoDate(isoDate, days) {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+function setReportPeriodFields(start, end) {
+  const startEl = document.getElementById("workStatusPeriodStart");
+  const endEl = document.getElementById("workStatusPeriodEnd");
+  const today = lisbonToday();
+  if (startEl) {
+    startEl.value = start;
+    startEl.max = today;
+  }
+  if (endEl) {
+    endEl.value = end;
+    endEl.max = today;
+  }
+}
+
+async function prefillReportPeriod(project, token) {
+  const today = lisbonToday();
+  let previous = null;
+
+  try {
+    previous = await getLatestReportDate(project.id);
+  } catch (error) {
+    console.error("Error loading latest report date:", error);
+  }
+
+  if (token !== loadToken) return;
+
+  const start = previous ? [shiftIsoDate(previous, 1), today].sort()[0] : shiftIsoDate(today, -7);
+  setReportPeriodFields(start, today);
+}
+
+function readReportPeriod() {
+  const periodStart = document.getElementById("workStatusPeriodStart")?.value || "";
+  const periodEnd = document.getElementById("workStatusPeriodEnd")?.value || "";
+
+  if (!periodStart || !periodEnd) {
+    return { error: "Indique as duas datas do período do relatório." };
+  }
+  if (periodStart > periodEnd) {
+    return { error: "A data de início do período não pode ser posterior à data de fim." };
+  }
+  if (periodEnd > lisbonToday()) {
+    return { error: "O período do relatório não pode terminar depois de hoje." };
+  }
+
+  return { periodStart, periodEnd };
+}
+
+function renderReportPeriodFields() {
+  const project = getProjectById(appState.currentWorkStatusProjectId);
+  const card = document.getElementById("workStatusPeriodCard");
+  const canGenerate = Boolean(project && canCreateWeeklyReport(project));
+  const ready = document.getElementById("step-estado-obra")?.dataset.workspaceState === "ready";
+
+  if (card) card.hidden = !canGenerate;
+
+  for (const id of ["workStatusPeriodStart", "workStatusPeriodEnd"]) {
+    const input = document.getElementById(id);
+    if (input) input.disabled = !canGenerate || !ready || generating;
+  }
 }
 
 function resetTransientUiState() {
@@ -354,6 +460,7 @@ function renderAll() {
   renderIncidents();
   renderPhotos();
   updateSaveButtonState();
+  renderReportPeriodFields();
 }
 
 function renderPhasePicker() {

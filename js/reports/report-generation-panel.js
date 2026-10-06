@@ -7,8 +7,12 @@
 // path as the report history's "Abrir", and "Partilhar" creates the same
 // client share link the history creates.
 
-import { openSavedReport } from "#reports/report-history.js";
+import { openSavedReport, renderSavedReportHtml } from "#reports/report-history.js";
+import { openPendingReportTab, showHtmlReportInTab } from "#reports/report-preview.js";
 import { createReportShareLink, buildWhatsAppShareUrl } from "#reports/report-share.js";
+import { confirmAction } from "#ui/confirm-dialog.js";
+
+export { openPendingReportTab };
 
 const PANEL_ID = "workStatusReportResult";
 
@@ -70,6 +74,48 @@ export function showGeneratedReport({ report, projectName }) {
   if (panel) panel.dataset.reportId = report.id;
 }
 
+// After a successful generation: load the saved report into the tab opened
+// on click, then confirm with a pop-up. If the browser blocked the tab (or
+// it couldn't be filled), the pop-up offers to open the report instead —
+// that button click is a fresh user gesture, so the browser allows it.
+export async function announceGeneratedReport({ report, tab }) {
+  const label = `#${String(report.reportNum).padStart(3, "0")}`;
+  let openedInTab = false;
+
+  if (tab && !tab.closed) {
+    try {
+      showHtmlReportInTab(tab, await renderSavedReportHtml(report.id));
+      openedInTab = true;
+    } catch (error) {
+      console.error("Error opening generated report:", error);
+      tab.close();
+    }
+  }
+
+  const wantsOpen = await confirmAction({
+    title: "Relatório gerado",
+    message: openedInTab
+      ? `O relatório ${label} foi gerado e guardado. Foi aberto num novo separador.`
+      : `O relatório ${label} foi gerado e guardado.`,
+    confirmLabel: openedInTab ? "OK" : "Abrir relatório",
+    cancelLabel: openedInTab ? null : "Fechar",
+  });
+
+  if (!openedInTab && wantsOpen) {
+    try {
+      await openSavedReport(report.id);
+    } catch (error) {
+      console.error("Error opening generated report:", error);
+      alert(`Erro ao abrir relatório: ${error.message}`);
+    }
+  }
+}
+
+// The click-time placeholder tab is closed again when generation fails.
+export function closePendingReportTab(tab) {
+  if (tab && !tab.closed) tab.close();
+}
+
 function render(state, html) {
   const panel = getPanel();
   if (!panel) return;
@@ -77,6 +123,12 @@ function render(state, html) {
   panel.dataset.state = state;
   delete panel.dataset.reportId;
   panel.innerHTML = html;
+
+  // "Gerar relatório" lives in the sticky footer, but this panel sits at the
+  // end of Estado da Obra — on a long project it renders off-screen and the
+  // click looks like it did nothing (users then click again and generate
+  // duplicates). Bring the result to the user.
+  panel.scrollIntoView({ block: "center" });
 }
 
 function getPanel() {
