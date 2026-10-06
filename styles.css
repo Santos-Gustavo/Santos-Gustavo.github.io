@@ -1198,3 +1198,23 @@ input:-webkit-autofill:focus {
   border-color: var(--brass);
   color: var(--brass-deep);
 }
+/* ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — "Gerar relatório" result panel. */
+.report-result { margin-top: 16px; }
+.report-result[hidden] { display: none; }
+.report-result-text { font-size: 14px; color: var(--ink); margin-bottom: 10px; }
+.report-result-text--error { color: var(--danger); margin-bottom: 0; }
+.report-result[data-state="loading"] .report-result-text { color: var(--muted); margin-bottom: 0; }
+.report-result-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.report-result-actions .secondary {
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.report-result-actions .secondary:hover { background: var(--brass-soft); border-color: var(--brass); color: var(--brass-deep); }
+.report-result-actions .secondary:disabled { opacity: 0.6; cursor: default; }
+.report-result-share[hidden] { display: none; }

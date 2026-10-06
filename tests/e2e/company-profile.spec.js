@@ -1,4 +1,10 @@
 import { expect, test } from "@playwright/test";
+import {
+  openEstadoDaObraFromModePage,
+  saveEstadoDaObra,
+  generateReportFromEstadoDaObra,
+  readOpenedReport,
+} from "./helpers/canonical-report-helper.js";
 import { createClient } from "@supabase/supabase-js";
 import { getServiceRoleClient, hasServiceRoleEnv } from "./helpers/supabase-admin.js";
 
@@ -297,9 +303,11 @@ test.describe("COMPANY-PROFILE-001 — single company profile", () => {
     await expect(projectCard).toContainText(clientName);
   });
 
-  test("editing the company profile shows up in a newly generated report's review screen", async ({
+  test("editing the company profile shows up in a newly generated report", async ({
     page,
   }) => {
+    test.setTimeout(90000);
+
     const timestamp = Date.now();
     const updatedCompanyName = `E2E Company Profile Report Co ${timestamp}`;
     const projectName = `E2E Company Profile Report Project ${timestamp}`;
@@ -347,30 +355,17 @@ test.describe("COMPANY-PROFILE-001 — single company profile", () => {
       timeout: 20000,
     });
 
-    await page
-      .locator('[data-nav-action="select-mode"][data-mode="weekly"]')
-      .click();
+    // ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — the weekly report is generated
+    // from the saved Estado da Obra; generate_report reads the company row
+    // server-side, so the edited name must be in the generated report.
+    await openEstadoDaObraFromModePage(page);
+    await page.locator("#workStatusSummary").fill("Resumo E2E perfil da empresa.");
+    await saveEstadoDaObra(page);
+    await generateReportFromEstadoDaObra(page);
 
-    await expect(page.locator("#stepLabel")).toHaveText(/passo 1 de 9|período|periodo/i, {
-      timeout: 10000,
-    });
-
-    await page.locator("#p-reportNum").fill("1");
-    await page.locator("#p-reportDate").fill("2026-08-31");
-    await page.locator("#p-periodStart").fill("2026-08-24");
-    await page.locator("#p-periodEnd").fill("2026-08-31");
-
-    for (let i = 0; i < 8; i++) {
-      await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-      await page.waitForTimeout(150);
-    }
-
-    await expect(page.locator("#stepLabel")).toHaveText(/passo 9 de 9|revisão|revisao/i, {
-      timeout: 10000,
-    });
-
-    await expect(page.locator("#reviewContent")).toContainText(updatedCompanyName, {
-      timeout: 10000,
-    });
+    const { text } = await readOpenedReport(page, () =>
+      page.locator('#workStatusReportResult [data-generated-report-action="view-pdf"]').click()
+    );
+    expect(text).toContain(updatedCompanyName);
   });
 });

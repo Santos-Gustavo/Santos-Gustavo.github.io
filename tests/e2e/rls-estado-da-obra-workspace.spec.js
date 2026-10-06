@@ -37,6 +37,7 @@ const E2E_OTHER_PASSWORD = process.env.E2E_OTHER_PASSWORD;
 // file global setup writes (tests/e2e/global-setup.js), not a manually-set id.
 const fixtureState = tryReadFixtureState();
 const OWNER_A_PROJECT_ID = fixtureState?.projectId;
+const OWNER_A_COMPANY_ID = fixtureState?.companyId;
 
 async function signIn(email, password) {
   const client = createClient(APP_ENV.SUPABASE_URL, APP_ENV.SUPABASE_ANON_KEY, {
@@ -76,7 +77,8 @@ const WORKSPACE_TABLES = [
     table: "project_photos",
     buildRow: (projectId, label) => ({
       project_id: projectId,
-      storage_path: `e2e-rls-workspace-test/${label}.jpg`,
+      // Phase 4: must be this project's own workspace folder.
+      storage_path: `${OWNER_A_COMPANY_ID}/${projectId}/workspace/e2e-rls-${label}.jpg`,
       description: `E2E RLS Workspace Test — ${label}`,
     }),
     harmlessUpdate: { include_in_reports: false },
@@ -214,3 +216,179 @@ for (const { table, buildRow, harmlessUpdate } of WORKSPACE_TABLES) {
     }
   });
 }
+
+// ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 (M) — storage_path hardening at the DB
+// boundary (supabase/migrations/20261006140000_generate_report_rpc.sql). A
+// project photo may only point into {company_id}/{project_id}/workspace/ of
+// its own project, and a report snapshot may only reference photos inside its
+// own project's folder — because get-shared-report signs snapshot paths with
+// the service-role key. Probed as the authenticated owner straight against
+// PostgREST (no UI), plus once as service role to show the trigger isn't
+// merely an RLS rule.
+test("storage_path hardening: photo rows and report snapshots cannot point outside their own project folder", async () => {
+  test.setTimeout(60000);
+
+  const missing = [
+    !E2E_EMAIL && "E2E_EMAIL",
+    !E2E_PASSWORD && "E2E_PASSWORD",
+    !OWNER_A_COMPANY_ID && "fixture company id (run global setup)",
+    !hasServiceRoleEnv() && "SUPABASE_SERVICE_ROLE_KEY",
+  ].filter(Boolean);
+  test.skip(missing.length > 0, `Set ${missing.join(", ")}.`);
+
+  const admin = getServiceRoleClient();
+  const owner = await signIn(E2E_EMAIL, E2E_PASSWORD);
+  const stamp = Date.now();
+
+  const { data: fixtureProject } = await admin.from("projects").select("client_id").eq("id", OWNER_A_PROJECT_ID).single();
+
+  async function createProject(name) {
+    const { data, error } = await admin
+      .from("projects")
+      .insert({ company_id: OWNER_A_COMPANY_ID, client_id: fixtureProject.client_id, name, status: 1 })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  const projectA = await createProject(`E2E Photo Path A ${stamp}`);
+  const projectB = await createProject(`E2E Photo Path B ${stamp}`);
+
+  // Any company the E2E owner doesn't own — the trigger only compares the
+  // path against the row's own project, so this is a pure string probe.
+  const { data: foreignCompanies } = await admin
+    .from("companies")
+    .select("id")
+    .neq("id", OWNER_A_COMPANY_ID)
+    .limit(1);
+  const otherCompanyId = foreignCompanies?.[0]?.id || crypto.randomUUID();
+
+  const own = (project, rest) => `${OWNER_A_COMPANY_ID}/${project.id}/${rest}`;
+
+  try {
+    const badInsertPaths = {
+      "another company": `${otherCompanyId}/${projectA.id}/workspace/x-${stamp}.jpg`,
+      "another project (same company)": own(projectB, `workspace/x-${stamp}.jpg`),
+      "unrelated folder in own project": own(projectA, `reports/${crypto.randomUUID()}/x-${stamp}.jpg`),
+      "unrelated top-level folder": `e2e-unrelated/x-${stamp}.jpg`,
+      "nested sub-folder": own(projectA, `workspace/sub/x-${stamp}.jpg`),
+      "dot-dot segment": own(projectA, `workspace/../x-${stamp}.jpg`),
+      "hidden file": own(projectA, `workspace/.x-${stamp}.jpg`),
+      "empty file name": own(projectA, "workspace/"),
+    };
+
+    for (const [label, storagePath] of Object.entries(badInsertPaths)) {
+      const { data, error } = await owner
+        .from("project_photos")
+        .insert({ project_id: projectA.id, storage_path: storagePath })
+        .select();
+      expect(error, `insert with ${label} must fail`).toBeTruthy();
+      expect(data ?? []).toEqual([]);
+    }
+
+    // The trigger is unconditional — even the service role can't bypass it.
+    const { error: adminBadError } = await admin
+      .from("project_photos")
+      .insert({ project_id: projectA.id, storage_path: badInsertPaths["another company"] });
+    expect(adminBadError).toBeTruthy();
+
+    const { count: noRows } = await admin
+      .from("project_photos")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", projectA.id);
+    expect(noRows).toBe(0);
+
+    // A valid row, then storage_path / project_id UPDATEs that would re-point it.
+    const validPath = own(projectA, `workspace/ok-${stamp}.jpg`);
+    const { data: valid, error: validError } = await owner
+      .from("project_photos")
+      .insert({ project_id: projectA.id, storage_path: validPath })
+      .select()
+      .single();
+    expect(validError).toBeNull();
+
+    const badUpdates = {
+      "path to another company": { storage_path: badInsertPaths["another company"] },
+      "path to another project": { storage_path: badInsertPaths["another project (same company)"] },
+      "path to unrelated folder": { storage_path: badInsertPaths["unrelated folder in own project"] },
+      "project_id to another project": { project_id: projectB.id },
+    };
+
+    for (const [label, patch] of Object.entries(badUpdates)) {
+      const { error } = await owner.from("project_photos").update(patch).eq("id", valid.id);
+      expect(error, `update of ${label} must fail`).toBeTruthy();
+    }
+
+    const { data: unchanged } = await admin.from("project_photos").select("*").eq("id", valid.id).single();
+    expect(unchanged.storage_path).toBe(validPath);
+    expect(unchanged.project_id).toBe(projectA.id);
+
+    // Metadata updates that don't touch the path still work.
+    const { error: metaError } = await owner.from("project_photos").update({ description: "ok" }).eq("id", valid.id);
+    expect(metaError).toBeNull();
+
+    // Report snapshots: a client-written snapshot can't smuggle in a path from
+    // outside the report's own project folder (the share link would sign it
+    // with the service role) ...
+    const snapshotWith = (storagePath) => ({
+      schemaVersion: 1,
+      meta: { mode: "weekly", reportNumber: 1, reportDate: "2026-10-06" },
+      company: {},
+      project: {},
+      progress: {},
+      alert: { enabled: false },
+      incidents: { enabled: false, items: [] },
+      works: [],
+      photos: [{ id: null, storagePath, displayUrl: "" }],
+      extras: [],
+      nextSteps: [],
+    });
+
+    for (const storagePath of [badInsertPaths["another company"], badInsertPaths["another project (same company)"]]) {
+      const { error } = await owner
+        .from("reports")
+        .insert({ project_id: projectA.id, report_num: 1, snapshot_json: snapshotWith(storagePath) })
+        .select();
+      expect(error, `snapshot with ${storagePath} must be rejected`).toBeTruthy();
+    }
+
+    // ... nor be attached later (legacy insert-then-attach path).
+    const { data: shell, error: shellError } = await owner
+      .from("reports")
+      .insert({ project_id: projectA.id, report_num: 1 })
+      .select()
+      .single();
+    expect(shellError).toBeNull();
+
+    const { error: attachBadError } = await owner
+      .from("reports")
+      .update({ snapshot_json: snapshotWith(badInsertPaths["another company"]) })
+      .eq("id", shell.id);
+    expect(attachBadError).toBeTruthy();
+
+    const { error: attachOkError } = await owner
+      .from("reports")
+      .update({ snapshot_json: snapshotWith(validPath) })
+      .eq("id", shell.id);
+    expect(attachOkError).toBeNull();
+
+    // Once a snapshot exists, the report's frozen content is write-once.
+    for (const patch of [
+      { snapshot_json: snapshotWith(own(projectA, "workspace/other.jpg")) },
+      { works: [{ desc: "rewritten" }] },
+      { week_summary: "rewritten" },
+      { report_num: 2 },
+    ]) {
+      const { error } = await owner.from("reports").update(patch).eq("id", shell.id);
+      expect(error, `update ${Object.keys(patch)[0]} on a frozen report must fail`).toBeTruthy();
+    }
+
+    const { data: frozen } = await admin.from("reports").select("*").eq("id", shell.id).single();
+    expect(frozen.snapshot_json.photos[0].storagePath).toBe(validPath);
+    expect(frozen.report_num).toBe(1);
+  } finally {
+    await admin.from("projects").delete().in("id", [projectA.id, projectB.id]);
+    await owner.auth.signOut();
+  }
+});

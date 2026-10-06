@@ -12,6 +12,10 @@
 // single transactional save_project_workspace RPC. The one deliberate
 // exception is "Adicionar foto": an explicit upload action that stores the
 // file and inserts its project_photos row immediately.
+//
+// Phase 4 — "Gerar relatório" is a pure export of the SAVED workspace: it
+// only ever sends the project id to generate_report, which reads canonical
+// state server-side. It never runs while the draft is dirty.
 
 import { appState } from "#state/app-state.js";
 import { getProjectById } from "#projects/project-list.js";
@@ -25,6 +29,14 @@ import {
   saveProjectWorkspace,
   addWorkspacePhoto,
 } from "#database/db-project-workspace.js";
+import { generateCanonicalReport } from "#database/db-reports.js";
+import {
+  initReportGenerationPanel,
+  clearGeneratedReportPanel,
+  showReportGenerating,
+  showReportGenerationError,
+  showGeneratedReport,
+} from "#reports/report-generation-panel.js";
 
 // Same 8 phase labels as the weekly report's own step 3 — deliberately a
 // separate, self-contained picker (own class names/data attribute) so it never
@@ -65,6 +77,7 @@ let baseline = emptyWorkspace();
 let draft = emptyWorkspace();
 let editable = false;
 let saving = false;
+let generating = false;
 let uploadingPhoto = false;
 let statusMessage = { text: "", tone: "" };
 
@@ -101,6 +114,8 @@ export function initProjectWorkItemsUi() {
   if (initialized) return;
   initialized = true;
 
+  initReportGenerationPanel();
+
   document.addEventListener("click", handleWorkStatusClick);
   document.addEventListener("input", handleWorkStatusInput);
   document.addEventListener("change", handleWorkStatusChange);
@@ -123,9 +138,8 @@ export async function openProjectMasterSheet(projectId) {
   }
 
   appState.currentWorkStatusProjectId = project.id;
-  // The "Gerar relatório semanal" shortcut on this screen reuses
-  // selectMode("weekly"), which reads these — and report-save.js only
-  // attaches a new report to this project when all three ids are set.
+  // Shared "current project" context — "Mais opções" (mode page, legal
+  // report, history) reads these.
   appState.currentCompanyId = project.companyId;
   appState.currentClientId = project.clientId;
   appState.currentProjectId = project.id;
@@ -164,19 +178,57 @@ export async function confirmLeaveEstadoObraIfDirty() {
   });
 }
 
-// Generating a report from unsaved workspace edits would silently use stale
-// canonical state, so this blocks instead of offering to discard.
-export async function confirmGenerateReportAllowed() {
-  if (!hasUnsavedWorkStatusChanges()) return true;
+// "Gerar relatório" — never from draft data. A dirty workspace must be saved
+// first, and only when the user explicitly picks "Guardar alterações"; the
+// report is then generated from what was just persisted.
+async function handleGenerateReport() {
+  if (generating || saving) return;
 
-  await confirmAction({
-    title: "Alterações por guardar",
-    message: "Existem alterações por guardar. Guarde as alterações antes de gerar o relatório.",
-    confirmLabel: "OK",
-    cancelLabel: null,
-  });
+  const projectId = appState.currentWorkStatusProjectId;
+  const project = projectId ? getProjectById(projectId) : null;
+  if (!project) return;
 
-  return false;
+  if (!canCreateWeeklyReport(project)) {
+    alert("Só é possível gerar relatórios para obras em curso ou pausadas.");
+    return;
+  }
+
+  // Still loading: there is no saved state on screen to export yet.
+  if (document.getElementById("step-estado-obra")?.dataset.workspaceState !== "ready") return;
+
+  if (isDirty()) {
+    const wantsSave = await confirmAction({
+      title: "Alterações por guardar",
+      message: "Existem alterações por guardar. Guarde as alterações antes de gerar o relatório.",
+      confirmLabel: "Guardar alterações",
+      cancelLabel: "Cancelar",
+    });
+
+    if (!wantsSave) return;
+    if (!(await handleSave())) return;
+    if (isDirty()) return;
+  }
+
+  generating = true;
+  editable = false;
+  renderAll();
+  showReportGenerating();
+
+  try {
+    const report = await generateCanonicalReport(project.id);
+    if (appState.currentWorkStatusProjectId !== project.id) return;
+    showGeneratedReport({ report, projectName: project.name });
+  } catch (error) {
+    console.error("Error generating report:", error);
+    if (appState.currentWorkStatusProjectId !== project.id) return;
+    showReportGenerationError(error.message);
+  } finally {
+    generating = false;
+    if (appState.currentWorkStatusProjectId === project.id) {
+      editable = canEditProject(project);
+      renderAll();
+    }
+  }
 }
 
 function renderHeader(project) {
@@ -201,6 +253,7 @@ async function loadAndRender(project) {
   editable = false;
   resetTransientUiState();
   statusMessage = { text: "", tone: "" };
+  clearGeneratedReportPanel();
 
   baseline = emptyWorkspace();
   draft = emptyWorkspace();
@@ -657,8 +710,14 @@ function updateSaveButtonState() {
   if (bar) bar.hidden = !editable;
 
   if (btn) {
-    btn.disabled = !dirty || saving;
+    btn.disabled = !dirty || saving || generating;
     btn.textContent = saving ? "A guardar..." : "Guardar alterações";
+  }
+
+  const generateBtn = document.getElementById("workStatusGenerateReportBtn");
+  if (generateBtn) {
+    generateBtn.disabled = saving || generating;
+    generateBtn.textContent = generating ? "A gerar relatório..." : "Gerar relatório";
   }
 
   if (hint) {
@@ -713,6 +772,13 @@ async function handleWorkStatusClick(event) {
   if (saveBtn) {
     event.preventDefault();
     await handleSave();
+    return;
+  }
+
+  const generateBtn = event.target.closest('[data-work-status-action="generate-report"]');
+  if (generateBtn) {
+    event.preventDefault();
+    await handleGenerateReport();
     return;
   }
 
@@ -964,11 +1030,13 @@ function requireEditableProject() {
   return project;
 }
 
+// Resolves true when the draft is persisted (or there was nothing to save).
 async function handleSave() {
-  if (saving || !isDirty()) return;
+  if (saving || generating) return false;
+  if (!isDirty()) return true;
 
   const project = requireEditableProject();
-  if (!project) return;
+  if (!project) return false;
 
   const changes = buildChanges();
   saving = true;
@@ -988,7 +1056,7 @@ async function handleSave() {
     // The draft is left exactly as it was so nothing typed is lost.
     statusMessage = { text: `Erro ao guardar alterações: ${error.message}`, tone: "error" };
     updateSaveButtonState();
-    return;
+    return false;
   }
 
   saving = false;
@@ -1009,6 +1077,7 @@ async function handleSave() {
   resetTransientUiState();
   statusMessage = { text: "Alterações guardadas.", tone: "success" };
   renderAll();
+  return true;
 }
 
 async function handlePhotoFileSelected(input) {

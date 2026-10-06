@@ -34,6 +34,30 @@ export async function createReport({
   return data;
 }
 
+// ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — "Gerar relatório". Sends only the
+// project id: generate_report reads the saved canonical Estado da Obra,
+// allocates the report number and freezes the snapshot in one transaction
+// (supabase/migrations/20261006140000_generate_report_rpc.sql).
+export async function generateCanonicalReport(projectId) {
+  if (!projectId) {
+    throw new Error("projectId é obrigatório para gerar relatório.");
+  }
+
+  const { data, error } = await supabaseClient.rpc("generate_report", {
+    p_project_id: projectId,
+  });
+
+  throwIfDbError(error, "Erro ao gerar relatório.");
+
+  const row = Array.isArray(data) ? data[0] : data;
+
+  if (!row?.id) {
+    throw new Error("Erro ao gerar relatório.");
+  }
+
+  return mapReportRowToAppReport(row);
+}
+
 export async function updateReportSnapshot({
   reportId,
   snapshotJson,

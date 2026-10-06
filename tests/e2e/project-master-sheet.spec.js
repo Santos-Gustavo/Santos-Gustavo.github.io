@@ -115,9 +115,18 @@ async function seedWorkspace(client, { project, status, workItems = [], incident
   ];
 
   for (const [table, row] of inserts) {
-    const { error } = await client.from(table).insert({ project_id: project.id, ...row });
+    const payload = { project_id: project.id, ...row };
+    if (table === "project_photos") payload.storage_path = workspacePhotoPath(project, row.storage_path);
+    const { error } = await client.from(table).insert(payload);
     if (error) throw error;
   }
+}
+
+// Phase 4 — project_photos.storage_path must live in the project's own
+// workspace folder (trg_project_photos_storage_path), so seeds only name the file.
+function workspacePhotoPath(project, name) {
+  const file = String(name || `${crypto.randomUUID()}.jpg`).replace(/\//g, "-");
+  return `${project.company_id}/${project.id}/workspace/${file}`;
 }
 
 // A legacy report + project_work_item_status override on the same project:
@@ -642,13 +651,16 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 — Estado da Obra canonical workspa
     await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i);
     await expect(page.locator("#workStatusSummary")).toHaveValue("Rascunho por guardar");
 
-    // Gerar relatório → blocking "save first" notice, single button, stays put.
-    await page.locator('[data-nav-action="generate-weekly-report"]').click();
+    // Gerar relatório → "save first" dialog (Cancelar / Guardar alterações);
+    // Cancelar keeps the draft and stays put. Phase 4's
+    // canonical-report-generation.spec.js covers the DB side of this gate.
+    await page.locator("#workStatusGenerateReportBtn").click();
     await expect(page.locator("#confirmDialogMessage")).toHaveText(
       "Existem alterações por guardar. Guarde as alterações antes de gerar o relatório."
     );
-    await expect(page.locator('[data-confirm-action="cancel"]')).toBeHidden();
-    await page.locator('[data-confirm-action="confirm"]').click();
+    await expect(page.locator('[data-confirm-action="cancel"]')).toHaveText("Cancelar");
+    await expect(page.locator('[data-confirm-action="confirm"]')).toHaveText("Guardar alterações");
+    await page.locator('[data-confirm-action="cancel"]').click();
     await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i);
     await expect(page.locator("#workStatusSummary")).toHaveValue("Rascunho por guardar");
 
@@ -898,34 +910,27 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 — Estado da Obra canonical workspa
     }
   });
 
-  test("regression: Gerar relatório semanal still prefills phase/progress/summary from the saved workspace and attaches to the same project", async ({ page }) => {
-    test.setTimeout(90000);
+  test("regression: the old weekly wizard is unreachable — the mode page's Relatório Semanal opens Estado da Obra", async ({ page }) => {
+    test.setTimeout(60000);
 
     const client = getServiceRoleClient();
-    const projectName = `E2E Workspace Report Prefill ${Date.now()}`;
+    const projectName = `E2E Workspace Routing ${Date.now()}`;
     await createTestProject(client, { name: projectName });
 
     await login(page);
     await openWorkspace(page, projectName);
 
-    await page.locator('[data-work-status-phase="Cobertura"]').click();
-    await page.locator("#workStatusProgressSlider").fill("77");
-    await page.locator("#workStatusSummary").fill("Resumo para relatório E2E");
-    await saveWorkspace(page);
+    await expect(page.locator('[data-nav-action="generate-weekly-report"]')).toHaveCount(0);
+    await expect(page.locator("#workStatusGenerateReportBtn")).toHaveText("Gerar relatório");
 
-    page.on("dialog", (dialog) => dialog.accept());
-    await page.locator('[data-nav-action="generate-weekly-report"]').click();
+    await page.locator("#workStatusMoreOptionsBtn").click();
+    await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, { timeout: 10000 });
+    await expect(page.locator('[data-nav-action="select-mode"][data-mode="weekly"]')).toHaveCount(0);
 
-    await expect(page.locator("#stepLabel")).toHaveText(/passo 1 de 9|período|periodo/i, { timeout: 10000 });
-    await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-    await expect(page.locator("#stepLabel")).toHaveText(/passo 2 de 9|progresso/i, { timeout: 10000 });
-
-    await expect(page.locator(".phase-option.selected")).toHaveText("Cobertura");
-    await expect(page.locator("#progressPct")).toHaveText("77%");
-
-    await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-    await expect(page.locator("#stepLabel")).toHaveText(/passo 3 de 9|resumo/i, { timeout: 10000 });
-    await expect(page.locator("#weekSummary")).toHaveValue("Resumo para relatório E2E");
+    await page.locator('[data-nav-action="open-estado-obra"]').click();
+    await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, { timeout: 10000 });
+    await expect(page.locator("#workStatusProjectLabel")).toHaveText(projectName);
+    await expect(page.locator("#step-estado-obra")).toHaveAttribute("data-workspace-state", "ready", { timeout: 15000 });
   });
 });
 

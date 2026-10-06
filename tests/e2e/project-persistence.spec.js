@@ -107,9 +107,9 @@ test("created project appears in project list and can be reopened", async ({
   });
 
   await expect(page.locator("#modeProjectLabel")).toHaveText(projectName);
-  // Exact text — "Relatório Semanal" is the mode-picker tile; a loose /i regex
-  // would also match Estado da Obra's "Gerar relatório semanal" shortcut
-  // button, which sits in the DOM at the same time (PROJECT-HUB-INTEGRATION-001).
+  // Exact text — "Relatório Semanal" is the mode-picker tile (it opens Estado
+  // da Obra since ESTADO-DA-OBRA-WORKSPACE-001 Phase 4); a loose /i regex could
+  // also match other report buttons that sit in the DOM at the same time.
   await expect(page.getByText("Relatório Semanal", { exact: true })).toBeVisible();
   await expect(page.getByText(/legal \/ financeiro/i)).toBeVisible();
 });

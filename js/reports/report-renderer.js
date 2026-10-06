@@ -116,7 +116,21 @@ function renderSummary(report) {
   `;
 }
 
-function renderWeeklyReport(report) {
+// Canonical snapshots (generate_report) store the Estado da Obra vocabulary
+// pending/in_progress/done; legacy snapshots store blocked/progress/done.
+// Both render identically — legacy "blocked" was always shown as "Pendente".
+function toDisplayWorkStatus(status) {
+  if (status === "pending") return "blocked";
+  if (status === "in_progress") return "progress";
+  return status;
+}
+
+function renderWeeklyReport(sourceReport) {
+  const report = {
+    ...sourceReport,
+    works: sourceReport.works.map((work) => ({ ...work, status: toDisplayWorkStatus(work.status) })),
+  };
+
   const done = report.works.filter((work) => work.status === "done").length;
   const progress = report.works.filter((work) => work.status === "progress").length;
   const blocked = report.works.filter((work) => work.status === "blocked").length;
@@ -376,9 +390,17 @@ function renderIncidents(incidents) {
 
   return incidents.items
     .map((incident) => {
+      // status only exists on canonical snapshots (open/resolved).
+      const statusTag =
+        incident.status === "resolved"
+          ? `<span class="work-tag done">Resolvido</span> `
+          : incident.status === "open"
+            ? `<span class="work-tag blocked">Em aberto</span> `
+            : "";
+
       return `
         <div class="incident-row">
-          ${escapeHtml(incident.description || "—")}
+          ${statusTag}${escapeHtml(incident.description || "—")}
         </div>
       `;
     })

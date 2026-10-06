@@ -176,10 +176,13 @@
         ></div>
       </div>
       <div class="mode-picker">
-        <div class="mode-card" data-nav-action="select-mode" data-mode="weekly">
+        <!-- Weekly reports are generated from the saved Estado da Obra
+             (ESTADO-DA-OBRA-WORKSPACE-001 Phase 4) — this tile opens it
+             instead of the old 9-step weekly wizard. -->
+        <div class="mode-card" data-nav-action="open-estado-obra">
           <div class="mode-icon">📋</div>
           <div class="mode-title">Relatório Semanal</div>
-          <div class="mode-desc">Progresso do projeto, trabalhos realizados, fotos, alertas e próximos passos. Ideal para comunicação regular com o cliente.</div>
+          <div class="mode-desc">Gerado a partir do Estado da Obra guardado: progresso, trabalhos, incidentes, fotos e próximos passos.</div>
         </div>
         <div class="mode-card" data-nav-action="select-mode" data-mode="legal">
           <div class="mode-icon">⚖️</div>
@@ -309,6 +312,10 @@
         <input type="file" id="workStatusPhotoInput" accept="image/*" hidden />
       </div>
 
+      <!-- Phase 4 — result of "Gerar relatório" (loading / success with
+           Ver PDF + Partilhar / error). Filled by js/reports/report-generation-panel.js. -->
+      <div class="card report-result" id="workStatusReportResult" hidden></div>
+
       <!-- Single manual save for the whole workspace draft — sticky so it's
            reachable from any section. -->
       <div class="work-status-save-row work-status-save-bar" id="workStatusSaveBar">
@@ -321,11 +328,12 @@
     <div class="nav-bar">
       <button class="btn btn-back" data-nav-action="back">Voltar às obras</button>
       <button
+        type="button"
         class="btn btn-generate"
-        data-nav-action="generate-weekly-report"
+        data-work-status-action="generate-report"
         id="workStatusGenerateReportBtn"
       >
-        Gerar relatório semanal
+        Gerar relatório
       </button>
     </div>
   </div>

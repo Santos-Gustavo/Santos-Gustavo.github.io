@@ -119,17 +119,20 @@ test("archived project can be viewed but not edited or used to create new report
     timeout: 15000,
   });
 
-  page.once("dialog", async (dialog) => {
-    expect(dialog.message()).toBe(
-      "Este projeto está arquivado. Não é possível criar novos relatórios semanais."
-    );
-    await dialog.accept();
-  });
+  // ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — "Relatório Semanal" opens Estado
+  // da Obra, which offers no "Gerar relatório" for an archived project (and
+  // generate_report rejects it server-side).
+  await page.locator('[data-nav-action="open-estado-obra"]').click();
 
-  await page
-    .locator('[data-nav-action="select-mode"][data-mode="weekly"]')
-    .filter({ visible: true })
-    .click();
+  await expect(page.locator("#stepLabel")).toHaveText(/estado da obra/i, {
+    timeout: 10000,
+  });
+  await expect(page.locator("#step-estado-obra")).toHaveAttribute("data-workspace-state", "ready", {
+    timeout: 15000,
+  });
+  await expect(page.locator("#workStatusGenerateReportBtn")).toBeHidden();
+
+  await page.locator("#workStatusMoreOptionsBtn").click();
 
   await expect(page.locator("#stepLabel")).toHaveText(/tipo de relatório/i, {
     timeout: 10000,

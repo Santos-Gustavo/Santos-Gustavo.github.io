@@ -1,4 +1,8 @@
 import { expect, test } from "@playwright/test";
+import {
+  createCanonicalReportFromModePage,
+  readOpenedReport,
+} from "./helpers/canonical-report-helper.js";
 
 const E2E_EMAIL =
   process.env.E2E_EMAIL ||
@@ -43,6 +47,8 @@ async function login(page) {
 }
 
 test("generated weekly report appears in saved reports", async ({ page }) => {
+  test.setTimeout(90000);
+
   const timestamp = Date.now();
 
   const projectName = `E2E Report Persist Project ${timestamp}`;
@@ -74,151 +80,16 @@ test("generated weekly report appears in saved reports", async ({ page }) => {
     timeout: 20000,
   });
 
-  await page
-    .locator('[data-nav-action="select-mode"][data-mode="weekly"]')
-    .click();
+  // ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — weekly reports are generated from
+  // the saved Estado da Obra; the old 9-step wizard is not reachable.
+  const summary =
+    "Resumo E2E persistente para confirmar que o relatório semanal fica guardado e reaparece no projeto.";
 
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 1 de 9|período|periodo/i,
-    {
-      timeout: 10000,
-    }
-  );
-
-  await page.locator("#p-reportNum").fill("1");
-  await page.locator("#p-reportDate").fill("2026-08-20");
-  await page.locator("#p-periodStart").fill("2026-08-13");
-  await page.locator("#p-periodEnd").fill("2026-08-20");
-  await page.locator("#p-distributedTo").fill("Cliente · Arquivo");
-  await page.locator("#p-sentVia").selectOption({ label: "WhatsApp" });
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 2 de 9|progresso/i,
-    {
-      timeout: 10000,
-    }
-  );
-
-  await page.locator("#progressSlider").fill("45");
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 3 de 9|resumo/i,
-    {
-      timeout: 10000,
-    }
-  );
-
-  await page
-    .locator("#weekSummary")
-    .fill(
-      "Resumo E2E persistente para confirmar que o relatório semanal fica guardado e reaparece no projeto."
-    );
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 4 de 9|trabalhos/i,
-    {
-      timeout: 10000,
-    }
-  );
-
-  await page.getByRole("button", { name: /adicionar trabalho/i }).click();
-
-  const workSelects = page.locator("select:visible");
-  const workDescription = page.locator("textarea:visible").first();
-
-  await workSelects.nth(0).selectOption({ label: "Pintura Interior" });
-  await workSelects.nth(1).selectOption({ label: "Sala" });
-  await workDescription.fill(
-    "Trabalho persistente de teste para validar relatório guardado."
-  );
-  await workSelects.nth(2).selectOption({ label: "Em curso" });
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/passo 5 de 9|fotos/i, {
-    timeout: 10000,
-  });
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 6 de 9|decisão|decisao/i,
-    {
-      timeout: 10000,
-    }
-  );
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 7 de 9|incidentes/i,
-    {
-      timeout: 10000,
-    }
-  );
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 8 de 9|próximos passos|proximos passos/i,
-    {
-      timeout: 10000,
-    }
-  );
-
-  await page
-    .getByRole("button", {
-      name: /adicionar próximo passo|adicionar proximo passo/i,
-    })
-    .click();
-
-  const nextStepInputs = page.locator("input:visible");
-  const nextStepTextareas = page.locator("textarea:visible");
-
-  if (await nextStepTextareas.count()) {
-    await nextStepTextareas
-      .first()
-      .fill("Validar que o relatório aparece nos relatórios guardados.");
-  } else if (await nextStepInputs.count()) {
-    await nextStepInputs
-      .first()
-      .fill("Validar que o relatório aparece nos relatórios guardados.");
-  }
-
-  await page.locator('[data-nav-action="next"]').filter({ visible: true }).click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(
-    /passo 9 de 9|revisão|revisao/i,
-    {
-      timeout: 10000,
-    }
-  );
-
-  const generateButton = page.locator(
-    '[data-report-action="save-and-generate"]'
-  );
-
-  const dialogPromise = page.waitForEvent("dialog");
-
-  await generateButton.click();
-
-  const dialog = await dialogPromise;
-
-  expect(dialog.message()).toMatch(/relatório guardado com sucesso/i);
-
-  await dialog.accept();
-
-  await page.locator('[data-nav-action="home"]').filter({ visible: true }).click();
-  await page.locator('[data-confirm-action="confirm"]').click();
-
-  await expect(page.locator("#stepLabel")).toHaveText(/projetos/i, {
-    timeout: 10000,
+  await createCanonicalReportFromModePage(page, {
+    progress: "45",
+    summary,
+    workDescription: "Trabalho persistente de teste para validar relatório guardado.",
+    nextSteps: "Validar que o relatório aparece nos relatórios guardados.",
   });
 
   const projectCard = page
@@ -258,4 +129,10 @@ test("generated weekly report appears in saved reports", async ({ page }) => {
         ).toContainText(/relatório\s*#?1/i, {
         timeout: 15000,
     });
-}); 
+
+  // The saved report re-opens from its frozen snapshot.
+  const { text } = await readOpenedReport(page, () =>
+    page.locator('#reportHistoryList [data-report-history-action="open"]').first().click()
+  );
+  expect(text).toContain(summary);
+});

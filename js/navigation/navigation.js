@@ -18,7 +18,7 @@ import { getOpenWorkItemsForPrefill, getSavedProjectStatusForPrefill } from "#pr
 import {
   hasUnsavedWorkStatusChanges,
   confirmLeaveEstadoObraIfDirty,
-  confirmGenerateReportAllowed,
+  openProjectMasterSheet,
 } from "#projects/project-work-items-ui.js";
 import { getProjectStatusLabel, canCreateWeeklyReport, canCreateLegalFinancialReport } from "#projects/project-status-rules.js";
 import { renderProjectModePage } from "#projects/project-mode-page.js";
@@ -488,13 +488,15 @@ async function handleNavigationClick(event) {
     return;
   }
 
-  // Shortcut button on Estado da Obra — deliberately its own action (not
-  // select-mode/weekly) so it doesn't collide with the mode-picker tile's
-  // identical data-mode="weekly" selector while both sit in the DOM at once.
-  if (action === "generate-weekly-report") {
-    if (!(await confirmGenerateReportAllowed())) return;
-
-    await selectMode("weekly");
+  // ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — the mode page's "Relatório
+  // Semanal" tile opens Estado da Obra, where "Gerar relatório" exports the
+  // saved canonical state. The old weekly wizard (selectMode("weekly")) is no
+  // longer routed to from the product; its code stays until dead-code cleanup
+  // because the legal/financial wizard still shares it.
+  if (action === "open-estado-obra") {
+    if (appState.currentProjectId) {
+      await openProjectMasterSheet(appState.currentProjectId);
+    }
     return;
   }
 
