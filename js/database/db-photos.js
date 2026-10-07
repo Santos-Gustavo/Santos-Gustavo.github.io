@@ -7,7 +7,6 @@ import { optimizeImageForUpload } from "#utils/image-processing.js";
 import {
   uploadProjectPhoto,
   getSignedPhotoUrls,
-  evictSignedPhotoUrl,
 } from "#database/storage-service.js";
 import { mapPhotoRowToAppPhoto } from "#mappers/photo-mapper.js";
 
@@ -87,32 +86,6 @@ export async function savePhotosForReport({
   }
 
   return insertedPhotos;
-}
-
-export async function deletePhotoViaFunction(photoId) {
-  if (!photoId) {
-    throw new Error("ID da fotografia em falta.");
-  }
-
-  const { data, error } = await supabaseClient.functions.invoke("delete-photo", {
-    body: {
-      photo_id: photoId,
-    },
-  });
-
-  if (error) {
-    throwIfDbError(error, "Erro ao remover fotografia.");
-  }
-
-  if (!data?.ok) {
-    throw new Error(data?.error || "Erro ao remover fotografia.");
-  }
-
-  if (data.deletedStoragePath) {
-    evictSignedPhotoUrl(data.deletedStoragePath);
-  }
-
-  return data;
 }
 
 async function uploadPhotoIfNeeded({

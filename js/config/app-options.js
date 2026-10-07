@@ -53,19 +53,11 @@ export const AREAS = Object.freeze([
 
 export const STEP_NAMES = Object.freeze({
   period: "Período",
-  3: "Progresso",
-  4: "Resumo",
-  5: "Trabalhos",
-  6: "Fotos",
-  7: "Decisão",
-  8: "Incidentes",
   9: "Extras",
   10: "Financeiro",
-  11: "Próximos Passos",
   12: "Revisão",
 });
 
 export const CONTENT_STEPS = Object.freeze({
-  weekly: Object.freeze(["period", 3, 4, 5, 6, 7, 8, 11, 12]),
   legal: Object.freeze(["period", 9, 10, 12]),
 });

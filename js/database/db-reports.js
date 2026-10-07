@@ -108,24 +108,6 @@ export async function updateReportSnapshot({
   return data;
 }
 
-export async function getLatestReportForProject(projectId) {
-  if (!projectId) return null;
-
-  const { data, error } = await supabaseClient
-    .from("reports")
-    .select("*")
-    .eq("project_id", projectId)
-    .is("deleted_at", null)
-    .order("report_date", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  throwIfDbError(error, "Erro ao carregar último relatório.");
-
-  return data;
-}
-
 export async function getReportById(reportId) {
   if (!reportId) return null;
 

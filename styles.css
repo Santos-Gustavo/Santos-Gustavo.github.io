@@ -60,7 +60,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, .mode-title, .project-card-name, .btn-generate, .btn-next {
+h1, h2, h3, .project-card-name, .btn-generate, .btn-next {
   font-family: 'Space Grotesk', 'IBM Plex Sans', Arial, sans-serif;
 }
 
@@ -257,84 +257,6 @@ input:-webkit-autofill:focus {
   color: var(--ink-soft);
 }
 .password-toggle-btn:hover { color: var(--ink); }
-
-/* ---------- TOGGLES ---------- */
-.toggle-field {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  background: var(--input-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  margin-bottom: 16px;
-  cursor: pointer;
-}
-.toggle-label { font-size: 14px; font-weight: 600; color: var(--text); }
-.toggle-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-.toggle-switch {
-  width: 48px; height: 28px;
-  background: #d8d2c0;
-  border-radius: 99px;
-  position: relative;
-  transition: background 0.2s;
-  flex-shrink: 0;
-}
-.toggle-switch.on { background: var(--forest); }
-.toggle-switch::after {
-  content: '';
-  position: absolute;
-  width: 22px; height: 22px;
-  background: white;
-  border-radius: 50%;
-  top: 3px; left: 3px;
-  transition: left 0.2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
-}
-.toggle-switch.on::after { left: 23px; }
-
-#progressSlider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 12px;
-  border-radius: 6px;
-  outline: none;
-  background: linear-gradient(to right,
-    var(--forest) var(--fill, 0%), var(--paper-line) var(--fill, 0%));
-}
-#progressSlider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--ink);
-  border: 2px solid var(--paper);
-  box-shadow: 0 0 0 1px var(--brass);
-  cursor: pointer;
-}
-#progressSlider::-moz-range-thumb {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--ink);
-  border: 2px solid var(--paper);
-  cursor: pointer;
-}
-#progressSlider::-moz-range-track {
-  height: 12px;
-  border-radius: 6px;
-  background: transparent;
-}
-
-.slider-value {
-  text-align: center;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 30px;
-  font-weight: 700;
-  color: var(--forest);
-  margin-bottom: 8px;
-}
 
 /* ---------- ITEM CARDS (works, incidents, extras...) ---------- */
 .item-card {
@@ -541,45 +463,6 @@ input:-webkit-autofill:focus {
 .confirm-dialog-actions { display: flex; gap: 12px; }
 .confirm-dialog-actions .btn { flex: 1; }
 
-/* ---------- PHOTOS ---------- */
-.photo-input-area {
-  border: 2px dashed var(--paper-line);
-  border-radius: 8px;
-  padding: 24px;
-  text-align: center;
-  cursor: pointer;
-  background: var(--input-bg);
-  position: relative;
-  overflow: hidden;
-  min-height: 100px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-.photo-input-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-.photo-icon-text { font-size: 32px; }
-.photo-caption-small { font-size: 12px; color: var(--muted); margin-top: 6px; }
-
-/* ---------- PHASE PICKER ---------- */
-.phase-picker { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-.phase-option {
-  padding: 12px;
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  text-align: center;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
-}
-.phase-option.selected { border-color: var(--forest); background: var(--forest-soft); color: var(--forest); }
-
 /* ---------- REVIEW ---------- */
 .review-section {
   border: 1px solid var(--border);
@@ -603,23 +486,6 @@ input:-webkit-autofill:focus {
 .review-row span:last-child { text-align: right; font-weight: 500; }
 
 .hidden { display: none !important; }
-
-/* ---------- MODE PICKER ---------- */
-.mode-picker { display: flex; flex-direction: column; gap: 16px; margin-top: 8px; }
-.mode-card {
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  padding: 24px 20px;
-  cursor: pointer;
-  background: var(--input-bg);
-  position: relative;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-}
-.mode-card:hover { border-color: var(--brass); background: var(--brass-soft); box-shadow: 0 4px 16px rgba(169,122,47,0.14); }
-.mode-card:active { border-color: var(--forest); background: var(--forest-soft); }
-.mode-icon { font-size: 34px; margin-bottom: 12px; }
-.mode-title { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
-.mode-desc { font-size: 13px; color: var(--muted); line-height: 1.55; }
 
 .card {
   border: 1px solid var(--border);

@@ -4,8 +4,6 @@ import {
   renderProjectList,
 } from "#projects/project-list.js";
 
-import { saveCurrentProjectFromForm } from "#projects/project-save.js";
-
 import { archiveOrHideProject } from "#projects/project-archive.js";
 
 import {
@@ -20,12 +18,6 @@ import {
 
 import { goHome } from "#navigation/navigation.js";
 import { confirmAction } from "#ui/confirm-dialog.js";
-
-import {
-  clearProjectForm,
-  loadProjectIntoForm,
-  applyDefaultReportFields,
-} from "#projects/project-form.js";
 
 import {
   archiveProject,

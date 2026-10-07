@@ -33,14 +33,6 @@ export function getReportFormValues() {
     distributedTo: getValue("p-distributedTo"),
     sentVia: getValue("p-sentVia"),
 
-    progressPct: getValue("progressSlider"),
-    weekSummary: getValue("weekSummary"),
-
-    alertTitle: getValue("alertTitle"),
-    alertDesc: getValue("alertDesc"),
-    alertDeadline: getValue("alertDeadline"),
-    alertConsequence: getValue("alertConsequence"),
-
     contractValue: getValue("contractValue"),
     financialNote: getValue("financialNote"),
   };

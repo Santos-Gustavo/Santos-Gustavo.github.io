@@ -8,7 +8,6 @@ import {
   canHideProject,
   getProjectStatusLabel,
   isProjectActive,
-  isProjectArchived,
 } from "#projects/project-status-rules.js";
 import {
   getProjectById,

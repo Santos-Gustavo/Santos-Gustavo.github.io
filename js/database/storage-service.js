@@ -174,11 +174,6 @@ export async function getSignedPhotoUrls(storagePaths) {
   return result;
 }
 
-export function evictSignedPhotoUrl(storagePath) {
-  if (!storagePath) return;
-  signedPhotoUrlCache.delete(storagePath);
-}
-
 function chunkArray(items, size) {
   const chunks = [];
 

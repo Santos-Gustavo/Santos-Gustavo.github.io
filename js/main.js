@@ -4,14 +4,9 @@ import { initNavigation } from "#navigation/navigation.js";
 import { initProjects } from "#projects/project-index.js";
 import { initClients } from "#clients/client-index.js";
 import { initCompanyProfile } from "#company/company-index.js";
-import { initWorksSection } from "#projects/sections/works.js";
-import { initPhotosSection } from "#projects/sections/photos.js";
-import { initIncidentsSection } from "#projects/sections/incidents.js";
 import { initExtrasSection } from "#projects/sections/extras.js";
-import { initNextStepsSection } from "#projects/sections/next-steps.js";
 import { initFinancialSection } from "#projects/sections/financial.js";
 import { initReviewSection } from "#projects/sections/review.js";
-import { initUiControls } from "#ui/ui-controls.js";
 import { initConfirmDialog } from "#ui/confirm-dialog.js";
 import { initPayments } from "#payments/payment.js";
 import { initAuth } from "#auth/auth.js";
@@ -51,26 +46,11 @@ async function boot() {
   initCompanyProfile();
   console.info("[ESM boot] Company profile initialized.");
 
-  initUiControls();
-  console.info("[ESM boot] UI controls initialized.");
-
   initConfirmDialog();
   console.info("[ESM boot] Confirm dialog initialized.");
 
-  initWorksSection();
-  console.info("[ESM boot] Works initialized.");
-
-  initPhotosSection();
-  console.info("[ESM boot] Photos initialized.");
-
-  initIncidentsSection();
-  console.info("[ESM boot] Incidents initialized.");
-
   initExtrasSection();
   console.info("[ESM boot] Extras initialized.");
-
-  initNextStepsSection();
-  console.info("[ESM boot] Next steps initialized.");
 
   initFinancialSection();
   console.info("[ESM boot] Financial initialized.");

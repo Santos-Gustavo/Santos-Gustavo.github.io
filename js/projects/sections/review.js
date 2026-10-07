@@ -22,12 +22,7 @@ export function buildReview() {
   const state = getRuntimeState();
   const values = getReportFormValues();
 
-  if (state.mode === "legal") {
-    el.innerHTML = buildLegalReview(values, state);
-    return;
-  }
-
-  el.innerHTML = buildWeeklyReview(values, state);
+  el.innerHTML = buildLegalReview(values, state);
 }
 
 function buildLegalReview(values, state) {
@@ -60,57 +55,6 @@ function buildLegalReview(values, state) {
       ${reviewRow("Trabalhos extra", `${extras.length} itens`)}
       ${reviewRow("Aprovados", formatEuro(approvedTotal))}
       ${reviewRow("Pendentes", formatEuro(pendingTotal))}
-    </div>
-  `;
-}
-
-function buildWeeklyReview(values, state) {
-  const works = Array.isArray(state.works) ? state.works : [];
-  const photos = Array.isArray(state.photos) ? state.photos : [];
-  const nextSteps = Array.isArray(state.nextSteps) ? state.nextSteps : [];
-  const incidents = Array.isArray(state.incidents) ? state.incidents : [];
-
-  const done = works.filter((work) => work.status === "done").length;
-  const progress = works.filter((work) => work.status === "progress").length;
-  const blocked = works.filter((work) => work.status === "blocked").length;
-
-  return `
-    <div class="review-section">
-      <h3>Empresa</h3>
-      ${reviewRow("Nome", values.companyName)}
-      ${reviewRow("Responsável", values.responsible)}
-      ${reviewRow("NIF", values.companyNif)}
-    </div>
-
-    <div class="review-section">
-      <h3>Projeto</h3>
-      ${reviewRow("Nome", values.projectName)}
-      ${reviewRow("Cliente", values.clientName)}
-      ${reviewRow("Localização", values.location)}
-      ${reviewRow("Contrato", values.contractNum)}
-      ${reviewRow("Relatório n.º", values.reportNum)}
-    </div>
-
-    <div class="review-section">
-      <h3>Progresso</h3>
-      ${reviewRow("Fase", state.phase)}
-      ${reviewRow("Concluído", `${values.progressPct || 0}%`)}
-      ${reviewRow("Tarefas", `${done} concl. · ${progress} em curso · ${blocked} pend.`)}
-    </div>
-
-    <div class="review-section">
-      <h3>Conteúdo</h3>
-      ${reviewRow("Trabalhos", `${works.length} itens`)}
-      ${reviewRow("Fotos", `${photos.length} fotos`)}
-      ${reviewRow("Próximos passos", `${nextSteps.length} itens`)}
-      ${reviewRow(
-        "Incidentes",
-        state.incidentsOn ? `${incidents.length} registado(s)` : "Sem ocorrências",
-      )}
-      ${reviewRow(
-        "Alerta",
-        state.alertOn ? `Sim — ${values.alertTitle || "sem título"}` : "Não",
-      )}
     </div>
   `;
 }

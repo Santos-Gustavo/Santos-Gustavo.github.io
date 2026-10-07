@@ -439,112 +439,6 @@
     </div>
   </div>
 
-  <!-- STEP 3: PROGRESSO -->
-  <div class="step" id="step3">
-    <div class="step-content">
-      <div class="step-header"><h2>Progresso Global</h2><p>Estado atual do projeto</p></div>
-      <div class="field">
-        <label>Fase Atual</label>
-        <div class="phase-picker" id="phasePicker">
-          <div class="phase-option" data-phase="Fundações">Fundações</div>
-          <div class="phase-option" data-phase="Estrutura e Alvenaria">Estrutura e Alvenaria</div>
-          <div class="phase-option" data-phase="Impermeabilização">Impermeabilização</div>
-          <div class="phase-option" data-phase="Cobertura">Cobertura</div>
-          <div class="phase-option" data-phase="Instalações">Instalações</div>
-          <div class="phase-option" data-phase="Acabamentos">Acabamentos</div>
-          <div class="phase-option" data-phase="Arranjos Exteriores">Arranjos Exteriores</div>
-          <div class="phase-option" data-phase="Concluído">Concluído ✓</div>
-        </div>
-      </div>
-      <div class="field" style="margin-top:20px;">
-        <label>Percentagem Global Concluída</label>
-        <div class="slider-value" id="progressPct">0%</div>
-        <input type="range" id="progressSlider" min="0" max="100" value="0" style="width:100%; height:36px; padding:0; border:none; background:none;" data-ui-action="progress-slider" />      </div>
-    </div>
-    <div class="nav-bar">
-      <button class="btn btn-back" data-nav-action="back">←</button>
-      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
-    </div>
-  </div>
-
-  <!-- STEP 4: RESUMO -->
-  <div class="step" id="step4">
-    <div class="step-content">
-      <div class="step-header"><h2>Resumo da Semana</h2><p>Descreva em texto livre o que aconteceu neste período</p></div>
-      <div class="field"><label>Resumo *</label><textarea id="weekSummary" placeholder="Ex: Esta semana registámos avanços significativos na construção das paredes..."></textarea></div>
-    </div>
-    <div class="nav-bar">
-      <button class="btn btn-back" data-nav-action="back">←</button>
-      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
-    </div>
-  </div>
-
-  <!-- STEP 5: TRABALHOS -->
-  <div class="step" id="step5">
-    <div class="step-content">
-      <div class="step-header"><h2>Trabalhos</h2><p>Adicione os trabalhos do período — concluídos, em curso e pendentes</p></div>
-      <div id="workList"></div>
-      <button type="button" class="btn-add" data-work-action="add">+ Adicionar trabalho</button>
-    </div>
-    <div class="nav-bar">
-      <button class="btn btn-back" data-nav-action="back">←</button>
-      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
-    </div>
-  </div>
-
-  <!-- STEP 6: FOTOS -->
-  <div class="step" id="step6">
-    <div class="step-content">
-      <div class="step-header"><h2>Registo Fotográfico</h2><p>Adicione as fotos do período (opcional)</p></div>
-      <div id="photoList"></div>
-      <button type="button" data-photo-action="add">Adicionar Foto</button>
-    </div>
-    <div class="nav-bar">
-      <button class="btn btn-back" data-nav-action="back">←</button>
-      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
-    </div>
-  </div>
-
-  <!-- STEP 7: ALERTA -->
-  <div class="step" id="step7">
-    <div class="step-content">
-      <div class="step-header"><h2>Decisão Pendente</h2><p>Há alguma decisão urgente que o cliente precise tomar?</p></div>
-      <div class="toggle-field" data-ui-action="toggle-alert">
-        <div><div class="toggle-label">Há decisão pendente</div><div class="toggle-sub">Será destacada como alerta no relatório</div></div>
-        <div class="toggle-switch" id="alertToggle"></div>
-      </div>
-      <div id="alertFields" class="hidden">
-        <div class="field"><label>Título da Decisão</label><input type="text" id="alertTitle" placeholder="Ex: Decisão necessária — Vão P2 (Fachada Sul)" /></div>
-        <div class="field"><label>Descrição</label><textarea id="alertDesc" placeholder="Explique a decisão necessária..."></textarea></div>
-        <div class="field"><label>Prazo de Resposta</label><input type="date" id="alertDeadline" /></div>
-        <div class="field"><label>Consequência se não responder</label><input type="text" id="alertConsequence" placeholder="Ex: Execução avança conforme planta original" /></div>
-      </div>
-    </div>
-    <div class="nav-bar">
-      <button class="btn btn-back" data-nav-action="back">←</button>
-      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
-    </div>
-  </div>
-
-  <!-- STEP 8: INCIDENTES -->
-  <div class="step" id="step8">
-    <div class="step-content">
-      <div class="step-header"><h2>Incidentes</h2><p>Não-conformidades, acidentes ou ocorrências a registar</p></div>
-      <div class="toggle-field" data-ui-action="toggle-incidents">
-        <div><div class="toggle-label">Há incidentes a registar</div><div class="toggle-sub">Se não houver, o relatório assinala "sem ocorrências"</div></div>
-        <div class="toggle-switch" id="incidentsToggle"></div>
-      </div>
-      <div id="incidentFields" class="hidden">
-        <div id="incidentList"></div>
-        <button type="button" class="btn-add" data-incident-action="add">+ Adicionar incidente</button>
-      </div>
-    </div>
-    <div class="nav-bar">
-      <button class="btn btn-back" data-nav-action="back">←</button>
-      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
-    </div>
-  </div>
-
   <!-- STEP 9: EXTRAS -->
   <div class="step" id="step9">
     <div class="step-content">
@@ -565,19 +459,6 @@
       <div class="field"><label>Valor do Contrato Base (€, s/ IVA)</label><input type="number" id="contractValue" placeholder="48500" step="0.01" min="0" data-financial-action="update-preview" /></div>
       <div class="field"><label>Nota adicional (opcional)</label><textarea id="financialNote" placeholder="Ex: Valores s/ IVA. Extras pendentes não incluídos até aprovação formal." style="min-height:60px;"></textarea></div>
       <div id="financialPreview" style="margin-top:16px;"></div>
-    </div>
-    <div class="nav-bar">
-      <button class="btn btn-back" data-nav-action="back">←</button>
-      <button class="btn btn-next" data-nav-action="next">Seguinte →</button>
-    </div>
-  </div>
-
-  <!-- STEP 11: PRÓXIMOS PASSOS -->
-  <div class="step" id="step11">
-    <div class="step-content">
-      <div class="step-header"><h2>Próximos Passos</h2><p>O que está previsto para o próximo período</p></div>
-      <div id="nextStepsList"></div>
-      <button type="button" class="btn-add" data-next-step-action="add">+ Adicionar próximo passo</button>
     </div>
     <div class="nav-bar">
       <button class="btn btn-back" data-nav-action="back">←</button>

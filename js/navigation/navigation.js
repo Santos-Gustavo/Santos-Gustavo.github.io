@@ -3,24 +3,15 @@ import { appState } from "#state/app-state.js";
 import { CONTENT_STEPS, STEP_NAMES } from "#config/app-options.js";
 import { saveCurrentProjectFromForm } from "#projects/project-save.js";
 import { renderProjectList, upsertProjectInCache } from "#projects/project-list.js";
-import { getLatestReportForProject } from "#database/db-reports.js";
-import { setValue } from "#forms/form-values.js";
-import { applyPreviousReportToForm } from "#reports/report-prefill.js";
+import { mapProjectRowToAppProject } from "#mappers/project-mapper.js";
 import { updateFinancialPreview } from "#projects/sections/financial.js";
 import { buildReview } from "#projects/sections/review.js";
-import { renderWorks } from "#projects/sections/works.js";
-import { renderPhotos } from "#projects/sections/photos.js";
-import { renderIncidents } from "#projects/sections/incidents.js";
-import { renderExtras } from "#projects/sections/extras.js";
-import { renderNextSteps } from "#projects/sections/next-steps.js";
-import { updateIncidentsUI, updatePhaseUI, syncProgressSlider } from "#ui/ui-controls.js";
-import { getOpenWorkItemsForPrefill, getSavedProjectStatusForPrefill } from "#projects/project-work-items.js";
 import {
   hasUnsavedWorkStatusChanges,
   confirmLeaveEstadoObraIfDirty,
   openProjectMasterSheet,
 } from "#projects/project-work-items-ui.js";
-import { canCreateWeeklyReport, canCreateLegalFinancialReport } from "#projects/project-status-rules.js";
+import { canCreateLegalFinancialReport } from "#projects/project-status-rules.js";
 import { openClientsPage } from "#clients/client-index.js";
 import { openCompanyProfilePage } from "#company/company-index.js";
 import { confirmAction } from "#ui/confirm-dialog.js";
@@ -118,46 +109,20 @@ export function updateTopBar(id) {
   label.textContent = `Passo ${pos} de ${total} — ${STEP_NAMES[id] || String(id)}`;
 }
 
-export async function selectMode(mode) {
+// The legal/financial wizard is the only step-by-step report flow left —
+// weekly reports are generated from Estado da Obra ("Gerar relatório").
+export function openLegalWizard() {
   const state = getRuntimeState();
 
-  if (mode !== "weekly" && mode !== "legal") {
-    console.error("Invalid report mode:", mode);
-    return;
-  }
-
-  if (mode === "weekly" && !canCreateWeeklyReport(appState.currentProject)) {
-    alert(
-      "Este projeto está arquivado. Não é possível criar novos relatórios semanais."
-    );
-    return;
-  }
-
-  if (mode === "legal" && !canCreateLegalFinancialReport(appState.currentProject)) {
+  if (!canCreateLegalFinancialReport(appState.currentProject)) {
     alert(
       "Este projeto está arquivado. Não é possível criar novos relatórios legais/financeiros."
     );
     return;
   }
 
-  state.mode = mode;
-
-  if (mode === "weekly") {
-    state.flow = CONTENT_STEPS.weekly || [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-  }
-
-  if (mode === "legal") {
-    state.flow = CONTENT_STEPS.legal || [10, 11, 12];
-  }
-
-  if (!Array.isArray(state.flow) || state.flow.length === 0) {
-    console.error("Invalid navigation flow for mode:", mode, state.flow);
-    return;
-  }
-
-  if (mode === "weekly") {
-    await prepareWeeklyReportFromMasterSheet(appState.currentProjectId);
-  }
+  state.mode = "legal";
+  state.flow = CONTENT_STEPS.legal;
 
   goToStepId(state.flow[0]);
 }
@@ -189,8 +154,15 @@ export async function goNext() {
 
     // A new project lands in Estado da Obra, the project hub (there is no
     // "Tipo de Relatório" page any more).
-    appState.currentProject = saved.project;
-    upsertProjectInCache(saved.project);
+    // saved.project is a raw DB row; cache the app-shaped project (companyId,
+    // clientName, …) so Estado da Obra doesn't depend on the background
+    // project-list refresh winning the race.
+    const project = mapProjectRowToAppProject(saved.project, {
+      client: saved.client,
+      company: appState.currentCompany,
+    });
+    appState.currentProject = project;
+    upsertProjectInCache(project);
     await openProjectMasterSheet(saved.project.id);
     return;
   }
@@ -304,134 +276,6 @@ export function goHome() {
   window.scrollTo(0, 0);
 }
 
-export async function prepareWeeklyReportFromPrevious() {
-  const state = getRuntimeState();
-  const currentProjectId = state.currentProjectId || appState.currentProjectId;
-
-  if (!currentProjectId) {
-    console.warn("No current project selected. Cannot load previous report.");
-    return;
-  }
-
-  try {
-    const previousReport = await getLatestReportForProject(currentProjectId);
-
-    if (!previousReport) {
-      console.log("No previous report found. Starting blank weekly report.");
-      prepareBlankWeeklyReport();
-      return;
-    }
-
-    console.log("Previous report loaded:", previousReport);
-
-    applyPreviousReportToForm(previousReport);
-
-    showPrefillNotice();
-  } catch (error) {
-    console.error("Error preparing weekly report:", error);
-    alert("Não foi possível carregar o relatório anterior: " + error.message);
-
-    prepareBlankWeeklyReport();
-  }
-}
-
-export function prepareBlankWeeklyReport() {
-  const state = getRuntimeState();
-  const today = new Date().toISOString().split("T")[0];
-
-  setValue("p-reportNum", "1");
-  setValue("p-reportDate", today);
-  setValue("p-periodStart", "");
-  setValue("p-periodEnd", "");
-
-  state.periodStart = null;
-  state.periodEnd = null;
-
-  state.works = [];
-  state.photos = [];
-  state.incidents = [];
-  state.extras = [];
-  state.nextSteps = [];
-
-  appState.works = [];
-  appState.photos = [];
-  appState.incidents = [];
-  appState.extras = [];
-  appState.nextSteps = [];
-
-  rerenderLegacySections();
-}
-
-// PROJECT-MASTER-SHEET-001 — pre-fill priority for "Criar Relatório Semanal":
-//   1. Estado da Obra open items (Pendentes + Em curso) — the current, consolidated
-//      picture of what's outstanding across every report so far.
-//   2. Latest report fallback (prepareWeeklyReportFromPrevious) — carries forward
-//      period/summary/alert/financial fields either way, since master-sheet items
-//      only cover work items, not the rest of the report.
-// Concluídas and incidents are never carried forward into a new report by default
-// (see docs task PROJECT-MASTER-SHEET-001 §5) — incidents in particular have no
-// "resolved" concept in the data today, so the safe default is to always start a
-// new report with a clean incidents section.
-export async function prepareWeeklyReportFromMasterSheet(projectId) {
-  const state = getRuntimeState();
-  const resolvedProjectId = projectId || state.currentProjectId || appState.currentProjectId;
-
-  let openItems = [];
-  let savedStatus = null;
-
-  if (resolvedProjectId) {
-    try {
-      openItems = await getOpenWorkItemsForPrefill(resolvedProjectId);
-    } catch (error) {
-      console.error("Error loading Estado da Obra items for prefill:", error);
-    }
-
-    try {
-      savedStatus = await getSavedProjectStatusForPrefill(resolvedProjectId);
-    } catch (error) {
-      console.error("Error loading saved Estado da Obra status for prefill:", error);
-    }
-  }
-
-  await prepareWeeklyReportFromPrevious();
-
-  if (openItems.length > 0) {
-    state.works = openItems;
-    appState.works = openItems;
-    renderWorks();
-  }
-
-  // PROJECT-HUB-INTEGRATION-001 — the contractor's last saved Estado da Obra
-  // state takes priority over the latest report's own phase/progress/resumo,
-  // which prepareWeeklyReportFromPrevious just set as the baseline fallback.
-  if (savedStatus) {
-    if (savedStatus.phase) {
-      state.phase = savedStatus.phase;
-      appState.phase = savedStatus.phase;
-      updatePhaseUI();
-    }
-
-    setValue("progressSlider", savedStatus.progressPct);
-    syncProgressSlider();
-
-    if (savedStatus.summary) {
-      setValue("weekSummary", savedStatus.summary);
-    }
-  }
-
-  state.incidents = [];
-  appState.incidents = [];
-  state.incidentsOn = false;
-  appState.incidentsOn = false;
-
-  updateIncidentsUI();
-  renderIncidents();
-}
-
-function showPrefillNotice() {
-  alert("Último relatório encontrado. Os dados foram pré-preenchidos. Atualize apenas o que mudou esta semana.");
-}
-
 async function handleNavigationClick(event) {
   const trigger = event.target.closest("[data-nav-action]");
 
@@ -447,26 +291,11 @@ async function handleNavigationClick(event) {
 
   event.preventDefault();
 
-  if (action === "select-mode") {
-    const mode = trigger.dataset.mode;
-
-    if (!mode) {
-      console.error("Missing data-mode on select-mode element:", trigger);
-      return;
-    }
-
-    await selectMode(mode);
-    return;
-  }
-
   // POST-RELEASE-POLISH-001 — Estado da Obra's "Legal / Financeiro" button
-  // goes straight into the legal/financial wizard (the "Tipo de Relatório"
-  // page is gone). Weekly reports come from "Gerar relatório"; the old weekly
-  // wizard (selectMode("weekly")) is not routed to from the product — its
-  // code stays until dead-code cleanup because the legal wizard shares it.
+  // goes straight into the legal/financial wizard.
   if (action === "open-legal") {
     if (!(await confirmLeaveEstadoObraIfDirty())) return;
-    await selectMode("legal");
+    openLegalWizard();
     return;
   }
 
@@ -511,14 +340,6 @@ async function handleNavigationClick(event) {
   }
 
   console.warn("Unknown navigation action:", action, trigger);
-}
-
-function rerenderLegacySections() {
-  renderWorks();
-  renderPhotos();
-  renderIncidents();
-  renderExtras();
-  renderNextSteps();
 }
 
 function getRuntimeState() {
