@@ -19,10 +19,7 @@ import {
   loadWorkItemStatusOverrides,
   upsertWorkItemStatus,
 } from "#database/db-project-work-items.js";
-import {
-  loadProjectStatusState,
-  upsertProjectStatusState,
-} from "#database/db-project-status-state.js";
+import { loadProjectStatusState } from "#database/db-project-status-state.js";
 
 const WORK_STATUS_VALUES = new Set(["done", "progress", "blocked"]);
 
@@ -180,14 +177,6 @@ export async function loadProjectWorkState(projectId) {
   };
 }
 
-export async function setWorkItemStatus({ projectId, itemId, status, sourceReportId }) {
-  if (!WORK_STATUS_VALUES.has(status)) {
-    throw new Error("Estado inválido.");
-  }
-
-  return upsertWorkItemStatus({ projectId, itemId, status, sourceReportId });
-}
-
 export async function addWorkItem({ projectId, type = "", area = "", desc, status }) {
   const trimmedDesc = String(desc || "").trim();
 
@@ -221,10 +210,6 @@ export async function loadSavedProjectStatus(projectId) {
     progressPct: Number(saved.progress_pct) || 0,
     summary: saved.summary || "",
   };
-}
-
-export async function saveEditableProjectStatus({ projectId, companyId, phase, progressPct, summary }) {
-  return upsertProjectStatusState({ projectId, companyId, phase, progressPct, summary });
 }
 
 // Priority-0 prefill source for "Criar Relatório Semanal" phase/progress/resumo

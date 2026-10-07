@@ -42,14 +42,6 @@ export async function optimizeImageForUpload(fileOrDataUrl, options = {}) {
   };
 }
 
-export async function resizeImageForPdf(fileOrDataUrl, options = {}) {
-  return optimizeImageForUpload(fileOrDataUrl, {
-    maxWidth: options.maxWidth || 800,
-    quality: options.quality ?? 0.75,
-    outputType: options.outputType || DEFAULT_OUTPUT_TYPE,
-  });
-}
-
 async function inputToBlob(input) {
   if (input instanceof Blob) {
     return input;

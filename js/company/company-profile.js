@@ -8,16 +8,6 @@
 import { loadPrimaryCompany, createCompanyProfile, updateCompanyById } from "#database/db-companies.js";
 import { appState } from "#state/app-state.js";
 
-const FORM_FIELD_IDS = [
-  "companyName",
-  "companyNif",
-  "companyInci",
-  "responsible",
-  "companyPhone",
-  "companyEmail",
-  "companyAddress",
-];
-
 // Boot-time (and on-demand) load of the user's one company into appState.
 // Safe to call repeatedly — always re-reads from the DB so a save elsewhere
 // (or in another tab) is picked up.
@@ -91,5 +81,3 @@ function setValue(id, value) {
   const el = document.getElementById(id);
   if (el) el.value = value ?? "";
 }
-
-export const COMPANY_FORM_FIELD_IDS = FORM_FIELD_IDS;

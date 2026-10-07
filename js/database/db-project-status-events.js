@@ -46,22 +46,3 @@ export async function createProjectStatusEvent({
 
   return data;
 }
-
-export async function getProjectStatusEvents(projectId) {
-  if (!projectId) {
-    throw new Error("Missing projectId for project status events lookup.");
-  }
-
-  const { data, error } = await supabaseClient
-    .from("project_status_events")
-    .select("*")
-    .eq("project_id", projectId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Error loading project status events:", error);
-    throw error;
-  }
-
-  return data || [];
-}

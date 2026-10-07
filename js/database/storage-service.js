@@ -179,16 +179,6 @@ export function evictSignedPhotoUrl(storagePath) {
   signedPhotoUrlCache.delete(storagePath);
 }
 
-export function evictSignedPhotoUrls(storagePaths) {
-  for (const storagePath of storagePaths || []) {
-    evictSignedPhotoUrl(storagePath);
-  }
-}
-
-export function clearSignedPhotoUrlCache() {
-  signedPhotoUrlCache.clear();
-}
-
 function chunkArray(items, size) {
   const chunks = [];
 

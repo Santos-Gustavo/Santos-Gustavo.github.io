@@ -89,31 +89,6 @@ export async function savePhotosForReport({
   return insertedPhotos;
 }
 
-export async function loadPhotosForReport(reportId) {
-  if (!reportId) return [];
-
-  const { data, error } = await supabaseClient
-    .from("photos")
-    .select("*")
-    .eq("report_id", reportId)
-    .order("created_at", { ascending: true });
-
-  throwIfDbError(error, "Erro ao carregar fotografias.");
-
-  return hydratePhotosWithSignedUrls(data || []);
-}
-
-export async function hydratePhotosWithSignedUrls(photoRows) {
-  const rows = Array.isArray(photoRows) ? photoRows : [];
-  const paths = rows.map((row) => row.storage_path).filter(Boolean);
-
-  const signedUrlsByPath = await getSignedPhotoUrls(paths);
-
-  return rows
-    .map((row) => mapPhotoRowToAppPhoto(row, signedUrlsByPath.get(row.storage_path) || null))
-    .filter(Boolean);
-}
-
 export async function deletePhotoViaFunction(photoId) {
   if (!photoId) {
     throw new Error("ID da fotografia em falta.");

@@ -64,11 +64,3 @@ export function mapSentViaLabelToCode(value) {
 
   return SENT_VIA.MANUAL_UNKNOWN;
 }
-
-export function mapSentViaCodeToLabel(code) {
-  if (code === SENT_VIA.WHATSAPP) return "WhatsApp";
-  if (code === SENT_VIA.EMAIL) return "Email";
-  if (code === SENT_VIA.PDF_DOWNLOAD) return "PDF";
-  if (code === SENT_VIA.OTHER) return "Outro";
-  return "Manual";
-}

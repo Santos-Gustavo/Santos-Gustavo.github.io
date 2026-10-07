@@ -14,10 +14,6 @@ let signingOut = false;
 // stays hidden until then instead of cluttering the login form.
 let signUpMode = false;
 
-export function getCurrentUser() {
-  return currentUser;
-}
-
 export async function initAuth() {
   bindAuthEvents();
 

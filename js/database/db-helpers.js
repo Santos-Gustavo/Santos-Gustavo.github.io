@@ -15,14 +15,6 @@ export function toNumberOrNull(value) {
   return Number.isFinite(number) ? number : null;
 }
 
-export function assertRequired(value, message) {
-  if (!value) {
-    throw new Error(message);
-  }
-
-  return value;
-}
-
 export function normalizeDbError(error, fallbackMessage = "Erro na base de dados.") {
   if (!error) return new Error(fallbackMessage);
 

@@ -26,15 +26,6 @@ export const PROJECT_STATUS_LABELS = Object.freeze({
   [PROJECT_STATUS.ARCHIVED]: "Arquivada",
 });
 
-export const PROJECT_CLOSURE_TYPE_LABELS = Object.freeze({
-  [PROJECT_CLOSURE_TYPE.COMPLETED]: "Concluída",
-  [PROJECT_CLOSURE_TYPE.CANCELLED]: "Cancelada",
-  [PROJECT_CLOSURE_TYPE.ABANDONED]: "Abandonada",
-  [PROJECT_CLOSURE_TYPE.DISPUTED]: "Em disputa",
-  [PROJECT_CLOSURE_TYPE.TRANSFERRED]: "Transferida",
-  [PROJECT_CLOSURE_TYPE.OTHER]: "Outro motivo",
-});
-
 export function normalizeProjectStatus(status) {
   const numericStatus = Number(status);
 
@@ -49,14 +40,6 @@ export function getProjectStatusLabel(status) {
   const normalizedStatus = normalizeProjectStatus(status);
 
   return PROJECT_STATUS_LABELS[normalizedStatus] || "Estado desconhecido";
-}
-
-export function getProjectClosureTypeLabel(closureType) {
-  if (!closureType) {
-    return "";
-  }
-
-  return PROJECT_CLOSURE_TYPE_LABELS[closureType] || "Outro motivo";
 }
 
 export function isProjectActive(project) {
@@ -127,14 +110,6 @@ export function canCreateLegalFinancialReport(project) {
   );
 }
 
-export function canUploadProjectPhoto(project) {
-  return (
-    isProjectActive(project) ||
-    isProjectPaused(project) ||
-    isProjectCompleted(project)
-  );
-}
-
 export function canEditProject(project) {
   return (
     isProjectActive(project) ||
@@ -153,22 +128,6 @@ export function canShowInArchivedProjectList(project) {
 
 export function canShowInHiddenProjectList(project) {
   return isProjectArchived(project) && isProjectHidden(project);
-}
-
-export function getAllowedProjectActions(project) {
-  return {
-    pause: canPauseProject(project),
-    resume: canResumeProject(project),
-    complete: canCompleteProject(project),
-    archive: canArchiveProject(project),
-    hide: canHideProject(project),
-    unhide: canUnhideProject(project),
-    reopen: canReopenProject(project),
-    createWeeklyReport: canCreateWeeklyReport(project),
-    createLegalFinancialReport: canCreateLegalFinancialReport(project),
-    uploadPhoto: canUploadProjectPhoto(project),
-    edit: canEditProject(project),
-  };
 }
 
 export function validateProjectTransition(project, nextStatus) {
