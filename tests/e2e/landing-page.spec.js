@@ -18,12 +18,14 @@ test.describe("landing page (DESIGN-SYSTEM-001)", () => {
 
     await expect(
       page.getByRole("heading", {
-        name: /Relatórios de obra profissionais, enviados por WhatsApp\./i,
+        name: /Cada obra organizada e registada, no telemóvel\./i,
       })
     ).toBeVisible();
 
     await expect(
-      page.getByRole("link", { name: "Testar grátis" }).first()
+      page
+        .getByRole("link", { name: "Experimentar com uma obra em curso" })
+        .first()
     ).toBeVisible();
 
     await expect(page.locator("#authScreen")).toHaveCount(0);
@@ -49,7 +51,7 @@ test.describe("landing page (DESIGN-SYSTEM-001)", () => {
   }) => {
     await page.goto("/");
 
-    await page.getByRole("link", { name: "Entrar" }).click();
+    await page.getByRole("link", { name: "Entrar", exact: true }).click();
     await page.waitForLoadState("load");
 
     // The static dev server used for local/CI runs 301-redirects clean URLs
@@ -60,6 +62,41 @@ test.describe("landing page (DESIGN-SYSTEM-001)", () => {
     await expect(page.locator("#authScreen")).toBeVisible();
     await expect(page.locator("#authEmail")).toBeVisible();
   });
+
+  test("does not claim unsupported product capabilities", async ({ page }) => {
+    await page.goto("/");
+
+    const body = page.locator("body");
+    await expect(body).toContainText(
+      "Visualizado indica que o link foi aberto. Não indica quem o abriu"
+    );
+    await expect(body).not.toContainText(
+      /guarda automaticamente as|autosave|modo offline|gantt|kanban|assinatura digital|prova legal|IMPIC|ilimitad/i
+    );
+  });
+
+  test("header anchors point at existing sections", async ({ page }) => {
+    await page.goto("/");
+
+    for (const id of ["como-funciona", "relatorios", "faq"]) {
+      await expect(page.locator(`.landing-nav a[href="#${id}"]`)).toHaveCount(1);
+      await expect(page.locator(`#${id}`)).toHaveCount(1);
+    }
+    await expect(page.locator('a[href="examples/report_example.pdf"]')).toHaveCount(1);
+  });
+
+  for (const width of [320, 360]) {
+    test(`has no horizontal overflow at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 740 });
+      await page.goto("/");
+
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth
+      );
+      expect(overflow).toBeLessThanOrEqual(0);
+      await expect(page.locator(".sticky-bottom-bar .btn-primary")).toBeVisible();
+    });
+  }
 
   test("reset-password page loads independently", async ({ page }) => {
     await page.goto("/reset-password.html");

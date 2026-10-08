@@ -3,83 +3,69 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Relatórios de Obra por WhatsApp | Provas de Trabalho Simples</title>
+  <title>RelatórioObra | Gestão de obra simples, feita no telemóvel</title>
+  <meta name="description" content="Atualize o Estado da Obra no telemóvel — trabalhos, ocorrências e fotografias. O relatório para o cliente sai desse mesmo registo, pronto a enviar pelo WhatsApp.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <style>
-    /* Landing-only layout — reuses the shared paper/ink/brass/forest tokens
-       and grid background from styles.css; only page-specific classes live here. */
+    /* Landing-only layout — reuses the shared "Tijolo e Cal" tokens from
+       styles.css; only page-specific classes live here. Terracotta = brand only. */
 
-    body { background-attachment: fixed; }
+    html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+    body { background-attachment: fixed; overflow-x: hidden; }
 
+    /* ---------- Header ---------- */
     .landing-header {
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      padding: 18px 5%;
+      gap: 8px 16px;
+      padding: 12px 5%;
       background: var(--card);
       border-bottom: 1px solid var(--paper-line);
     }
     .logo {
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Inter', system-ui, sans-serif;
       font-size: 1.15rem;
-      font-weight: 700;
+      font-weight: 600;
       color: var(--ink);
+      text-decoration: none;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
     }
-    .landing-header .btn-primary {
-      min-height: 40px;
-      padding: 0 18px;
+    .landing-nav { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .landing-nav a.nav-link {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--ink-soft);
+      text-decoration: none;
+      min-height: 44px;
+      padding: 0 10px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 6px;
+    }
+    .landing-nav a.nav-link:hover { color: var(--ink); background: var(--bg-page); }
+    .nav-short { display: none; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .header-actions .btn-primary,
+    .header-actions .btn-secondary {
+      min-height: 44px;
+      padding: 0 16px;
       font-size: 0.85rem;
     }
 
-    .hero { max-width: 900px; margin: 0 auto; padding: 64px 20px 40px; text-align: center; }
-    .hero h1 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 2.25rem;
-      font-weight: 700;
-      color: var(--ink);
-      line-height: 1.25;
-      margin-bottom: 16px;
-      letter-spacing: -0.02em;
-    }
-    .subtitle {
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-size: 1.125rem;
-      color: var(--ink-soft);
-      margin-bottom: 32px;
-      max-width: 700px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .hero-ctas { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
-
+    /* ---------- Buttons ---------- */
     .btn-primary {
-      font-family: 'Space Grotesk', sans-serif;
-      background-color: var(--brass-deep);
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: var(--brand);
       color: #fff;
-      font-weight: 700;
-      font-size: 1rem;
-      min-height: 52px;
-      padding: 0 32px;
-      border-radius: 7px;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: none;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .btn-primary:hover { background-color: var(--brass); }
-
-    .btn-secondary {
-      font-family: 'IBM Plex Sans', sans-serif;
-      background: var(--input-bg);
-      color: var(--ink);
-      font-weight: 700;
+      font-weight: 600;
       font-size: 1rem;
       min-height: 52px;
       padding: 0 28px;
@@ -88,128 +74,539 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid var(--paper-line);
+      text-align: center;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover { background-color: var(--brand-hover); }
+    .btn-secondary {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--input-bg);
+      color: var(--ink);
+      font-weight: 600;
+      font-size: 1rem;
+      min-height: 52px;
+      padding: 0 24px;
+      border-radius: 7px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      border: 1px solid var(--border-control);
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
-    .btn-secondary:hover { background: var(--brass-soft); border-color: var(--brass); }
+    .btn-secondary:hover { background: var(--bg-page); border-color: var(--ink); }
 
-    /* 2-Panel Hero Mockup */
-    .mockup-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-      max-width: 800px;
-      margin: 48px auto 0;
-      text-align: left;
+    /* ---------- Shared section scaffolding ---------- */
+    .section { padding: 56px 20px; }
+    .section--sheet {
+      background: var(--card);
+      border-top: 1px solid var(--paper-line);
+      border-bottom: 1px solid var(--paper-line);
     }
-    .mockup-card {
+    .section-inner { max-width: 960px; margin: 0 auto; }
+    .sheet-no {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--brand-text);
+      display: block;
+      margin-bottom: 10px;
+    }
+    .section h2 {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 1.75rem;
+      line-height: 1.2;
+      letter-spacing: -0.015em;
+      color: var(--ink);
+      margin-bottom: 14px;
+      max-width: 720px;
+    }
+    .section .lead {
+      font-size: 1.05rem;
+      color: var(--ink-soft);
+      max-width: 680px;
+      margin-bottom: 24px;
+    }
+    .section p { color: var(--ink-soft); }
+    .callout {
+      border-left: 4px solid var(--brand);
+      background: var(--brand-soft);
+      color: var(--ink);
+      padding: 14px 16px;
+      border-radius: 0 6px 6px 0;
+      font-weight: 600;
+      max-width: 680px;
+      margin-top: 24px;
+    }
+    .note {
+      font-size: 0.85rem;
+      color: var(--ink-soft);
+      border: 1px dashed var(--paper-line);
+      background: var(--input-bg);
+      padding: 10px 12px;
+      border-radius: 6px;
+      margin-top: 16px;
+      max-width: 680px;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+      gap: 32px;
+      align-items: start;
+    }
+    .check-list { list-style: none; display: grid; gap: 10px; }
+    .check-list li {
+      position: relative;
+      padding-left: 26px;
+      color: var(--ink);
+    }
+    .check-list li::before {
+      content: "";
+      position: absolute;
+      left: 2px;
+      top: 0.45em;
+      width: 10px;
+      height: 10px;
+      border: 2px solid var(--brand);
+      border-radius: 2px;
+      background: var(--brand-soft);
+    }
+    .check-list li span { color: var(--ink-soft); }
+
+    /* ---------- Hero ---------- */
+    .hero { max-width: 1040px; margin: 0 auto; padding: 48px 20px 56px; }
+    .hero-copy { max-width: 720px; }
+    .eyebrow {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--brand-text);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 2.5rem;
+      font-weight: 600;
+      color: var(--ink);
+      line-height: 1.15;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 1.125rem;
+      color: var(--ink-soft);
+      margin-bottom: 28px;
+    }
+    .hero-ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+
+    .hero-visual {
+      display: grid;
+      grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+      gap: 28px;
+      align-items: center;
+      margin-top: 48px;
+    }
+    .flow-arrow {
+      display: none;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.78rem;
+      color: var(--brand-text);
+      text-align: center;
+    }
+
+    /* Phone mock of the Estado da Obra screen (labels mirror app.html) */
+    .phone {
+      background: var(--ink);
+      border-radius: 26px;
+      padding: 10px;
+      box-shadow: 0 18px 40px rgba(34,37,42,0.18);
+      max-width: 300px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .phone-screen {
+      background: var(--paper);
+      border-radius: 18px;
+      overflow: hidden;
+      font-size: 0.8rem;
+    }
+    .phone-top {
+      background: var(--card);
+      padding: 12px 14px 10px;
+      border-bottom: 1px solid var(--paper-line);
+    }
+    .phone-top strong {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 1rem;
+      color: var(--ink);
+      display: block;
+    }
+    .phone-top span { color: var(--ink-soft); font-size: 0.75rem; }
+    .phone-body { padding: 10px; display: grid; gap: 8px; }
+    .ui-card {
       background: var(--card);
       border: 1px solid var(--paper-line);
-      border-radius: 10px;
-      padding: 20px;
-      box-shadow: 0 12px 30px rgba(22,38,58,0.08);
-      position: relative;
+      border-radius: 8px;
+      padding: 10px;
     }
-    .mockup-header {
-      font-family: 'IBM Plex Sans', sans-serif;
+    .ui-label {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-weight: 600;
       font-size: 0.75rem;
-      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+    .ui-progress {
+      height: 10px;
+      background: var(--input-bg);
+      border: 1px solid var(--paper-line);
+      border-radius: 5px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+    .ui-progress i { display: block; height: 100%; width: 65%; background: var(--brand); }
+    .ui-meta {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.7rem;
+      color: var(--ink-soft);
+    }
+    .ui-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 0;
+      border-top: 1px solid var(--border-subtle);
+      color: var(--ink);
+    }
+    .ui-row:first-of-type { border-top: none; }
+    .tag {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.66rem;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .tag--done { background: var(--status-done-bg); color: var(--status-done-text); border-color: var(--status-done-text); }
+    .tag--progress { background: var(--status-progress-bg); color: var(--status-progress-text); border-color: var(--status-progress-text); }
+    .tag--pending { background: var(--status-pending-bg); color: var(--status-pending-text); border-color: var(--status-pending-text); }
+    .tag--open { background: var(--status-open-bg); color: var(--status-open-text); border-color: var(--status-open-text); }
+    .tag--open::before, .tag--viewed::before {
+      content: ""; width: 11px; height: 11px; flex: 0 0 11px; background: currentColor;
+      -webkit-mask: var(--icon-alert) center / contain no-repeat; mask: var(--icon-alert) center / contain no-repeat;
+    }
+    /* Visualizado: eye icon + label — never a tick or read-receipt styling. */
+    .tag--viewed { background: var(--surface); color: var(--ink); border-color: var(--ink); }
+    .tag--viewed::before { -webkit-mask-image: var(--icon-eye); mask-image: var(--icon-eye); }
+    .phone-save {
+      background: var(--card);
+      border-top: 1px solid var(--paper-line);
+      padding: 8px 10px 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .phone-save span {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-align: center;
+      border-radius: 6px;
+      padding: 8px 4px;
+    }
+    .phone-save .ui-save { background: var(--input-bg); border: 1px solid var(--paper-line); color: var(--ink); }
+    .phone-save .ui-gen { background: var(--ink); color: #fff; }
+
+    /* A4 report mock (structure mirrors the generated report) */
+    .a4 {
+      background: var(--card);
+      border: 1px solid var(--paper-line);
+      box-shadow: 0 18px 40px rgba(34,37,42,0.12);
+      aspect-ratio: 210 / 297;
+      max-width: 420px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 7% 8%;
+      font-size: 0.72rem;
+      color: var(--ink);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+    }
+    .a4-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 8px;
+    }
+    .a4-head strong { font-family: 'Inter', system-ui, sans-serif; font-size: 0.95rem; display: block; }
+    .a4-head .ui-meta { text-align: right; }
+    .a4-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
+    .a4-h {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--brass-deep);
-      margin-bottom: 12px;
+      color: var(--brand-text);
+      border-bottom: 1px solid var(--paper-line);
+      padding-bottom: 2px;
+      margin-bottom: 4px;
+    }
+    .a4-photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .a4-photos div {
+      aspect-ratio: 4 / 3;
+      background:
+        repeating-linear-gradient(45deg, rgba(34,37,42,0.07) 0 6px, transparent 6px 12px),
+        var(--input-bg);
+      border: 1px solid var(--paper-line);
+      border-radius: 3px;
+      display: flex;
+      align-items: flex-end;
+      padding: 3px;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.55rem;
+      color: var(--ink-soft);
+    }
+    .mock-caption {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.72rem;
+      color: var(--ink-soft);
+      text-align: center;
+      margin-top: 10px;
     }
 
-    /* WhatsApp Panel */
+    /* ---------- Problem ---------- */
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+      gap: 14px;
+      margin-top: 8px;
+    }
+    .problem-item {
+      background: var(--card);
+      border: 1px solid var(--paper-line);
+      border-top: 3px solid var(--ink);
+      border-radius: 6px;
+      padding: 16px;
+    }
+    .problem-item h3 { font-size: 1rem; color: var(--ink); margin-bottom: 6px; }
+    .problem-item p { font-size: 0.9rem; }
+
+    /* ---------- Steps / flow ---------- */
+    .steps-grid {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+      gap: 16px;
+      counter-reset: step;
+    }
+    .step-item {
+      counter-increment: step;
+      border: 1px solid var(--paper-line);
+      border-radius: 6px;
+      padding: 16px;
+      background: var(--input-bg);
+    }
+    .step-item::before {
+      content: "0" counter(step);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-weight: 600;
+      font-size: 0.8rem;
+      color: var(--brand-text);
+      display: block;
+      margin-bottom: 6px;
+    }
+    .step-item h3 { font-size: 1.05rem; color: var(--ink); margin-bottom: 6px; }
+    .step-item p { font-size: 0.9rem; }
+    .flow-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      margin-top: 24px;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.78rem;
+      color: var(--ink-soft);
+    }
+    .flow-line b {
+      color: var(--ink);
+      background: var(--card);
+      border: 1px solid var(--paper-line);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-weight: 600;
+    }
+
+    /* ---------- Feature blocks ---------- */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+      gap: 14px;
+    }
+    .feature {
+      background: var(--card);
+      border: 1px solid var(--paper-line);
+      border-radius: 6px;
+      padding: 16px;
+    }
+    .feature h3 { font-size: 1rem; color: var(--ink); margin-bottom: 6px; }
+    .feature p { font-size: 0.9rem; }
+    .feature .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+    /* WhatsApp + status mock */
     .chat-bubble {
-      background: var(--forest-soft);
+      background: var(--status-done-bg);
       color: var(--ink);
       padding: 12px 16px;
       border-radius: 12px;
       font-size: 0.9rem;
       margin-bottom: 8px;
-      font-family: 'IBM Plex Sans', sans-serif;
     }
     .chat-link {
-      color: var(--brass-deep);
+      color: var(--brand-text);
       text-decoration: underline;
       font-weight: 600;
       display: block;
       margin-top: 4px;
-      font-family: 'IBM Plex Mono', monospace;
+      font-family: 'Inter', system-ui, sans-serif;
       font-size: 0.85rem;
+      overflow-wrap: anywhere;
     }
-
-    /* Telemetry Report Panel */
-    .report-card-preview { border-left: 4px solid var(--ink); padding-left: 12px; }
-    .report-title {
-      font-family: 'Space Grotesk', sans-serif;
-      font-weight: 700;
-      font-size: 1rem;
-      color: var(--ink);
-    }
-    .report-sub { font-size: 0.85rem; color: var(--ink-soft); margin-top: 4px; }
-    .report-meta {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.78rem;
-      color: var(--ink-soft);
-      margin-top: 4px;
-    }
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--forest-soft);
-      color: var(--forest);
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.78rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      padding: 4px 10px;
-      border-radius: 4px;
-      margin-top: 12px;
-      border: 1px solid #bfe0cd;
-    }
-    .last-access {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.78rem;
-      color: var(--ink-soft);
-      margin-top: 8px;
-    }
-
-    /* Steps */
-    .steps {
+    .mock-panel {
       background: var(--card);
-      border-top: 1px solid var(--paper-line);
-      border-bottom: 1px solid var(--paper-line);
-      padding: 48px 20px;
-      margin-top: 48px;
-    }
-    .steps-grid {
-      max-width: 900px;
-      margin: 0 auto;
+      border: 1px solid var(--paper-line);
+      border-radius: 10px;
+      padding: 18px;
+      box-shadow: 0 12px 30px rgba(34,37,42,0.08);
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 24px;
+      gap: 14px;
     }
-    .step-item h3 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.1rem;
-      color: var(--ink);
-      margin-bottom: 8px;
+    .mock-panel-h {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--brand-text);
     }
-    .step-item p {
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-size: 0.9rem;
-      color: var(--ink-soft);
+    .history-row {
+      border: 1px solid var(--paper-line);
+      border-radius: 6px;
+      padding: 10px 12px;
+      display: grid;
+      gap: 4px;
     }
+    .history-row strong { font-family: 'Inter', system-ui, sans-serif; color: var(--ink); }
 
-    /* Mobile Sticky CTA */
+    /* ---------- Objections / FAQ ---------- */
+    .objections { display: grid; gap: 14px; }
+    .objection {
+      background: var(--card);
+      border: 1px solid var(--paper-line);
+      border-radius: 6px;
+      padding: 16px;
+    }
+    .objection q {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-weight: 600;
+      color: var(--ink);
+      display: block;
+      margin-bottom: 6px;
+      quotes: "“" "”";
+    }
+    .faq { display: grid; gap: 8px; max-width: 760px; }
+    .faq details {
+      background: var(--card);
+      border: 1px solid var(--paper-line);
+      border-radius: 6px;
+    }
+    .faq summary {
+      cursor: pointer;
+      min-height: 48px;
+      padding: 12px 40px 12px 16px;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-weight: 600;
+      color: var(--ink);
+      list-style: none;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after {
+      content: "+";
+      position: absolute;
+      right: 16px;
+      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--brand-text);
+      font-size: 1.1rem;
+    }
+    .faq details[open] summary::after { content: "−"; }
+    .faq details p { padding: 0 16px 14px; }
+
+    /* ---------- Final CTA ---------- */
+    .final-cta { text-align: center; }
+    .final-cta h2, .final-cta .lead { margin-left: auto; margin-right: auto; }
+    .final-cta .hero-ctas { justify-content: center; }
+
+    .landing-footer {
+      padding: 24px 20px;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--ink-soft);
+      border-top: 1px solid var(--paper-line);
+    }
+    .landing-footer a { color: var(--ink-soft); }
+
+    /* Readable label sizes outside the scaled-down product illustrations. */
+    .eyebrow, .sheet-no, .mock-caption, .mock-panel-h { font-size: 0.8125rem; }
+    .feature .tag { font-size: 0.8125rem; padding: 3px 8px; }
+    /* One filled brand CTA per screen: header + sticky CTAs are outlined. */
+    .header-actions .header-cta,
+    .sticky-bottom-bar .btn-primary {
+      background: var(--surface);
+      color: var(--brand-text);
+      border: 2px solid var(--brand);
+    }
+    .header-actions .header-cta:hover,
+    .sticky-bottom-bar .btn-primary:hover { background: var(--brand-soft); }
+    .flow-line { font-size: 0.875rem; }
+    .history-row .tag { font-size: 0.8125rem; padding: 3px 8px; }
+
+    /* ---------- Mobile ---------- */
     .sticky-bottom-bar { display: none; }
+    @media (max-width: 760px) {
+      .hero-visual { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+      .flow-arrow { display: block; }
+      .a4 { max-width: 340px; }
+    }
     @media (max-width: 640px) {
-      .hero h1 { font-size: 1.75rem; }
+      .landing-header { padding: 8px 16px; }
+      .landing-nav { order: 3; width: 100%; justify-content: space-between; gap: 0; }
+      .landing-nav a.nav-link { padding: 0 6px; font-size: 0.85rem; }
+      .header-cta { display: none; }
+      .hero { padding: 32px 16px 40px; }
+      .hero h1 { font-size: 1.85rem; }
+      .hero-ctas .btn-primary, .hero-ctas .btn-secondary { width: 100%; }
+      .section { padding: 44px 16px; }
+      .section h2 { font-size: 1.45rem; }
       .sticky-bottom-bar {
         display: block;
         position: fixed;
@@ -217,77 +614,422 @@
         left: 0;
         right: 0;
         background: var(--card);
-        padding: 12px 16px;
+        padding: 10px 16px;
         border-top: 1px solid var(--paper-line);
-        box-shadow: 0 -4px 12px rgba(22,38,58,0.1);
+        box-shadow: 0 -4px 12px rgba(34,37,42,0.1);
         z-index: 100;
       }
-      .sticky-bottom-bar .btn-primary { width: 100%; }
-      body { padding-bottom: 80px; }
+      .sticky-bottom-bar .btn-primary { width: 100%; min-height: 48px; padding: 0 12px; }
+      body { padding-bottom: 76px; }
+    }
+    @media (max-width: 420px) {
+      .nav-long { display: none; }
+      .nav-short { display: inline; }
+    }
+    @media (max-width: 360px) {
+      .landing-nav a.nav-link { font-size: 0.8rem; padding: 0 4px; }
+      .hero h1 { font-size: 1.65rem; }
+      .a4 { font-size: 0.64rem; }
     }
   </style>
 </head>
 <body>
 
   <header class="landing-header">
-    <div class="logo">RelatórioObra</div>
-    <a href="app.html" class="btn-primary">Entrar</a>
+    <a href="#topo" class="logo">RelatórioObra</a>
+    <nav class="landing-nav" aria-label="Secções">
+      <a href="#como-funciona" class="nav-link">Como funciona</a>
+      <a href="#relatorios" class="nav-link">Relatórios</a>
+      <a href="#faq" class="nav-link" aria-label="Perguntas frequentes"><span class="nav-long">Perguntas frequentes</span><span class="nav-short" aria-hidden="true">Perguntas</span></a>
+    </nav>
+    <div class="header-actions">
+      <a href="app.html" class="btn-secondary">Entrar</a>
+      <a href="app.html" class="btn-primary header-cta">Experimentar</a>
+    </div>
   </header>
 
-  <main class="hero">
-    <h1>Relatórios de obra profissionais,<br>enviados por WhatsApp.</h1>
-    <p class="subtitle">Crie relatórios semanais com fotos da obra, envie ao cliente por link seguro e veja se o relatório foi visualizado.</p>
+  <main id="topo">
 
-    <div class="hero-ctas">
-      <a href="app.html" class="btn-primary">Testar grátis</a>
-      <a href="examples/report_example.pdf" class="btn-secondary">Ver exemplo de relatório</a>
-    </div>
-
-    <!-- 2-Panel Concrete Mockup -->
-    <div class="mockup-container" id="exemplo">
-      <!-- Left Panel: WhatsApp -->
-      <div class="mockup-card document-card-signature">
-        <div class="mockup-header">1. Envio por WhatsApp</div>
-        <div class="chat-bubble">
-          Olá Sr. António, aqui está o relatório de progresso desta semana na remodelação.
-          <span class="chat-link">app.obra.pt/r/8f3a9d2</span>
+    <!-- 1. HERO -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">Para pequenos empreiteiros e empresas de remodelação</p>
+        <h1 id="hero-title">Cada obra organizada e registada, no telemóvel.</h1>
+        <p class="subtitle">Atualize o Estado da Obra uma vez — trabalhos, ocorrências e fotografias. O relatório para o cliente sai desse mesmo registo, pronto a enviar pelo WhatsApp.</p>
+        <div class="hero-ctas">
+          <a href="app.html" class="btn-primary">Experimentar com uma obra em curso</a>
+          <a href="examples/report_example.pdf" class="btn-secondary">Ver um relatório de exemplo</a>
         </div>
       </div>
 
-      <!-- Right Panel: Telemetry -->
-      <div class="mockup-card document-card-signature">
-        <div class="mockup-header">2. Confirmação no Seu Painel</div>
-        <div class="report-card-preview">
-          <div class="report-title">Obra Casa de Banho — Semana 2</div>
-          <div class="report-sub">Remodelação em Matosinhos</div>
-          <div class="report-meta">4 fotos anexadas</div>
-          <div class="status-badge">✓ Visualizado</div>
-          <div class="last-access">Último acesso: hoje, 14:32</div>
+      <div class="hero-visual" aria-label="Estado da Obra no telemóvel e o relatório gerado a partir dele">
+        <figure>
+          <div class="phone" aria-hidden="true">
+            <div class="phone-screen">
+              <div class="phone-top">
+                <strong>Estado da Obra</strong>
+                <span>Remodelação T2 · Matosinhos</span>
+              </div>
+              <div class="phone-body">
+                <div class="ui-card">
+                  <div class="ui-label">Progresso geral</div>
+                  <div class="ui-progress"><i></i></div>
+                  <div class="ui-meta">65% · Fase: Acabamentos</div>
+                </div>
+                <div class="ui-card">
+                  <div class="ui-label">Trabalhos</div>
+                  <div class="ui-row">Demolição cozinha <span class="tag tag--done">Concluída</span></div>
+                  <div class="ui-row">Canalização WC <span class="tag tag--progress">Em curso</span></div>
+                  <div class="ui-row">Pintura sala <span class="tag tag--pending">Pendente</span></div>
+                </div>
+                <div class="ui-card">
+                  <div class="ui-label">Ocorrências</div>
+                  <div class="ui-row">Infiltração na parede <span class="tag tag--open">Em aberto</span></div>
+                </div>
+              </div>
+              <div class="phone-save">
+                <span class="ui-save">Guardar alterações</span>
+                <span class="ui-gen">Gerar Relatório</span>
+              </div>
+            </div>
+          </div>
+          <figcaption class="mock-caption">Estado da Obra · telemóvel</figcaption>
+        </figure>
+
+        <div class="flow-arrow" aria-hidden="true">↓ Gerar Relatório ↓</div>
+
+        <figure>
+          <div class="a4" aria-hidden="true">
+            <div class="a4-head">
+              <div>
+                <strong>Relatório de Obra</strong>
+                <span class="ui-meta">Remodelação T2 · Matosinhos</span>
+              </div>
+              <div class="ui-meta">N.º 0004<br>01/10 – 08/10</div>
+            </div>
+            <div class="a4-grid">
+              <div><div class="a4-h">Fase</div>Acabamentos</div>
+              <div><div class="a4-h">Progresso</div>65%</div>
+            </div>
+            <div>
+              <div class="a4-h">Resumo</div>
+              Cozinha demolida e canalização do WC em curso. Sem atrasos face ao previsto.
+            </div>
+            <div>
+              <div class="a4-h">Trabalhos</div>
+              <div class="ui-row">Demolição cozinha <span class="tag tag--done">Concluída</span></div>
+              <div class="ui-row">Canalização WC <span class="tag tag--progress">Em curso</span></div>
+            </div>
+            <div>
+              <div class="a4-h">Fotografias</div>
+              <div class="a4-photos"><div>Antes</div><div>Durante</div><div>Durante</div></div>
+            </div>
+          </div>
+          <figcaption class="mock-caption">Relatório gerado · A4 / link</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 2. PROBLEMA -->
+    <section class="section section--sheet" id="problema" aria-labelledby="problema-title">
+      <div class="section-inner">
+        <span class="sheet-no">Folha 01 · Problema</span>
+        <h2 id="problema-title">Várias obras ao mesmo tempo. A informação espalhada por todo o lado.</h2>
+        <div class="problem-grid">
+          <div class="problem-item">
+            <h3>Trabalhos de memória</h3>
+            <p>O que ficou feito e o que falta está na cabeça ou perdido em conversas de WhatsApp.</p>
+          </div>
+          <div class="problem-item">
+            <h3>Fotos misturadas</h3>
+            <p>As fotografias da obra estão na galeria, entre as pessoais e as de outras obras.</p>
+          </div>
+          <div class="problem-item">
+            <h3>Cliente a pedir notícias</h3>
+            <p>“Como está a obra?” — e lá vai mais uma mensagem escrita à pressa.</p>
+          </div>
+          <div class="problem-item">
+            <h3>Dúvidas sobre o que foi feito</h3>
+            <p>Semanas depois, ninguém se lembra ao certo do que foi feito, nem de quando foi.</p>
+          </div>
+        </div>
+        <p class="callout">Não precisa de um sistema pesado para resolver isto. Precisa de um sítio para cada obra.</p>
+      </div>
+    </section>
+
+    <!-- 3. COMO FUNCIONA -->
+    <section class="section" id="como-funciona" aria-labelledby="como-title">
+      <div class="section-inner">
+        <span class="sheet-no">Folha 02 · Como funciona</span>
+        <h2 id="como-title">Como funciona</h2>
+        <ol class="steps-grid">
+          <li class="step-item">
+            <h3>Crie a obra.</h3>
+            <p>Cliente, morada e o essencial da obra.</p>
+          </li>
+          <li class="step-item">
+            <h3>Atualize o Estado da Obra.</h3>
+            <p>Fase, progresso, trabalhos, ocorrências e fotografias. Carregue em Guardar alterações.</p>
+          </li>
+          <li class="step-item">
+            <h3>Gere o relatório.</h3>
+            <p>O relatório é criado a partir do que está guardado.</p>
+          </li>
+          <li class="step-item">
+            <h3>Envie pelo WhatsApp.</h3>
+            <p>Partilhe o PDF ou o link com o cliente.</p>
+          </li>
+        </ol>
+        <div class="flow-line" aria-label="Fluxo">
+          <b>Estado da Obra</b>→<b>Guardar alterações</b>→<b>Gerar Relatório</b>→<b>PDF / link</b>→<b>WhatsApp</b>→<b>Visualizado</b>
+        </div>
+        <p class="callout">O relatório sai do que guardou. Não volta a escrever nada.</p>
+      </div>
+    </section>
+
+    <!-- 4. ESTADO DA OBRA -->
+    <section class="section section--sheet" id="estado-da-obra" aria-labelledby="estado-title">
+      <div class="section-inner">
+        <span class="sheet-no">Folha 03 · Estado da Obra</span>
+        <h2 id="estado-title">O Estado da Obra é onde cada obra vive.</h2>
+        <p class="lead">Um único ecrã por obra, com tudo o que interessa saber sobre ela hoje.</p>
+        <div class="feature-grid">
+          <div class="feature">
+            <h3>Fase e progresso</h3>
+            <p>A fase atual da obra e a percentagem de progresso geral.</p>
+          </div>
+          <div class="feature">
+            <h3>Trabalhos</h3>
+            <p>Cada trabalho com o seu estado.</p>
+            <div class="tags"><span class="tag tag--pending">Pendente</span><span class="tag tag--progress">Em curso</span><span class="tag tag--done">Concluída</span></div>
+          </div>
+          <div class="feature">
+            <h3>Ocorrências</h3>
+            <p>Problemas e imprevistos registados, até ficarem resolvidos.</p>
+            <div class="tags"><span class="tag tag--open">Em aberto</span><span class="tag tag--done">Resolvido</span></div>
+          </div>
+          <div class="feature">
+            <h3>Resumo</h3>
+            <p>Um parágrafo sobre o ponto de situação da obra.</p>
+          </div>
+          <div class="feature">
+            <h3>Próximos passos</h3>
+            <p>O que vem a seguir, um passo por linha.</p>
+          </div>
+          <div class="feature">
+            <h3>Fotografias</h3>
+            <p>As fotos da obra, com descrição e contexto.</p>
+          </div>
+        </div>
+        <p class="note">As alterações ficam guardadas quando carrega em <strong>Guardar alterações</strong>.</p>
+      </div>
+    </section>
+
+    <!-- 5. RELATÓRIOS -->
+    <section class="section" id="relatorios" aria-labelledby="relatorios-title">
+      <div class="section-inner two-col">
+        <div>
+          <span class="sheet-no">Folha 04 · Relatórios</span>
+          <h2 id="relatorios-title">O relatório deixou de ser mais um trabalho.</h2>
+          <p class="lead">Gerar Relatório lê o Estado da Obra que guardou. Não há um segundo formulário para preencher.</p>
+          <p class="callout">Trabalhos, ocorrências e fotografias podem ficar só no Estado da Obra.</p>
+        </div>
+        <div>
+          <ul class="check-list">
+            <li>Empresa, cliente e obra</li>
+            <li>Fase, progresso e resumo</li>
+            <li>Próximos passos</li>
+            <li>Trabalhos pendentes, em curso e concluídos</li>
+            <li>Ocorrências</li>
+            <li>Fotografias selecionadas</li>
+            <li>Número do relatório, período e datas <span>— automáticos</span></li>
+          </ul>
         </div>
       </div>
-    </div>
+    </section>
+
+    <!-- 6. WHATSAPP + VISUALIZADO -->
+    <section class="section section--sheet" id="whatsapp" aria-labelledby="whatsapp-title">
+      <div class="section-inner two-col">
+        <div>
+          <span class="sheet-no">Folha 05 · Envio</span>
+          <h2 id="whatsapp-title">Envie pelo WhatsApp, como já faz.</h2>
+          <ul class="check-list">
+            <li>Um link seguro para o relatório</li>
+            <li>O cliente abre no browser <span>— sem conta e sem instalar nada</span></li>
+            <li>Vê se o link está <strong>Visualizado</strong> ou <strong>Não visualizado</strong></li>
+            <li>Número de acessos e último acesso</li>
+          </ul>
+          <p class="note">Visualizado indica que o link foi aberto. Não indica quem o abriu, nem que o conteúdo foi lido ou aceite.</p>
+        </div>
+        <div class="mock-panel" aria-hidden="true">
+          <div>
+            <div class="mock-panel-h">Mensagem que envia</div>
+            <div class="chat-bubble">
+              Bom dia Sr. António, segue o ponto de situação da obra desta semana.
+              <span class="chat-link">relatorio.exemplo/r/8f3a9d2</span>
+            </div>
+          </div>
+          <div>
+            <div class="mock-panel-h">No Estado da Obra</div>
+            <div class="history-row">
+              <strong>Relatório n.º 0004</strong>
+              <span class="ui-meta">01/10 – 08/10</span>
+              <span><span class="tag tag--viewed">Visualizado</span></span>
+              <span class="ui-meta">Último acesso: hoje, 14:32 (2 visualizações)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. FOTOGRAFIAS -->
+    <section class="section" id="fotografias" aria-labelledby="fotos-title">
+      <div class="section-inner">
+        <span class="sheet-no">Folha 06 · Fotografias</span>
+        <h2 id="fotos-title">Fotografias com contexto, não perdidas na galeria.</h2>
+        <p class="lead">Cada fotografia fica associada à obra, com a informação que a explica.</p>
+        <div class="feature-grid">
+          <div class="feature">
+            <h3>Descrição, área e trabalhador</h3>
+            <p>O que mostra, onde foi tirada e quem fez o trabalho.</p>
+          </div>
+          <div class="feature">
+            <h3>Antes, durante e depois</h3>
+            <div class="tags"><span class="tag tag--pending">Antes</span><span class="tag tag--progress">Durante</span><span class="tag tag--done">Depois</span></div>
+          </div>
+          <div class="feature">
+            <h3>Mostrar ou ocultar no relatório</h3>
+            <p>Escolhe que fotos o cliente vê. As outras ficam só no Estado da Obra.</p>
+          </div>
+        </div>
+        <p class="note">As fotografias ficam guardadas de forma privada. O cliente só vê as que incluir num relatório.</p>
+      </div>
+    </section>
+
+    <!-- 8. HISTÓRICO E CONFIANÇA -->
+    <section class="section section--sheet" id="historico" aria-labelledby="historico-title">
+      <div class="section-inner">
+        <span class="sheet-no">Folha 07 · Histórico</span>
+        <h2 id="historico-title">O que foi enviado fica como foi enviado.</h2>
+        <p class="lead">Cada relatório mantém o conteúdo com que foi gerado. Se mais tarde alterar o Estado da Obra, os relatórios anteriores não são reescritos — o próximo relatório é que mostra as alterações.</p>
+        <p class="callout">Se surgir uma dúvida, sabe o que ficou registado.</p>
+      </div>
+    </section>
+
+    <!-- 9. SIMPLES E NO TELEMÓVEL -->
+    <section class="section" id="simples" aria-labelledby="simples-title">
+      <div class="section-inner two-col">
+        <div>
+          <span class="sheet-no">Folha 08 · No telemóvel</span>
+          <h2 id="simples-title">Feito para usar em obra, não no escritório.</h2>
+          <p class="callout">Não é um ERP. É o sítio onde fica o estado de cada obra.</p>
+        </div>
+        <ul class="check-list">
+          <li>Pensado primeiro para o telemóvel</li>
+          <li>Também funciona no computador</li>
+          <li>Atualiza diretamente na obra</li>
+          <li>Sem configurações pesadas nem calendários para manter</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 10. OBJEÇÕES -->
+    <section class="section section--sheet" id="objecoes" aria-labelledby="objecoes-title">
+      <div class="section-inner">
+        <span class="sheet-no">Folha 09 · Objeções</span>
+        <h2 id="objecoes-title">“Isto não é para mim.” Talvez seja.</h2>
+        <div class="objections">
+          <div class="objection">
+            <q>Os meus clientes só querem fotos no WhatsApp.</q>
+            <p>Continua a ser pelo WhatsApp. Só que em vez de fotos soltas, o cliente recebe um link com as fotos, o progresso e o que vem a seguir.</p>
+          </div>
+          <div class="objection">
+            <q>Não tenho tempo para mais uma aplicação.</q>
+            <p>Atualiza a obra uma vez e o relatório sai daí. É menos trabalho do que escrever mensagens de ponto de situação.</p>
+          </div>
+          <div class="objection">
+            <q>Já uso Excel.</q>
+            <p>O Excel não tira fotos na obra nem gera um relatório para enviar ao cliente. Aqui está tudo no mesmo sítio, no telemóvel.</p>
+          </div>
+          <div class="objection">
+            <q>Isto é para empresas grandes.</q>
+            <p>É o contrário. É feito para quem tem poucas obras ao mesmo tempo e não quer um sistema pesado.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11. FAQ -->
+    <section class="section" id="faq" aria-labelledby="faq-title">
+      <div class="section-inner">
+        <span class="sheet-no">Folha 10 · Perguntas frequentes</span>
+        <h2 id="faq-title">Perguntas frequentes</h2>
+        <div class="faq">
+          <details>
+            <summary>Funciona sem internet?</summary>
+            <p>Não. Precisa de ligação à internet para guardar alterações e gerar relatórios.</p>
+          </details>
+          <details>
+            <summary>Guarda automaticamente?</summary>
+            <p>Não. As alterações só ficam guardadas quando carrega em Guardar alterações. Se tentar sair com alterações por guardar, é avisado antes.</p>
+          </details>
+          <details>
+            <summary>O que significa Visualizado?</summary>
+            <p>Que o link do relatório foi aberto. Não indica quem o abriu, nem que o conteúdo foi lido ou aceite.</p>
+          </details>
+          <details>
+            <summary>O cliente pode aprovar ou assinar o relatório?</summary>
+            <p>Não. O cliente apenas consulta o relatório.</p>
+          </details>
+          <details>
+            <summary>Posso alterar um relatório já gerado?</summary>
+            <p>Não. Atualize o Estado da Obra e gere um novo relatório.</p>
+          </details>
+          <details>
+            <summary>Tem valor legal?</summary>
+            <p>É um registo organizado da obra. Não substitui contratos, o livro de obra nem os documentos legalmente exigidos.</p>
+          </details>
+          <details>
+            <summary>Posso esconder informação do cliente?</summary>
+            <p>Sim. Trabalhos, ocorrências e fotografias podem ser ocultados do relatório e ficar só no Estado da Obra.</p>
+          </details>
+          <details>
+            <summary>As fotografias ficam públicas?</summary>
+            <p>Não. Ficam guardadas de forma privada. O cliente só vê as fotografias incluídas no relatório que lhe enviou.</p>
+          </details>
+          <details>
+            <summary>O cliente precisa de instalar alguma coisa?</summary>
+            <p>Não. Abre o link no browser do telemóvel ou do computador, sem criar conta.</p>
+          </details>
+          <details>
+            <summary>Funciona no computador?</summary>
+            <p>Sim. É uma aplicação web: funciona no computador, mas foi pensada primeiro para o telemóvel.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12. FINAL CTA -->
+    <section class="section section--sheet final-cta" aria-labelledby="final-title">
+      <div class="section-inner">
+        <h2 id="final-title">Comece pela obra que tem agora em mãos.</h2>
+        <p class="lead">Crie a obra, atualize o Estado da Obra e veja o primeiro relatório sair daí.</p>
+        <div class="hero-ctas">
+          <a href="app.html" class="btn-primary">Experimentar com uma obra em curso</a>
+        </div>
+      </div>
+    </section>
+
   </main>
 
-  <section class="steps">
-    <div class="steps-grid">
-      <div class="step-item">
-        <h3>1. Tire fotos na obra</h3>
-        <p>Registe o progresso no telemóvel em menos de 2 minutos.</p>
-      </div>
-      <div class="step-item">
-        <h3>2. Envie por WhatsApp</h3>
-        <p>Gere um link limpo. O cliente não precisa de instalar nenhuma app.</p>
-      </div>
-      <div class="step-item">
-        <h3>3. Saiba se abriu</h3>
-        <p>Veja se o relatório foi visualizado e tenha tudo organizado para falar com o cliente.</p>
-      </div>
-    </div>
-  </section>
+  <footer class="landing-footer">
+    RelatórioObra · Gestão de obra simples, feita no telemóvel.
+  </footer>
 
   <!-- Sticky Mobile Bottom Bar -->
   <div class="sticky-bottom-bar">
-    <a href="app.html" class="btn-primary">Testar grátis</a>
+    <a href="app.html" class="btn-primary">Experimentar com uma obra em curso</a>
   </div>
 
 </body>
