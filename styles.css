@@ -418,6 +418,9 @@ button, input, select, textarea { font-family: inherit; }
    neutral ink — never terracotta (brand) on a destructive action. */
 .confirm-dialog-actions .btn-next { background: var(--text-primary); color: var(--on-brand); }
 .confirm-dialog-actions .btn-next:hover { background: #000; }
+/* tone: "danger" (e.g. "Sair sem guardar") — white on #B3123A = 6.85:1. */
+.confirm-dialog-actions .btn-next[data-tone="danger"] { background: var(--danger); color: #fff; }
+.confirm-dialog-actions .btn-next[data-tone="danger"]:hover { background: #8E0E2E; }
 
 /* ---------- REVIEW ---------- */
 .review-section {
@@ -742,7 +745,14 @@ button, input, select, textarea { font-family: inherit; }
 .work-status-save-row .btn-add { width: auto; flex: 0 0 auto; margin-top: 0; padding: 12px 20px; }
 .work-status-save-hint {
   font-size: 14px;
-  color: var(--danger);
+  color: var(--text-secondary);
+  /* Save errors can carry long unbreakable URLs — wrap them and keep the
+     sticky footer compact instead of overflowing the page sideways. */
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  max-height: 6.5em;
+  overflow-y: auto;
 }
 
 /* PROJECT-HUB-INTEGRATION-001 — "+ Adicionar trabalho" form. */
@@ -913,6 +923,8 @@ button, input, select, textarea { font-family: inherit; }
 .work-status-add-form[hidden],
 [data-confirm-action][hidden] { display: none; }
 .work-status-save-hint.is-success { color: var(--status-done-text); }
+.work-status-save-hint.is-warning { color: var(--status-progress-text); }
+.work-status-save-hint.is-error { color: var(--danger); }
 
 .work-status-inline-field { margin-bottom: 10px; }
 .work-status-item-actions { display: flex; flex-wrap: wrap; gap: 8px; }

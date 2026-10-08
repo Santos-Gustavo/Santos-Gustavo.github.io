@@ -40,6 +40,8 @@ export function confirmAction({
   message,
   confirmLabel = "Confirmar",
   cancelLabel = "Cancelar",
+  // "default" (neutral) or "danger" — styling only, for destructive confirms.
+  tone = "default",
 }) {
   const { overlay, title: titleEl, message: messageEl, cancelBtn, confirmBtn } = getEls();
 
@@ -53,6 +55,7 @@ export function confirmAction({
   cancelBtn.hidden = cancelLabel === null;
   cancelBtn.textContent = cancelLabel ?? "";
   confirmBtn.textContent = confirmLabel;
+  confirmBtn.dataset.tone = tone === "danger" ? "danger" : "default";
 
   overlay.hidden = false;
 
