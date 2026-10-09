@@ -1,6 +1,6 @@
 # Standing Engineering Decisions
 
-Cross-feature principles established from real bugs or real disagreements. Load when working on anything the principle applies to. Do not duplicate content already in a feature file — link to it instead.
+Cross-feature principles established from real bugs or real disagreements. Load when working on anything the principle applies to. Do not duplicate content already in a feature file — link to it instead. Individual architecture decisions go in ADRs under `docs/decisions/`; link to an ADR rather than restating it here.
 
 ---
 
