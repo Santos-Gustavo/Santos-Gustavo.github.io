@@ -1,14 +1,14 @@
 # REPORT-LAYOUT-V2 — client report text, template and A4 layout
 
-Status: Implemented, Tested (not committed) · Risk: Medium · Owner decisions: old reports (b), PDF (ii) — 2026-10-09
+Status: Implemented, Tested — v2 dark until the release step sets the cutover · Risk: Medium · Owner decisions: old reports (b), PDF (ii) — 2026-10-09
 
 ## Why
 Client report wording/layout fixes (A1–A9, B1–B6, new content order). Saved reports store data (`snapshot_json`), not HTML, and every open/share re-renders them, so a plain renderer edit would have silently restyled every historical report. PDF was browser Print-to-PDF only, with a hard-coded "Página 1 de 1".
 
 ## Design
-- **Version routing** — `js/reports/report-renderer.js` is now a router. `meta.generatedAt < REPORT_LAYOUT_V2_CUTOVER` (or missing/invalid) → `report-renderer-v1.js`; otherwise → `report-renderer-v2.js`. `schemaVersion` is not used. Legal-mode snapshots always → v1 (v2 has no legal template; that mode came only from the removed wizard). Callers (generator, history, share client) are unchanged, so new/history/share all follow one rule.
+- **Version routing** — `js/reports/report-renderer.js` is now a router. `meta.generatedAt < REPORT_LAYOUT_V2_CUTOVER` (or missing/invalid) → `report-renderer-v1.js`; `>=` → `report-renderer-v2.js`. `schemaVersion` is not used. Legal-mode snapshots always → v1 (v2 has no legal template; that mode came only from the removed wizard). Callers (generator, history, share client) are unchanged, so new/history/share all follow one rule.
 - **v1 is frozen**: a verbatim copy of the pre-change renderer, sharing nothing with v2. Golden files `tests/e2e/fixtures/report-v1-golden-*.html` were rendered by the HEAD renderer and are compared byte-for-byte.
-- **Cutover constant**: `2026-10-09T00:00:00.000Z`. ⚠ Any production report generated between that instant and the actual deploy will flip to v2 on next open. Move the constant to the deploy moment if that matters.
+- **Cutover constant**: holds `REPORT_LAYOUT_V2_UNRELEASED` (`9999-12-31T00:00:00.000Z`) until release, so every real report stays on v1 (fail-safe). Test fixtures take their post-cutover date from the constant, and live-report assertions in `canonical-report-generation.spec.js` follow `selectReportLayout`, so the suite is green on either side of the release. See **Release** below.
 - **Print/PDF** — vendored Paged.js 0.4.3 (`vendor/pagedjs/`, MIT) is loaded only when the reader presses "Imprimir / PDF" or Ctrl/Cmd+P. It paginates into A4, then `window.print()`. The screen view stays a responsive document. "Voltar" reloads the normal view.
   - `@page` A4, margins 18/18/20 mm; footer in the `@bottom-left` (company · N.º + generation date / contact) and `@bottom-right` ("Página X de Y") margin boxes. This is the only page counter. The HTML footer is screen-only.
   - Unbreakable: `.item` (task/ocorrência/step), `.photo-row`/`.photo-card`, `.legal-strip`, status grid, metadata grid. Each list section wraps heading + first item in `.keep`, so a heading never ends a page.
@@ -18,6 +18,27 @@ Client report wording/layout fixes (A1–A9, B1–B6, new content order). Saved 
 - **Fonts**: static Inter 400/600 latin woff2 vendored (`vendor/fonts/inter/`, OFL), with Google's Inter kept as fallback. Google's variable Inter only embeds as Type 3 glyphs without a ToUnicode map, which is unreliable for search; the static files embed as real `Inter-Regular`/`Inter-SemiBold`. Asset URLs are resolved at render time from the host page's `location` (no `import.meta`, which Playwright's CJS transform can't load). The cross-origin font load inside the sandboxed share iframe relies on GitHub Pages' `Access-Control-Allow-Origin: *`; locally (`serve`, no CORS) it falls back to Google Inter.
 - **Share iframe** sandbox gained `allow-modals`: Chrome silently ignores `window.print()` in a sandboxed frame without it (so the old share-view print button never worked).
 
+## Release — REQUIRED STEP
+
+1. Agree the production rollout moment.
+2. Immediately before release, in `js/reports/report-renderer.js` set
+   `export const REPORT_LAYOUT_V2_CUTOVER = "<YYYY-MM-DDTHH:MM:SS.000Z>";` (UTC string literal, at or after the moment the new frontend goes live, never earlier — any report generated between the cutover and the actual deploy would flip to v2 on next open).
+3. `node scripts/check-report-cutover.js` must print `OK` (it fails while the sentinel is in place).
+4. Run `npx playwright test tests/e2e/report-layout-v2.spec.js tests/e2e/canonical-report-generation.spec.js`.
+5. Deploy. No DB migration, no snapshot change.
+
+Rule (unchanged): `generatedAt < cutover` → v1; `>=` → v2; missing/invalid → v1; `meta.mode === "legal"` → v1.
+
+## Print paths
+
+| Path | Pagination | Footer + "Página X de Y" | "(cont.)" |
+|---|---|---|---|
+| In-report "Imprimir / PDF" button or Ctrl/Cmd+P | Paged.js (deterministic) | Yes, every page | Yes |
+| Native browser print menu, Chrome/Edge 131+ | Native, same `@page` fallback CSS | Yes (native margin boxes) | No |
+| Native browser print, Safari / iOS Share → Print | Native, fallback CSS | **Not guaranteed** (no `@page` margin-box support) | No |
+
+The Safari/iOS limitation is accepted; no further PDF library or workaround.
+
 ## Text/template (v2 only)
 Single status map (Pendente / Em curso / Concluída / Em aberto / Resolvido). "Outro" → description only. "Relatório de obra / N.º 072" with PROJ-… as a secondary ref; no "semanal"; same-day period shows one date. Empty fields are not rendered (no "—"). Wording: Ponto da situação, Estado da obra, Progresso da obra, Responsável da obra, Obra, Ocorrências, "Sem ocorrências registadas neste período.", `<title>` "Relatório de Obra — <obra>". PT phones → `+351 935 121 546`. Separate "Fase atual" and "Progresso da obra" lines plus a bar (#A84B2A on #ECEEF1). Photo heading "Área · Antes/Durante/Depois" from the frozen `stage`. A9: summary textarea placeholder only (`app.html`).
 
@@ -26,12 +47,12 @@ Content order: header (brand, N.º, obra name, date · período) → Ponto da si
 Deviations to note: the obra name is also kept in the header (the metadata block is at the end, and without it page 1 doesn't say which obra it is). NIF/INCI moved from the old footer into the metadata block. The "LOGO" placeholder is no longer rendered when there's no logo.
 
 ## Disclaimer
-Text byte-identical to v1 (asserted in the spec). Only the left bar changed: terracotta → neutral grey #8F8B83. **Open for the text owner:** it says "Livro de Projeto" — confirm whether "Livro de Obra" was intended. It also contains "projeto" three more times; that is the reason the spec's no-"projeto" check excludes the disclaimer.
+Text byte-identical to v1 (asserted in the spec). Only the left bar changed: terracotta → neutral grey #8F8B83. **OPEN content/legal question (not resolved in code):** the wording says "Livro de Projeto" — confirm separately whether "Livro de Obra" is intended. Until answered, v1 and v2 keep it byte-for-byte identical. It also contains "projeto" three more times; that is the reason the spec's no-"projeto" check excludes the disclaimer.
 
 ## Evidence
 `tests/e2e/report-layout-v2.spec.js` (9 tests: routing rule, v1 golden byte-equality, v2 wording/order, Paged.js pagination A4 + counters + no splits + "(cont.)" + top-half, print button, share-view v1/v2 selection via stubbed `get-shared-report`, 390px first screen). Before/after PDFs and screenshots for the four cases are in `artifacts/report-layout-v2/` (untracked), produced in Chrome and Edge.
 
 ## Known gaps
-- `company-profile.spec.js` "company logo" fails at the share-frame logo step **with v1 too**: the deployed `get-shared-report` returns no signed `logoUrl`. This is existing behaviour, not caused by this feature; the edge function likely needs redeploying.
-- iOS Safari "Share → Print" bypasses the button: native CSS fallback only, and Safari doesn't support `@page` margin boxes, so there's no footer/counter on that path.
+- ~~Share-view logo~~ (resolved): the repo's `get-shared-report` already signs `company.logoPath` into `logoUrl` (added in a7af2b8, 2026-10-06), but the deployed function is version 1 from 2026-08-28, so share links showed no contractor logo. Fixed 2026-10-09 by redeploying, no code change: `npx supabase functions deploy get-shared-report` (now version 2); the company-profile logo test passes.
+- iOS Safari "Share → Print": see Print paths.
 - Paged.js and the static fonts load only on print, so the first print takes ~1 s longer.

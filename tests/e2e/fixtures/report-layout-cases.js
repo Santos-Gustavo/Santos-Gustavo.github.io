@@ -2,13 +2,17 @@
 //
 // REPORT-LAYOUT-V2 evidence cases (canonical-shaped snapshots, generated
 // after the layout cutover). Photos/logo are inline SVG so no storage is needed.
+import { REPORT_LAYOUT_V2_CUTOVER } from "../../../js/reports/report-renderer.js";
+
 function photoSvg(label, hue) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue},25%,70%)"/><stop offset="1" stop-color="hsl(${hue},20%,40%)"/></linearGradient></defs><rect width="800" height="600" fill="url(#g)"/><text x="40" y="560" font-family="Arial" font-size="40" fill="#fff">${label}</text></svg>`;
   return "data:image/svg+xml;base64," + Buffer.from(svg).toString("base64");
 }
 const LOGO = "data:image/svg+xml;base64," + Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="14" fill="#22252A"/><text x="60" y="76" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="46" fill="#F6F3EE">CS</text></svg>`).toString("base64");
 
-const GENERATED = "2026-10-09T10:15:00.000Z";
+// Exactly at the cutover (>= → v2), so the cases stay post-cutover whatever
+// rollout timestamp the release step sets.
+const GENERATED = REPORT_LAYOUT_V2_CUTOVER;
 
 function base(over = {}) {
   return {

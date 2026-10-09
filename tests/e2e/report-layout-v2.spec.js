@@ -60,6 +60,15 @@ test.describe("report layout routing", () => {
     // schemaVersion plays no part in the choice.
     expect(selectReportLayout({ ...case1, schemaVersion: 99 })).toBe("v2");
     expect(selectReportLayout({ ...legacyPreCutover, schemaVersion: 2 })).toBe("v1");
+    // Legal-mode snapshots stay on v1 even after the cutover.
+    expect(selectReportLayout({ ...case1, meta: { ...case1.meta, mode: "legal" } })).toBe("v1");
+
+    // The rendered output follows the rule, one millisecond either side.
+    const justBefore = renderReportHtml(withGeneratedAt(case1, new Date(cutoverMs - 1).toISOString()));
+    const atCutover = renderReportHtml(withGeneratedAt(case1, REPORT_LAYOUT_V2_CUTOVER));
+    expect(justBefore).toBe(renderReportHtmlV1(withGeneratedAt(case1, new Date(cutoverMs - 1).toISOString())));
+    expect(justBefore).not.toContain('<div class="doc">');
+    expect(atCutover).toContain('<div class="doc">');
   });
 
   test("historical snapshots still render byte-for-byte as before the v2 renderer existed", () => {
