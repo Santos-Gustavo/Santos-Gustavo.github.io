@@ -1,8 +1,8 @@
- CS Construções Silva & Filhos, Lda.                                                                   RELATÓRIO DE OBRA
+ CS Construções Exemplo & Filhos, Lda.                                                 RELATÓRIO DE OBRA
 
-Reabilitação de fachada — Edifício Aurora                                                                   N.º 012
+Reabilitação de fachada — Edifício Aurora                                                   N.º 012
 
-8 de outubro de 2026 · Período: 01/10/2026 – 08/10/2026                                                PROJ-CONDOMINIO-012
+8 de outubro de 2026 · Período: 01/10/2026 – 08/10/2026                                PROJ-CONDOMINIO-012
 
 PONTO DA SITUAÇÃO
 
@@ -12,16 +12,16 @@ precisam de decisão do condomínio.
 Fase atual: Fachada
 Progresso da obra: 55%
 
-ESTADO DA OBRA            1                                                                 1
+ESTADO DA OBRA            1                                                 1
 
-  1                       EM CURSO                                                          PENDENTES
+  1                       EM CURSO                                          PENDENTES
 
      CONCLUÍDAS
 
 REGISTO FOTOGRÁFICO
 
-Fachada Sul · Antes                                                       Varanda · Depois
-Estado inicial do reboco                                                  Guardas tratadas
+Fachada Sul · Antes                                  Varanda · Depois
+Estado inicial do reboco                             Guardas tratadas
 
 TRABALHOS CONCLUÍDOS
 
@@ -39,8 +39,8 @@ Pendente   Pintura Exterior — Aplicação de primário
 
            Fachada Sul
 
-Construções Silva & Filhos, Lda. · Relatório N.º 012 · gerado 09/10/2026                               Página 1 de 2
-+351 935 121 546 · geral@construcoessilva.pt
+Construções Exemplo & Filhos, Lda. · Relatório N.º 012 · gerado 31/12/9999             Página 1 de 2
++351 900 000 001 · geral@construcoes-exemplo.example
 OCORRÊNCIAS
 
      Em aberto Armadura exposta na varanda do 3.º esquerdo — necessária decisão sobre tratamento.
@@ -51,20 +51,20 @@ PRÓXIMOS PASSOS
  1 Reunião com a administração do condomínio
          Previsto: 13/10/2026
 
-OBRA                     CLIENTE              LOCALIZAÇÃO                 RESPONSÁVEL DA OBRA
+OBRA                     CLIENTE              LOCALIZAÇÃO                   RESPONSÁVEL DA OBRA
 
-Reabilitação de fachada  Condomínio Edifício  Av. da República 101,       Rui Silva
+Reabilitação de fachada  Condomínio Edifício  Avenida Exemplo 101,          Responsável Exemplo
 — Edifício Aurora        Aurora               Lisboa
 
 N.º CONTRATO             NIF                  INCI N.º
 
-AUR-2026-03              509123456            54321-PAR
+AUR-2026-03              999999999            54321-PAR
 
 Este relatório é emitido para efeitos de acompanhamento, comunicação e arquivo documental do projeto. Não substitui o contrato de
 empreitada, o Livro de Projeto, autos de medição, faturas, licenças, projetos aprovados, termos de responsabilidade ou aprovações
 formais exigidas por lei ou contrato. Trabalhos extra, alterações de preço, prazo ou projeto carecem de aprovação expressa por escrito,
 salvo disposição contratual em contrário.
 
-Construções Silva & Filhos, Lda. · Relatório N.º 012 · gerado 09/10/2026                           Página 2 de 2
-+351 935 121 546 · geral@construcoessilva.pt
+Construções Exemplo & Filhos, Lda. · Relatório N.º 012 · gerado 31/12/9999                         Página 2 de 2
++351 900 000 001 · geral@construcoes-exemplo.example
 

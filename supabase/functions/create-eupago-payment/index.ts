@@ -11,6 +11,9 @@ const STATUS_FAILED = 2;
 const PLAN_PRO_MONTHLY_AMOUNT = 19.0;
 const PLAN_PRO_MONTHLY_PERIOD_DAYS = 30;
 
+// Generic browser-facing message; the specific cause is only logged.
+const PAYMENTS_UNAVAILABLE = "Pagamentos temporariamente indisponíveis.";
+
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get("origin") || "";
 
@@ -46,6 +49,31 @@ function jsonResponse(req: Request, body: unknown, status = 200) {
       "Content-Type": "application/json",
     },
   });
+}
+
+// Only these non-personal EuPago response fields are logged, stored in
+// payments.raw_create_response and echoed to the browser. Anything else (e.g.
+// the MB WAY phone/alias or the payment description with the company name)
+// is dropped. Nested values are dropped too.
+const EUPAGO_RESPONSE_FIELDS = [
+  "sucesso", "success", "estado", "status", "resposta", "message",
+  "referencia", "reference", "ref", "entidade", "entity", "valor", "amount",
+  "transacao", "transaction_id", "transactionID", "id_transacao",
+  "identificador", "data_inicio", "data_fim", "valor_minimo", "valor_maximo",
+  "codigo", "code", "erro", "error",
+];
+
+function minimiseEuPagoData(data: Record<string, unknown>) {
+  const kept: Record<string, unknown> = {};
+
+  for (const key of EUPAGO_RESPONSE_FIELDS) {
+    const value = data?.[key];
+    if (value === null || ["string", "number", "boolean"].includes(typeof value)) {
+      kept[key] = value;
+    }
+  }
+
+  return kept;
 }
 
 function addDays(date: Date, days: number) {
@@ -121,33 +149,21 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!supabaseUrl) {
-      return jsonResponse(
-        req,
-        {
-          error: "Missing SUPABASE_URL in Edge Function environment.",
-        },
-        500,
-      );
+      console.error("create-eupago-payment misconfigured: SUPABASE_URL missing");
+
+      return jsonResponse(req, { error: PAYMENTS_UNAVAILABLE }, 500);
     }
 
     if (!anonKey) {
-      return jsonResponse(
-        req,
-        {
-          error: "Missing SUPABASE_ANON_KEY in Edge Function environment.",
-        },
-        500,
-      );
+      console.error("create-eupago-payment misconfigured: SUPABASE_ANON_KEY missing");
+
+      return jsonResponse(req, { error: PAYMENTS_UNAVAILABLE }, 500);
     }
 
     if (!serviceRoleKey) {
-      return jsonResponse(
-        req,
-        {
-          error: "Missing SUPABASE_SERVICE_ROLE_KEY in Edge Function environment.",
-        },
-        500,
-      );
+      console.error("create-eupago-payment misconfigured: SUPABASE_SERVICE_ROLE_KEY missing");
+
+      return jsonResponse(req, { error: PAYMENTS_UNAVAILABLE }, 500);
     }
 
     /**
@@ -177,20 +193,16 @@ Deno.serve(async (req) => {
         req,
         {
           error: "User not authenticated.",
-          details: userError?.message || null,
         },
         401,
       );
     }
 
-    console.log("authenticated user:", {
-      id: user.id,
-      email: user.email,
-    });
+    console.log("authenticated user:", { id: user.id });
 
     const body = await req.json().catch(() => ({}));
 
-    console.log("payment request body:", body);
+    console.log("payment request:", { method: body?.method ?? null });
 
     const methodRaw = String(body.method || "").toLowerCase();
 
@@ -251,8 +263,8 @@ Deno.serve(async (req) => {
       .single();
 
     console.log("company lookup:", {
-      company,
-      companyError,
+      companyId: company?.id ?? null,
+      companyError: companyError?.message ?? null,
     });
 
     if (companyError || !company) {
@@ -261,7 +273,6 @@ Deno.serve(async (req) => {
         {
           error:
             "Nenhuma empresa encontrada para este utilizador. Cria primeiro uma empresa/obra antes de pagar.",
-          details: companyError?.message || null,
         },
         400,
       );
@@ -283,8 +294,8 @@ Deno.serve(async (req) => {
       .single();
 
     console.log("payment insert:", {
-      payment,
-      paymentError,
+      paymentId: payment?.id ?? null,
+      paymentError: paymentError?.message ?? null,
     });
 
     if (paymentError || !payment) {
@@ -292,8 +303,6 @@ Deno.serve(async (req) => {
         req,
         {
           error: "Erro ao criar pagamento na base de dados.",
-          details: paymentError?.message || null,
-          code: paymentError?.code || null,
         },
         400,
       );
@@ -303,23 +312,15 @@ Deno.serve(async (req) => {
     const baseUrl = Deno.env.get("EUPAGO_API_BASE_URL");
 
     if (!apiKey) {
-      return jsonResponse(
-        req,
-        {
-          error: "Missing EUPAGO_API_KEY secret.",
-        },
-        500,
-      );
+      console.error("create-eupago-payment misconfigured: EUPAGO_API_KEY missing");
+
+      return jsonResponse(req, { error: PAYMENTS_UNAVAILABLE }, 500);
     }
 
     if (!baseUrl) {
-      return jsonResponse(
-        req,
-        {
-          error: "Missing EUPAGO_API_BASE_URL secret.",
-        },
-        500,
-      );
+      console.error("create-eupago-payment misconfigured: EUPAGO_API_BASE_URL missing");
+
+      return jsonResponse(req, { error: PAYMENTS_UNAVAILABLE }, 500);
     }
 
     let eupagoUrl: string;
@@ -349,10 +350,8 @@ Deno.serve(async (req) => {
 
     console.log("calling EuPago:", {
       eupagoUrl,
-      eupagoPayload: {
-        ...eupagoPayload,
-        chave: "[hidden]",
-      },
+      method: methodRaw,
+      paymentId: payment.id,
     });
 
     const eupagoResponse = await fetch(eupagoUrl, {
@@ -370,15 +369,15 @@ Deno.serve(async (req) => {
     try {
       eupagoData = JSON.parse(eupagoText);
     } catch {
-      eupagoData = {
-        raw: eupagoText,
-      };
+      eupagoData = {};
     }
+
+    const eupagoSummary = minimiseEuPagoData(eupagoData);
 
     console.log("EuPago response:", {
       status: eupagoResponse.status,
       ok: eupagoResponse.ok,
-      data: eupagoData,
+      data: eupagoSummary,
     });
 
     if (!eupagoResponse.ok) {
@@ -386,7 +385,7 @@ Deno.serve(async (req) => {
         .from("payments")
         .update({
           status: STATUS_FAILED,
-          raw_create_response: eupagoData,
+          raw_create_response: eupagoSummary,
         })
         .eq("id", payment.id);
 
@@ -394,8 +393,6 @@ Deno.serve(async (req) => {
         req,
         {
           error: "EuPago rejeitou o pedido de pagamento.",
-          eupagoStatus: eupagoResponse.status,
-          eupago: eupagoData,
         },
         400,
       );
@@ -433,7 +430,7 @@ Deno.serve(async (req) => {
         eupago_identifier: payment.id,
         eupago_payment_method_code:
           method === METHOD_MULTIBANCO ? "PC:PT" : "MW:PT",
-        raw_create_response: eupagoData,
+        raw_create_response: eupagoSummary,
       })
       .eq("id", payment.id);
 
@@ -444,9 +441,6 @@ Deno.serve(async (req) => {
         req,
         {
           error: "Pagamento criado na EuPago, mas falhou ao atualizar a base de dados.",
-          details: paymentUpdateError.message,
-          code: paymentUpdateError.code,
-          eupago: eupagoData,
         },
         500,
       );
@@ -462,7 +456,7 @@ Deno.serve(async (req) => {
       transactionId,
       success,
       expiresAt: expiresAt.toISOString(),
-      eupago: eupagoData,
+      eupago: eupagoSummary,
     });
   } catch (error) {
     console.error("create-eupago-payment fatal error:", error);
@@ -470,8 +464,7 @@ Deno.serve(async (req) => {
     return jsonResponse(
       req,
       {
-        error: error?.message || String(error),
-        stack: error?.stack || null,
+        error: PAYMENTS_UNAVAILABLE,
       },
       500,
     );

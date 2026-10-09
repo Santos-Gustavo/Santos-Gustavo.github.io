@@ -1,8 +1,8 @@
- CS Construções Silva & Filhos, Lda.                                                                       RELATÓRIO DE OBRA
+ CS Construções Exemplo & Filhos, Lda.                                                 RELATÓRIO DE OBRA
 
-Moradia V4 — Quinta do Lago                                                                                    N.º 073
+Moradia V4 — Quinta do Lago                                                                N.º 073
 
-8 de outubro de 2026 · Período: 21/09/2026 – 08/10/2026                                                             PROJ-MARIA-073
+8 de outubro de 2026 · Período: 21/09/2026 – 08/10/2026                                      PROJ-CLIENTE-073
 
 PONTO DA SITUAÇÃO
 
@@ -13,33 +13,33 @@ a previsão de entrega do piso térreo para o final do mês.
 Fase atual: Instalações técnicas
 Progresso da obra: 45%
 
-ESTADO DA OBRA                   5                                        5
+ESTADO DA OBRA                   5                                          5
 
-  6                              EM CURSO                                 PENDENTES
+  6                              EM CURSO                                   PENDENTES
 
      CONCLUÍDAS
 
 REGISTO FOTOGRÁFICO
 
-Cozinha · Antes                                                           Sala · Durante
-Registo 1 da frente de trabalho                                           Registo 2 da frente de trabalho
-                                                                          Responsável: Equipa Silva
+Cozinha · Antes                            Sala · Durante
+Registo 1 da frente de trabalho            Registo 2 da frente de trabalho
+                                           Responsável: Equipa Exemplo
 
-Construções Silva & Filhos, Lda. · Relatório N.º 073 · gerado 09/10/2026                                   Página 1 de 4
-+351 935 121 546 · geral@construcoessilva.pt
+Construções Exemplo & Filhos, Lda. · Relatório N.º 073 · gerado 31/12/9999             Página 1 de 4
++351 900 000 001 · geral@construcoes-exemplo.example
 REGISTO FOTOGRÁFICO (CONT.)
 
-Suite · Depois                                                            Quarto 1 · Antes
-Registo 3 da frente de trabalho                                           Registo 4 da frente de trabalho
-                                                                          Responsável: Equipa Silva
+Suite · Depois                   Quarto 1 · Antes
+Registo 3 da frente de trabalho  Registo 4 da frente de trabalho
+                                 Responsável: Equipa Exemplo
 
-Quarto 2 · Durante                                                        Casa de Banho 1 · Depois
-Registo 5 da frente de trabalho                                           Registo 6 da frente de trabalho
-                                                                          Responsável: Equipa Silva
+Quarto 2 · Durante               Casa de Banho 1 · Depois
+Registo 5 da frente de trabalho  Registo 6 da frente de trabalho
+                                 Responsável: Equipa Exemplo
 
-Casa de Banho 2 · Antes                                                   Hall / Corredor · Durante
-Registo 7 da frente de trabalho                                           Registo 8 da frente de trabalho
-                                                                          Responsável: Equipa Silva
+Casa de Banho 2 · Antes          Hall / Corredor · Durante
+Registo 7 da frente de trabalho  Registo 8 da frente de trabalho
+                                 Responsável: Equipa Exemplo
 
 TRABALHOS CONCLUÍDOS
 
@@ -51,8 +51,8 @@ Concluída  Eletricidade — Tarefa 4: verificação e ensaio de estanquidade co
 
            Quarto 1
 
-Construções Silva & Filhos, Lda. · Relatório N.º 073 · gerado 09/10/2026                                   Página 2 de 4
-+351 935 121 546 · geral@construcoessilva.pt
+Construções Exemplo & Filhos, Lda. · Relatório N.º 073 · gerado 31/12/9999                    Página 2 de 4
++351 900 000 001 · geral@construcoes-exemplo.example
 TRABALHOS CONCLUÍDOS (CONT.)
 
 Concluída  Carpintaria — Tarefa 7: montagem e afinação conforme especificação aprovada
@@ -119,8 +119,8 @@ Pendente   Demolição — Tarefa 15: montagem e afinação conforme especifica�
 
            Cozinha
 
-Construções Silva & Filhos, Lda. · Relatório N.º 073 · gerado 09/10/2026                           Página 3 de 4
-+351 935 121 546 · geral@construcoessilva.pt
+Construções Exemplo & Filhos, Lda. · Relatório N.º 073 · gerado 31/12/9999                         Página 3 de 4
++351 900 000 001 · geral@construcoes-exemplo.example
 OCORRÊNCIAS
   Resolvido Caixilharia entregue com 6 dias de atraso pelo fornecedor.
      Em aberto Infiltração detetada junto à claraboia após chuva forte.
@@ -133,20 +133,20 @@ PRÓXIMOS PASSOS
  5 Próximo passo 5: preparar frente de trabalho Quarto 2
  6 Próximo passo 6: preparar frente de trabalho Casa de Banho 1
 
-OBRA                    CLIENTE      LOCALIZAÇÃO                          RESPONSÁVEL DA OBRA
+OBRA                    CLIENTE            LOCALIZAÇÃO                      RESPONSÁVEL DA OBRA
 
-Moradia V4 — Quinta do  Maria Costa  Estrada da Quinta 4,                 Rui Silva
-Lago                                 Almancil
+Moradia V4 — Quinta do  Cliente Exemplo B  Estrada Exemplo 4,               Responsável Exemplo
+Lago                                       Almancil
                         NIF
-N.º CONTRATO                         INCI N.º
-                        509123456
-CT-2026-018                          54321-PAR
+N.º CONTRATO                               INCI N.º
+                        999999999
+CT-2026-018                                54321-PAR
 
 Este relatório é emitido para efeitos de acompanhamento, comunicação e arquivo documental do projeto. Não substitui o contrato de
 empreitada, o Livro de Projeto, autos de medição, faturas, licenças, projetos aprovados, termos de responsabilidade ou aprovações
 formais exigidas por lei ou contrato. Trabalhos extra, alterações de preço, prazo ou projeto carecem de aprovação expressa por escrito,
 salvo disposição contratual em contrário.
 
-Construções Silva & Filhos, Lda. · Relatório N.º 073 · gerado 09/10/2026  Página 4 de 4
-+351 935 121 546 · geral@construcoessilva.pt
+Construções Exemplo & Filhos, Lda. · Relatório N.º 073 · gerado 31/12/9999  Página 4 de 4
++351 900 000 001 · geral@construcoes-exemplo.example
 

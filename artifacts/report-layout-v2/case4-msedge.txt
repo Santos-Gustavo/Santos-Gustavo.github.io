@@ -1,8 +1,8 @@
- CS Construções Silva & Filhos, Lda.                                                 RELATÓRIO DE OBRA
+ CS Construções Exemplo & Filhos, Lda.                                                 RELATÓRIO DE OBRA
 
-                   Obras e remodelações desde 1998                                       N.º 005
+                   Obras e remodelações desde 1998                                         N.º 005
 
-Pequena reparação — Cozinha                                                                  PROJ-JOANA-005
+Pequena reparação — Cozinha                                                                  PROJ-CLIENTE-005
 
 8 de outubro de 2026 · Período: 08/10/2026
 
@@ -11,9 +11,9 @@ PONTO DA SITUAÇÃO
 Visita única para reparação de fuga na torneira e substituição do sifão.
 Progresso da obra: 100%
 
-ESTADO DA OBRA        0                                                   0
+ESTADO DA OBRA        0                                                     0
 
-  3                   EM CURSO                                            PENDENTES
+  3                   EM CURSO                                              PENDENTES
 
      CONCLUÍDAS
 
@@ -38,8 +38,8 @@ EM CURSO E PENDENTES
 
 Sem trabalhos em curso ou pendentes registados.
 
-Construções Silva & Filhos, Lda. · Relatório N.º 005 · gerado 09/10/2026             Página 1 de 2
-+351 213 456 789 · geral@construcoessilva.pt
+Construções Exemplo & Filhos, Lda. · Relatório N.º 005 · gerado 31/12/9999             Página 1 de 2
++351 200 000 001 · geral@construcoes-exemplo.example
 OCORRÊNCIAS
 
 Sem ocorrências registadas neste período.
@@ -48,9 +48,9 @@ PRÓXIMOS PASSOS
 
 Sem próximos passos registados.
 
-OBRA                 CLIENTE               RESPONSÁVEL DA OBRA            NIF
+OBRA                 CLIENTE               RESPONSÁVEL DA OBRA              NIF
 
-Pequena reparação —  Joana Matos           Rui Silva                      509123456
+Pequena reparação —  Cliente Exemplo D     Responsável Exemplo              999999999
 Cozinha
 
 INCI N.º
@@ -62,6 +62,6 @@ empreitada, o Livro de Projeto, autos de medição, faturas, licenças, projetos
 formais exigidas por lei ou contrato. Trabalhos extra, alterações de preço, prazo ou projeto carecem de aprovação expressa por escrito,
 salvo disposição contratual em contrário.
 
-Construções Silva & Filhos, Lda. · Relatório N.º 005 · gerado 09/10/2026             Página 2 de 2
-+351 213 456 789 · geral@construcoessilva.pt
+Construções Exemplo & Filhos, Lda. · Relatório N.º 005 · gerado 31/12/9999             Página 2 de 2
++351 200 000 001 · geral@construcoes-exemplo.example
 

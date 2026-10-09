@@ -1,8 +1,8 @@
- CS Construções Silva & Filhos, Lda.                                                                    RELATÓRIO DE OBRA
+ CS Construções Exemplo & Filhos, Lda.                                                 RELATÓRIO DE OBRA
 
-Remodelação T3 — Rua das Flores                                                                             N.º 072
+Remodelação T3 — Rua Exemplo                                                               N.º 072
 
-8 de outubro de 2026 · Período: 01/10/2026 – 08/10/2026                                                      PROJ-ANTONIO-072
+8 de outubro de 2026 · Período: 01/10/2026 – 08/10/2026                                      PROJ-CLIENTE-072
 
 PONTO DA SITUAÇÃO
 
@@ -12,22 +12,22 @@ semana instalamos o móvel de lavatório e começamos a montagem da cozinha.
 Fase atual: Acabamentos
 Progresso da obra: 70%
 
-ESTADO DA OBRA             2                                                                 2
+ESTADO DA OBRA             2                                                2
 
-  2                        EM CURSO                                                          PENDENTES
+  2                        EM CURSO                                         PENDENTES
 
      CONCLUÍDAS
 
 REGISTO FOTOGRÁFICO
 
-Casa de Banho 1 · Durante                                                 Sala · Depois
-Revestimento concluído na parede do duche                                 Pintura terminada
+Casa de Banho 1 · Durante                  Sala · Depois
+Revestimento concluído na parede do duche  Pintura terminada
 
-Cozinha · Durante                                                         Quarto 1 · Antes
-Pontos de água preparados                                                 Vão do roupeiro antes da montagem
+Cozinha · Durante                          Quarto 1 · Antes
+Pontos de água preparados                  Vão do roupeiro antes da montagem
 
-Construções Silva & Filhos, Lda. · Relatório N.º 072 · gerado 09/10/2026                                     Página 1 de 2
-+351 935 121 546 · geral@construcoessilva.pt
+Construções Exemplo & Filhos, Lda. · Relatório N.º 072 · gerado 31/12/9999             Página 1 de 2
++351 900 000 001 · geral@construcoes-exemplo.example
 TRABALHOS CONCLUÍDOS
 
 Concluída  Revestimento Cerâmico — Assentamento de azulejo nas paredes
@@ -68,18 +68,18 @@ PRÓXIMOS PASSOS
 
 OBRA                  CLIENTE                     LOCALIZAÇÃO                   RESPONSÁVEL DA OBRA
 
-Remodelação T3 — Rua  António Ferreira            Rua das Flores 12, 1200-      Rui Silva
-das Flores                                        195 Lisboa
+Remodelação T3 — Rua  Cliente Exemplo             Rua Exemplo 12, Lisboa        Responsável Exemplo
+Exemplo
                       INCI N.º
 NIF
                       54321-PAR
-509123456
+999999999
 
 Este relatório é emitido para efeitos de acompanhamento, comunicação e arquivo documental do projeto. Não substitui o contrato de
 empreitada, o Livro de Projeto, autos de medição, faturas, licenças, projetos aprovados, termos de responsabilidade ou aprovações
 formais exigidas por lei ou contrato. Trabalhos extra, alterações de preço, prazo ou projeto carecem de aprovação expressa por escrito,
 salvo disposição contratual em contrário.
 
-Construções Silva & Filhos, Lda. · Relatório N.º 072 · gerado 09/10/2026        Página 2 de 2
-+351 935 121 546 · geral@construcoessilva.pt
+Construções Exemplo & Filhos, Lda. · Relatório N.º 072 · gerado 31/12/9999      Página 2 de 2
++351 900 000 001 · geral@construcoes-exemplo.example
 

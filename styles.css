@@ -4,6 +4,11 @@
    Terracotta is BRAND ONLY — never status, warning, incident or error.
    ============================================================ */
 
+/* Inter 400/600, self-hosted (vendor/fonts/inter, OFL) — no runtime request
+   to Google Fonts. Same weights and font-display as the former Google CSS. */
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap; src: url("vendor/fonts/inter/inter-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; font-display: swap; src: url("vendor/fonts/inter/inter-latin-600-normal.woff2") format("woff2"); }
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {

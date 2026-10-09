@@ -71,11 +71,54 @@ test.describe("report layout routing", () => {
     expect(atCutover).toContain('<div class="doc">');
   });
 
-  test("historical snapshots still render byte-for-byte as before the v2 renderer existed", () => {
-    // Golden files were produced by the pre-REPORT-LAYOUT-V2 report-renderer.js.
-    expect(renderReportHtml(legacyPreCutover)).toBe(golden("report-v1-golden-legacy.html"));
-    expect(renderReportHtml(canonicalPreCutover)).toBe(golden("report-v1-golden-canonical.html"));
-    expect(renderReportHtmlV1(canonicalPreCutover)).toBe(golden("report-v1-golden-canonical.html"));
+  test("historical snapshots keep their v1 markup, CSS and copy (only font loading is local)", () => {
+    // Golden files were produced by the pre-REPORT-LAYOUT-V2 report-renderer.js
+    // (canonical golden: personal-looking fixture values later swapped for
+    // synthetic ones, text-only). Everything except the font-loading block
+    // must match byte-for-byte; that block moved from Google Fonts to the
+    // vendored Inter 400/600 (docs/compliance/PRELAUNCH-QUICK-WINS.md).
+    const withoutFontLoading = (html) =>
+      html
+        .replace(/  <link rel="preconnect" href="https:\/\/fonts\.googleapis\.com">\n  <link rel="preconnect" href="https:\/\/fonts\.gstatic\.com" crossorigin>\n  <link href="https:\/\/fonts\.googleapis\.com\/css2\?family=Inter:wght@400;600&display=swap" rel="stylesheet">\n/, "")
+        .replace(/  <style data-font-loading>[\s\S]*?<\/style>\n/, "");
+
+    for (const [snapshot, file] of [[legacyPreCutover, "report-v1-golden-legacy.html"], [canonicalPreCutover, "report-v1-golden-canonical.html"]]) {
+      const html = renderReportHtml(snapshot);
+      expect(withoutFontLoading(html)).toBe(withoutFontLoading(golden(file)));
+      expect(withoutFontLoading(html)).not.toBe(html); // the font block was really there
+      expect(html).not.toMatch(/fonts\.googleapis\.com|fonts\.gstatic\.com/);
+      expect(html).toContain('src:url("vendor/fonts/inter/inter-latin-400-normal.woff2")');
+      expect(html).toContain('src:url("vendor/fonts/inter/inter-latin-600-normal.woff2")');
+    }
+    expect(renderReportHtmlV1(canonicalPreCutover)).toBe(renderReportHtml(canonicalPreCutover));
+  });
+
+  test("v1 presentation is visually stable with the local fonts", async ({ page }) => {
+    // Baseline measured 2026-10-09 with the previous Google-hosted Inter
+    // (Chromium, 1280 px): document height 1626 / 1625 px, 2 printed A4 pages.
+    // Switching to the vendored files moved no element by more than 0.1 px.
+    const external = [];
+    page.on("request", (request) => {
+      if (/fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsdelivr\.net/.test(request.url())) external.push(request.url());
+    });
+    await page.setViewportSize({ width: 1280, height: 900 });
+
+    for (const [snapshot, expectedHeight] of [[legacyPreCutover, 1626], [canonicalPreCutover, 1625]]) {
+      await openReport(page, snapshot);
+      const result = await page.evaluate(async () => {
+        await document.fonts.ready;
+        const loaded = [...document.fonts]
+          .filter((face) => face.family.replace(/["']/g, "") === "Inter" && face.status === "loaded")
+          .map((face) => String(face.weight));
+        return { loaded: [...new Set(loaded)].sort(), height: document.documentElement.scrollHeight };
+      });
+      expect(result.loaded).toEqual(["400", "600"]);
+      expect(Math.abs(result.height - expectedHeight)).toBeLessThanOrEqual(4);
+
+      const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+      expect((pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length).toBe(2);
+    }
+    expect(external).toEqual([]);
   });
 
   test("a post-cutover report uses v2", () => {
@@ -103,7 +146,7 @@ test.describe("v2 text and template", () => {
 
     // A3 title / number / ref / period.
     expect(text).toContain("N.º 072");
-    expect(text).toContain("PROJ-ANTONIO-072");
+    expect(text).toContain("PROJ-CLIENTE-072");
     expect(text).not.toMatch(/semanal/i);
     expect(visibleText(renderReportHtml(case4))).toContain("Período: 08/10/2026");
     expect(visibleText(renderReportHtml(case4))).not.toContain("08/10/2026 – 08/10/2026");
@@ -123,13 +166,13 @@ test.describe("v2 text and template", () => {
       expect(visibleText(html.replace(DISCLAIMER, ""))).not.toMatch(/projeto/i);
     }
     expect(visibleText(renderReportHtml(case1))).toContain("Sem ocorrências registadas neste período.");
-    expect(renderReportHtml(case1)).toContain("<title>Relatório de Obra — Remodelação T3 — Rua das Flores</title>");
+    expect(renderReportHtml(case1)).toContain("<title>Relatório de Obra — Remodelação T3 — Rua Exemplo</title>");
 
     // A6 phone.
-    expect(text).toContain("+351 935 121 546");
-    expect(formatPhone("935121546")).toBe("+351 935 121 546");
-    expect(formatPhone("+351935121546")).toBe("+351 935 121 546");
-    expect(formatPhone("00351 213 456 789")).toBe("+351 213 456 789");
+    expect(text).toContain("+351 900 000 001");
+    expect(formatPhone("900000001")).toBe("+351 900 000 001");
+    expect(formatPhone("+351900000001")).toBe("+351 900 000 001");
+    expect(formatPhone("00351 200 000 001")).toBe("+351 200 000 001");
     expect(formatPhone("+44 20 7946 0958")).toBe("+44 20 7946 0958");
 
     // A7 phase and progress separated.

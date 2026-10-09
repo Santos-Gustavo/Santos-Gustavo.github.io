@@ -2,9 +2,20 @@
 //
 // FROZEN archival presentation (REPORT-LAYOUT-V2). Every report generated
 // before REPORT_LAYOUT_V2_CUTOVER (see report-renderer.js) renders through
-// this file, byte-for-byte as it did when it was generated. Do not edit it,
-// and do not share helpers/CSS/labels with the v2 renderer — the duplication
-// is deliberate so later changes cannot leak into historical reports.
+// this file exactly as it did when it was generated. Do not edit it, and do
+// not share helpers/CSS/labels with the v2 renderer — the duplication is
+// deliberate so later changes cannot leak into historical reports.
+//
+// One sanctioned exception (2026-10-09, docs/compliance): the same Inter
+// 400/600 the report always used is served from vendor/fonts/inter instead of
+// Google Fonts. Markup, CSS, copy and logic are unchanged; the golden spec
+// compares everything except that font-loading block.
+
+// Resolved against the page doing the rendering (app.html / share.html, both
+// at the site root): the rendered document is a blob: URL or an iframe srcdoc
+// and has no usable base.
+const INTER_400_PATH = "vendor/fonts/inter/inter-latin-400-normal.woff2";
+const INTER_600_PATH = "vendor/fonts/inter/inter-latin-600-normal.woff2";
 
 export function renderReportHtmlV1(report) {
   validateReportDocument(report);
@@ -15,9 +26,10 @@ export function renderReportHtmlV1(report) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>${escapeHtml(buildTitle(report))}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style data-font-loading>
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url("${fontUrl(INTER_400_PATH)}") format("woff2")}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url("${fontUrl(INTER_600_PATH)}") format("woff2")}
+  </style>
   ${renderStyles()}
 </head>
 
@@ -822,6 +834,12 @@ function formatShortDate(value) {
   if (Number.isNaN(date.getTime())) return value;
 
   return date.toLocaleDateString("pt-PT");
+}
+
+function fontUrl(relativePath) {
+  const base = globalThis.location?.href;
+  if (!base || !/^https?:/.test(base)) return relativePath;
+  return new URL(relativePath, base).href;
 }
 
 function escapeHtml(value) {

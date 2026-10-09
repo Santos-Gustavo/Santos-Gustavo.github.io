@@ -15,8 +15,9 @@
 // rendering (app.html / share.html, both at the site root): the rendered
 // document itself is a blob: URL or an iframe srcdoc and has no usable base.
 // Static Inter 400/600 (vendor/fonts/inter, OFL): Chrome embeds static fonts in
-// the PDF as real, searchable fonts; Google's variable Inter (kept as a
-// fallback) only embeds as Type 3 outlines.
+// the PDF as real, searchable fonts (Google's variable Inter only embeds as
+// Type 3 outlines). No Google Fonts request: 'Inter' in FONT_STACK only
+// matches a locally installed Inter, else system-ui.
 const PAGED_JS_PATH = "vendor/pagedjs/paged.polyfill.min.js";
 const INTER_400_PATH = "vendor/fonts/inter/inter-latin-400-normal.woff2";
 const INTER_600_PATH = "vendor/fonts/inter/inter-latin-600-normal.woff2";
@@ -57,9 +58,6 @@ export function renderReportHtmlV2(report) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>${escapeHtml(buildTitle(report))}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" data-pagedjs-ignore>
   ${renderStyles(report)}
 </head>
 
@@ -694,7 +692,7 @@ function formatContact(company) {
   return [formatPhone(company.phone), String(company.email || "").trim()].filter(Boolean).join(" · ");
 }
 
-// Portuguese numbers → "+351 935 121 546"; anything else is shown as typed.
+// Portuguese numbers → "+351 900 000 001"; anything else is shown as typed.
 export function formatPhone(value) {
   const raw = String(value ?? "").trim();
   if (!raw) return "";

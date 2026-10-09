@@ -20,8 +20,8 @@ function base(over = {}) {
     snapshotVersion: 1,
     source: "canonical",
     meta: { reportId: "r", projectId: "p", mode: "weekly", reportNumber: 72, reportDate: "2026-10-08", periodStart: "2026-10-01", periodEnd: "2026-10-08", generatedAt: GENERATED },
-    company: { id: "c", name: "Construções Silva & Filhos, Lda.", tagline: "", nif: "509123456", impic: "54321-PAR", responsible: "Rui Silva", phone: "935121546", email: "geral@construcoessilva.pt", logoPath: "x", logoUrl: LOGO },
-    project: { id: "p", clientId: "cl", name: "Remodelação T3 — Rua das Flores", clientName: "António Ferreira", location: "Rua das Flores 12, 1200-195 Lisboa", contractNumber: "", contractValue: 0 },
+    company: { id: "c", name: "Construções Exemplo & Filhos, Lda.", tagline: "", nif: "999999999", impic: "54321-PAR", responsible: "Responsável Exemplo", phone: "900000001", email: "geral@construcoes-exemplo.example", logoPath: "x", logoUrl: LOGO },
+    project: { id: "p", clientId: "cl", name: "Remodelação T3 — Rua Exemplo", clientName: "Cliente Exemplo", location: "Rua Exemplo 12, Lisboa", contractNumber: "", contractValue: 0 },
     progress: { phase: "Acabamentos", percentage: 70, weekSummary: "Esta semana terminámos o revestimento cerâmico da casa de banho 1 e a pintura da sala. Na próxima semana instalamos o móvel de lavatório e começamos a montagem da cozinha." },
     alert: { enabled: false, title: "", description: "", deadline: null, consequence: "" },
     incidents: { enabled: true, items: [] },
@@ -63,10 +63,10 @@ const areas = ["Cozinha", "Sala", "Suite", "Quarto 1", "Quarto 2", "Casa de Banh
 const statuses = ["done", "in_progress", "pending"];
 const case2 = base({
   meta: { ...base().meta, reportNumber: 73, periodStart: "2026-09-21", periodEnd: "2026-10-08" },
-  project: { ...base().project, name: "Moradia V4 — Quinta do Lago", clientName: "Maria Costa", location: "Estrada da Quinta 4, Almancil", contractNumber: "CT-2026-018" },
+  project: { ...base().project, name: "Moradia V4 — Quinta do Lago", clientName: "Cliente Exemplo B", location: "Estrada Exemplo 4, Almancil", contractNumber: "CT-2026-018" },
   progress: { phase: "Instalações técnicas", percentage: 45, weekSummary: "Duas semanas de trabalho intenso: concluímos as redes de águas e esgotos no piso térreo e avançámos com a eletricidade em todos os quartos. A caixilharia chegou com atraso, mas já está em obra. Mantemos a previsão de entrega do piso térreo para o final do mês." },
   works: Array.from({ length: 16 }, (_, i) => W(types[i % types.length], areas[i % areas.length], `Tarefa ${i + 1}: ${["execução de roços e tubagem", "aplicação de primário e acabamento", "montagem e afinação", "verificação e ensaio de estanquidade"][i % 4]} conforme especificação aprovada`, statuses[i % 3])),
-  photos: Array.from({ length: 8 }, (_, i) => P(areas[i], ["before", "during", "after"][i % 3], `Registo ${i + 1} da frente de trabalho`, i * 40, i % 2 ? "Equipa Silva" : "")),
+  photos: Array.from({ length: 8 }, (_, i) => P(areas[i], ["before", "during", "after"][i % 3], `Registo ${i + 1} da frente de trabalho`, i * 40, i % 2 ? "Equipa Exemplo" : "")),
   incidents: { enabled: true, items: [
     { description: "Caixilharia entregue com 6 dias de atraso pelo fornecedor.", status: "resolved" },
     { description: "Infiltração detetada junto à claraboia após chuva forte.", status: "open" },
@@ -76,7 +76,7 @@ const case2 = base({
 
 const case3 = base({
   meta: { ...base().meta, reportNumber: 12 },
-  project: { ...base().project, name: "Reabilitação de fachada — Edifício Aurora", clientName: "Condomínio Edifício Aurora", location: "Av. da República 101, Lisboa", contractNumber: "AUR-2026-03" },
+  project: { ...base().project, name: "Reabilitação de fachada — Edifício Aurora", clientName: "Condomínio Edifício Aurora", location: "Avenida Exemplo 101, Lisboa", contractNumber: "AUR-2026-03" },
   progress: { phase: "Fachada", percentage: 55, weekSummary: "Andaimes montados na fachada sul e iniciada a reparação do reboco. Registámos duas ocorrências que precisam de decisão do condomínio." },
   works: [
     W("Reboco / Estuque", "Fachada Sul", "Reparação de fissuras no reboco", "in_progress"),
@@ -94,8 +94,8 @@ const case3 = base({
 
 const case4 = base({
   meta: { ...base().meta, reportNumber: 5, reportDate: "2026-10-08", periodStart: "2026-10-08", periodEnd: "2026-10-08" },
-  company: { ...base().company, phone: "+351 213 456 789", tagline: "Obras e remodelações desde 1998" },
-  project: { ...base().project, name: "Pequena reparação — Cozinha", clientName: "Joana Matos", location: "", contractNumber: "" },
+  company: { ...base().company, phone: "+351 200 000 001", tagline: "Obras e remodelações desde 1998" },
+  project: { ...base().project, name: "Pequena reparação — Cozinha", clientName: "Cliente Exemplo D", location: "", contractNumber: "" },
   progress: { phase: "", percentage: 100, weekSummary: "Visita única para reparação de fuga na torneira e substituição do sifão." },
   works: [
     W("Outro", "Cozinha", "Substituição do sifão do lava-loiça", "done"),

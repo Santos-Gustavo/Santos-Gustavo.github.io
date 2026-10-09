@@ -82,7 +82,16 @@ test.describe("landing page (DESIGN-SYSTEM-001)", () => {
       await expect(page.locator(`.landing-nav a[href="#${id}"]`)).toHaveCount(1);
       await expect(page.locator(`#${id}`)).toHaveCount(1);
     }
-    await expect(page.locator('a[href="examples/report_example.pdf"]')).toHaveCount(1);
+    await expect(page.locator('a[href="examples/relatorio-exemplo.pdf"]')).toHaveCount(1);
+  });
+
+  test("sample report link serves the fictional demo PDF", async ({ page, request }) => {
+    await page.goto("/");
+    const href = await page.locator('a[href$=".pdf"]').getAttribute("href");
+    const response = await request.get(`/${href}`);
+
+    expect(response.status()).toBe(200);
+    expect((await response.body()).subarray(0, 5).toString("latin1")).toBe("%PDF-");
   });
 
   for (const width of [320, 360]) {
@@ -102,5 +111,42 @@ test.describe("landing page (DESIGN-SYSTEM-001)", () => {
     await page.goto("/reset-password.html");
 
     await expect(page.locator("#newPassword")).toBeVisible();
+  });
+});
+
+// Compliance quick wins (docs/compliance/PRELAUNCH-QUICK-WINS.md): public
+// pages must not call Google Fonts or a JS CDN at runtime — Inter and
+// supabase-js are vendored. Supabase itself is the expected backend.
+test.describe("no third-party font/CDN requests", () => {
+  const BLOCKED_HOSTS = /fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsdelivr\.net/;
+
+  for (const path of ["/", "/app.html", "/share.html", "/reset-password.html"]) {
+    test(`${path} loads only first-party fonts and scripts`, async ({ page }) => {
+      const blocked = [];
+      page.on("request", (request) => {
+        if (BLOCKED_HOSTS.test(request.url())) blocked.push(request.url());
+      });
+
+      await page.goto(path);
+      await page.waitForLoadState("networkidle");
+
+      expect(blocked).toEqual([]);
+      if (path !== "/reset-password.html") {
+        const interLoaded = await page.evaluate(async () => {
+          await document.fonts.ready;
+          return [...document.fonts].some(
+            (face) => face.family.replace(/"/g, "") === "Inter" && face.status === "loaded"
+          );
+        });
+        expect(interLoaded).toBe(true);
+      }
+    });
+  }
+
+  test("app.html still initialises the vendored Supabase client", async ({ page }) => {
+    await page.goto("/app.html");
+
+    await expect(page.locator("#authScreen")).toBeVisible();
+    expect(await page.evaluate(() => typeof window.supabase?.createClient)).toBe("function");
   });
 });
