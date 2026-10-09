@@ -26,11 +26,10 @@ Vanilla-JS ES modules, no framework or build step. `js/share/**` ships to anonym
 
 ## Design and Maintainability
 
-- Follow the existing component system and conventions.
-- Favor cohesive, reusable components without premature abstraction.
+- Follow the existing module structure under `js/` and its conventions; reuse existing helpers (e.g. `js/ui/`) before adding new ones.
 - Keep state ownership explicit and avoid unnecessary duplicated state.
 - Separate presentation from complicated business logic when beneficial.
-- Avoid unnecessary rendering, effects and dependencies.
+- Avoid unnecessary DOM re-rendering and new dependencies.
 
 ## User Experience
 

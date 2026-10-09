@@ -41,7 +41,6 @@ Data authorization lives in RLS policies and `SECURITY DEFINER` RPCs; treat chan
 - Respect privacy, retention and tenant isolation.
 - Use parameterized queries and established persistence conventions.
 - Consider consistency guarantees and failure recovery explicitly.
-- Avoid event sourcing, distributed transactions or additional infrastructure without requirements.
 
 ## Verification
 

@@ -56,10 +56,4 @@ Path-scoped rules: `.claude/rules/`. Manual procedures: `/design-review`, `/apps
 
 ## Brain Docs and Wrap Up
 
-Brain docs (`docs/brain/`) are opt-in: skip session logs / feature docs / INDEX updates for small fixes. Wrap Up only when the user says "wrap up" or the work was a new/large feature:
-
-1. Rewrite `docs/brain/project-state.md`.
-2. Append `docs/brain/sessions/yyyyMMdd-HHmm.md` (what changed, why, what's next).
-3. Update `docs/features/INDEX.md` rows for touched features (status, risk).
-4. Update `docs/brain/decisions.md` / add an ADR if warranted.
-5. Say: "Files updated. Run `/compact`."
+Brain docs (`docs/brain/`) are opt-in: skip session logs / feature docs / INDEX updates for small fixes. Wrap Up only when the user says "wrap up" or the work was a new/large feature — follow the `/wrap-up` skill.
