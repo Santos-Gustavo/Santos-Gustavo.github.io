@@ -1,0 +1,224 @@
+{
+  "case1-chrome": {
+    "layout": "v2",
+    "pageCount": 2,
+    "countsBottomMm": 128.95957031249998,
+    "split": [],
+    "cont": [],
+    "orphanHeadings": 0,
+    "fontsInter": true,
+    "pdfPages": 2,
+    "pdfSizeMm": [
+      209.9,
+      297
+    ],
+    "pdfTitle": "Relatório de Obra — Remodelação T3 — Rua das Flores",
+    "footers": [
+      "Página 1 de 2",
+      "Página 2 de 2"
+    ],
+    "fonts": [
+      "/AAAAAA+Inter-Regular",
+      "/BAAAAA+Arial-BoldMT",
+      "/CAAAAA+Inter-SemiBold"
+    ]
+  },
+  "case2-chrome": {
+    "layout": "v2",
+    "pageCount": 4,
+    "countsBottomMm": 134.46207682291666,
+    "split": [],
+    "cont": [
+      {
+        "page": 2,
+        "before": "\"Registo fotográfico (cont.)\""
+      },
+      {
+        "page": 3,
+        "before": "\"Trabalhos concluídos (cont.)\""
+      }
+    ],
+    "orphanHeadings": 0,
+    "fontsInter": true,
+    "pdfPages": 4,
+    "pdfSizeMm": [
+      209.9,
+      297
+    ],
+    "pdfTitle": "Relatório de Obra — Moradia V4 — Quinta do Lago",
+    "footers": [
+      "Página 1 de 4",
+      "Página 2 de 4",
+      "Página 3 de 4",
+      "Página 4 de 4"
+    ],
+    "fonts": [
+      "/AAAAAA+Inter-Regular",
+      "/BAAAAA+Arial-BoldMT",
+      "/CAAAAA+Inter-SemiBold"
+    ]
+  },
+  "case3-chrome": {
+    "layout": "v2",
+    "pageCount": 2,
+    "countsBottomMm": 128.95957031249998,
+    "split": [],
+    "cont": [],
+    "orphanHeadings": 0,
+    "fontsInter": true,
+    "pdfPages": 2,
+    "pdfSizeMm": [
+      209.9,
+      297
+    ],
+    "pdfTitle": "Relatório de Obra — Reabilitação de fachada — Edifício Aurora",
+    "footers": [
+      "Página 1 de 2",
+      "Página 2 de 2"
+    ],
+    "fonts": [
+      "/AAAAAA+Inter-Regular",
+      "/BAAAAA+Arial-BoldMT",
+      "/CAAAAA+Inter-SemiBold"
+    ]
+  },
+  "case4-chrome": {
+    "layout": "v2",
+    "pageCount": 2,
+    "countsBottomMm": 117.63623046874999,
+    "split": [],
+    "cont": [],
+    "orphanHeadings": 0,
+    "fontsInter": true,
+    "pdfPages": 2,
+    "pdfSizeMm": [
+      209.9,
+      297
+    ],
+    "pdfTitle": "Relatório de Obra — Pequena reparação — Cozinha",
+    "footers": [
+      "Página 1 de 2",
+      "Página 2 de 2"
+    ],
+    "fonts": [
+      "/AAAAAA+Inter-Regular",
+      "/BAAAAA+Arial-BoldMT",
+      "/CAAAAA+Inter-SemiBold"
+    ]
+  },
+  "case1-msedge": {
+    "layout": "v2",
+    "pageCount": 2,
+    "countsBottomMm": 128.95957031249998,
+    "split": [],
+    "cont": [],
+    "orphanHeadings": 0,
+    "fontsInter": true,
+    "pdfPages": 2,
+    "pdfSizeMm": [
+      209.9,
+      297
+    ],
+    "pdfTitle": "Relatório de Obra — Remodelação T3 — Rua das Flores",
+    "footers": [
+      "Página 1 de 2",
+      "Página 2 de 2"
+    ],
+    "fonts": [
+      "/AAAAAA+Inter-Regular",
+      "/BAAAAA+Arial-BoldMT",
+      "/CAAAAA+Inter-SemiBold"
+    ]
+  },
+  "case2-msedge": {
+    "layout": "v2",
+    "pageCount": 4,
+    "countsBottomMm": 134.46207682291666,
+    "split": [],
+    "cont": [
+      {
+        "page": 2,
+        "before": "\"Registo fotográfico (cont.)\""
+      },
+      {
+        "page": 3,
+        "before": "\"Trabalhos concluídos (cont.)\""
+      }
+    ],
+    "orphanHeadings": 0,
+    "fontsInter": true,
+    "pdfPages": 4,
+    "pdfSizeMm": [
+      209.9,
+      297
+    ],
+    "pdfTitle": "Relatório de Obra — Moradia V4 — Quinta do Lago",
+    "footers": [
+      "Página 1 de 4",
+      "Página 2 de 4",
+      "Página 3 de 4",
+      "Página 4 de 4"
+    ],
+    "fonts": [
+      "/AAAAAA+Inter-Regular",
+      "/BAAAAA+Arial-BoldMT",
+      "/CAAAAA+Inter-SemiBold"
+    ]
+  },
+  "case3-msedge": {
+    "layout": "v2",
+    "pageCount": 2,
+    "countsBottomMm": 128.95957031249998,
+    "split": [],
+    "cont": [],
+    "orphanHeadings": 0,
+    "fontsInter": true,
+    "pdfPages": 2,
+    "pdfSizeMm": [
+      209.9,
+      297
+    ],
+    "pdfTitle": "Relatório de Obra — Reabilitação de fachada — Edifício Aurora",
+    "footers": [
+      "Página 1 de 2",
+      "Página 2 de 2"
+    ],
+    "fonts": [
+      "/AAAAAA+Inter-Regular",
+      "/BAAAAA+Arial-BoldMT",
+      "/CAAAAA+Inter-SemiBold"
+    ]
+  },
+  "case4-msedge": {
+    "layout": "v2",
+    "pageCount": 2,
+    "countsBottomMm": 117.63623046874999,
+    "split": [],
+    "cont": [],
+    "orphanHeadings": 0,
+    "fontsInter": true,
+    "pdfPages": 2,
+    "pdfSizeMm": [
+      209.9,
+      297
+    ],
+    "pdfTitle": "Relatório de Obra — Pequena reparação — Cozinha",
+    "footers": [
+      "Página 1 de 2",
+      "Página 2 de 2"
+    ],
+    "fonts": [
+      "/AAAAAA+Inter-Regular",
+      "/BAAAAA+Arial-BoldMT",
+      "/CAAAAA+Inter-SemiBold"
+    ]
+  },
+  "share390": {
+    "progressBarBottomPx": 335.28125,
+    "viewportHeight": 664,
+    "docWidth": {
+      "scroll": 390,
+      "client": 390
+    }
+  }
+}

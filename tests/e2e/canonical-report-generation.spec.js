@@ -616,7 +616,8 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — canonical report generat
       await end.fill(shift(today, -1));
       const { reportId, tabText } = await generateViaUi(page, { withTabText: true });
       const expected = `Período ${pt(shift(today, -5))} – ${pt(shift(today, -1))}`;
-      expect(tabText).toContain(expected);
+      // The report itself uses the REPORT-LAYOUT-V2 wording.
+      expect(tabText).toContain(`Período: ${pt(shift(today, -5))} – ${pt(shift(today, -1))}`);
       await expect(page.locator("#workStatusReportResult [data-report-period]")).toHaveText(expected);
       const saved = await getReport(client, reportId);
       expect([saved.report_num, saved.period_start, saved.period_end]).toEqual([2, shift(today, -5), shift(today, -1)]);
@@ -1028,20 +1029,22 @@ test.describe("ESTADO-DA-OBRA-WORKSPACE-001 Phase 4 — canonical report generat
       const { reportId, tabText } = await generateViaUi(page, { withTabText: true });
       const expected = `Período ${pt(today)} – ${pt(today)}`;
       // The report auto-opened in a new tab is the saved #006.
-      expect(tabText).toContain("#006");
-      expect(tabText).toContain(expected);
+      // REPORT-LAYOUT-V2: the report says "N.º 006" and a same-day period is one date.
+      expect(tabText).toContain("N.º 006");
+      expect(tabText).toContain(`Período: ${pt(today)}`);
+      expect(tabText).not.toContain(`${pt(today)} – ${pt(today)}`);
       await expect(page.locator("#workStatusReportResult [data-report-period]")).toHaveText(expected);
       const viewed = await readOpenedReport(page, () =>
         page.locator('#workStatusReportResult [data-generated-report-action="view-pdf"]').click()
       );
-      expect(viewed.text).toContain(expected);
+      expect(viewed.text).toContain(`Período: ${pt(today)}`);
       expect((await getReport(client, reportId)).report_num).toBe(6);
 
       // An older report opened from history shows its own frozen period.
       const card = page.locator(`[data-report-history-card="${first.id}"]`);
       await expect(card).toBeVisible({ timeout: 15000 });
       const opened = await readOpenedReport(page, () => card.locator('[data-report-history-action="open"]').click());
-      expect(opened.text).toContain(`Período ${pt(shift(today, -7))} – ${pt(today)}`);
+      expect(opened.text).toContain(`Período: ${pt(shift(today, -7))} – ${pt(today)}`);
     } finally {
       await owner.auth.signOut();
     }

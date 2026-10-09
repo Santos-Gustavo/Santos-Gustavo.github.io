@@ -10,5 +10,6 @@ One line per feature. Load this before touching any feature. Full detail lives i
 | DESIGN-SYSTEM-001 | Implemented, Tested | Low | `docs/features/DESIGN-SYSTEM-001.md` | Visual-refinement pass — locked Paper/Ink/Brass/Forest tokens + landing-page.html restyle; incidental fix for a real logout race condition found while adding E2E coverage |
 | UX-FIXES-002 | Implemented, Tested | Low | `docs/features/UX-FIXES-002.md` | 8-fix UX/security batch — confirm password, password reveal, client email governance, client-edit isolation, project client-dropdown race fix, progress fill, report-screen nav confirmation |
 | LIVE-SITE-FETCH-001 | Investigated, No code defect found — added regression coverage | Low | `docs/features/LIVE-SITE-FETCH-001.md` | Live-site verification — root `/` confirmed serving 200 with correct content; external "cache miss" report was not reproducible, likely a transient/stale fetch on the auditor's side |
+| REPORT-LAYOUT-V2 | Implemented, Tested (uncommitted) | Medium | `docs/features/REPORT-LAYOUT-V2.md` | Client report wording/A4 layout; v1 frozen for pre-cutover reports via meta.generatedAt; vendored Paged.js print; "Livro de Projeto" wording decision pending |
 
 *Add a row when a feature is opened. Update Status/Risk as it moves through gates. Never write feature content directly in this file.*

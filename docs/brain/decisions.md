@@ -46,6 +46,12 @@ Also: destructive test cleanup belongs behind a default-on negative flag (`E2E_S
 
 Applies to: any Playwright/E2E suite in this repo, and any future one seeding its own DB fixtures.
 
+## Client-facing documents are versioned by their own generation time, never re-styled retroactively
+
+Reports are stored as data (`snapshot_json`) and re-rendered on every open/share, so any renderer change silently rewrites every historical document a client may already hold. REPORT-LAYOUT-V2 established the rule: a presentation change to a client-facing document ships as a new renderer version, selected by the snapshot's own `meta.generatedAt` against one explicit cutover constant (missing/invalid → oldest version), with the old version frozen as a verbatim copy that shares no helpers/CSS/labels with the new one and is pinned by byte-for-byte golden tests. `schemaVersion` describes data shape, not presentation, and is not used for this.
+
+Applies to: `js/reports/report-renderer*.js` and any future client-facing rendered document (quotes, autos, invoices).
+
 ---
 
 *Add new entries here only when a principle is confirmed to generalize beyond one feature. One-off decisions belong in that feature's own FEATURE-ID.md.*
