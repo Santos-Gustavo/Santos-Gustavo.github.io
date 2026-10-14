@@ -24,7 +24,7 @@ export function openPendingReportTab() {
   try {
     tab.document.title = "A gerar relatório...";
     tab.document.body.innerHTML =
-      '<p style="font-family:Arial,sans-serif;padding:24px;color:#16263a">A gerar relatório...</p>';
+      '<p style="font-family:Inter,system-ui,sans-serif;padding:24px;color:#22252A">A gerar relatório...</p>';
   } catch {
     // Placeholder text is cosmetic only.
   }

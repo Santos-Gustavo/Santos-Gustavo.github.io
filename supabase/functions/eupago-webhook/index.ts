@@ -17,6 +17,28 @@ function addDays(date: Date, days: number) {
   return d;
 }
 
+// Only these non-personal webhook fields are logged and stored in
+// payments.raw_webhook_payload. Everything else is dropped — notably
+// chave_api (the EuPago API key) and any customer data.
+const WEBHOOK_PAYLOAD_FIELDS = [
+  "valor", "canal", "referencia", "reference", "transacao", "transaction_id",
+  "transactionID", "identificador", "id", "order_id", "mp", "data", "entidade",
+  "entity", "comissao", "local", "estado", "status",
+];
+
+function minimisePayload(payload: Record<string, unknown>) {
+  const kept: Record<string, unknown> = {};
+
+  for (const key of WEBHOOK_PAYLOAD_FIELDS) {
+    const value = payload?.[key];
+    if (value === null || ["string", "number", "boolean"].includes(typeof value)) {
+      kept[key] = value;
+    }
+  }
+
+  return kept;
+}
+
 async function parsePayload(req: Request) {
   const contentType = req.headers.get("content-type") || "";
 
@@ -28,19 +50,44 @@ async function parsePayload(req: Request) {
   return Object.fromEntries(new URLSearchParams(text));
 }
 
+// Constant-time comparison of the shared secret.
+function secretsMatch(received: string, expected: string) {
+  const a = new TextEncoder().encode(received);
+  const b = new TextEncoder().encode(expected);
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    diff |= (a[i] ?? 0) ^ (b[i] ?? 0);
+  }
+  return diff === 0;
+}
+
 Deno.serve(async (req) => {
   try {
-    const payload = await parsePayload(req);
-
-    console.log("EuPago webhook payload:", payload);
-
-    const apiKeyFromPayload = payload.chave_api || payload.chave || null;
     const expectedApiKey = Deno.env.get("EUPAGO_API_KEY");
 
-    // Basic verification: EuPago webhook 1.0 sends chave_api.
-    // If your EuPago webhook 2.0 has a stronger signature, use that instead.
-    if (apiKeyFromPayload && expectedApiKey && apiKeyFromPayload !== expectedApiKey) {
-      return new Response("Invalid API key", { status: 403 });
+    if (!expectedApiKey) {
+      console.error("EuPago webhook rejected: EUPAGO_API_KEY is not configured");
+      return new Response("Unavailable", { status: 503 });
+    }
+
+    const payload = await parsePayload(req).catch(() => null);
+
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return new Response("Bad request", { status: 400 });
+    }
+
+    const payloadSummary = minimisePayload(payload);
+
+    console.log("EuPago webhook payload:", payloadSummary);
+
+    // EuPago webhook 1.0 sends the account's chave_api with every
+    // notification. It is mandatory: a missing or wrong key is rejected
+    // before any payment lookup. (Webhook 2.0 signatures are not handled.)
+    const apiKeyFromPayload = typeof payload.chave_api === "string" ? payload.chave_api : "";
+
+    if (!apiKeyFromPayload || !secretsMatch(apiKeyFromPayload, expectedApiKey)) {
+      console.warn("EuPago webhook rejected: missing or invalid chave_api");
+      return new Response("Unauthorized", { status: 401 });
     }
 
     const identifier =
@@ -84,7 +131,7 @@ Deno.serve(async (req) => {
     const payment = payments?.[0];
 
     if (!payment) {
-      console.warn("Payment not found for payload:", payload);
+      console.warn("Payment not found for payload:", payloadSummary);
       return new Response("Payment not found", { status: 404 });
     }
 
@@ -100,7 +147,7 @@ Deno.serve(async (req) => {
       .update({
         status: STATUS_PAID,
         paid_at: now.toISOString(),
-        raw_webhook_payload: payload,
+        raw_webhook_payload: payloadSummary,
         eupago_transaction_id: transactionId,
         eupago_reference: reference,
         eupago_entity: payload.entidade || payload.entity || null,
@@ -127,7 +174,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("EuPago webhook error:", error);
 
-    return new Response("Webhook error: " + error.message, {
+    return new Response("Webhook error", {
       status: 500,
     });
   }

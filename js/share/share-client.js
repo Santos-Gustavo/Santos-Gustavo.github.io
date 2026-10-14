@@ -91,14 +91,15 @@ function renderReportFrame(mount, html) {
   if (!mount) return;
 
   const iframe = document.createElement("iframe");
-  // allow-scripts only: enough for the renderer's own print button
-  // (onclick="window.print()"), nothing else. No allow-same-origin — the frame stays
-  // isolated from this page's runtime, which has nothing sensitive in it anyway.
-  iframe.setAttribute("sandbox", "allow-scripts");
+  // allow-scripts + allow-modals: enough for the renderer's own print button
+  // (Paged.js pagination, then window.print() — which Chrome silently ignores in a
+  // sandboxed frame without allow-modals), nothing else. No allow-same-origin — the
+  // frame stays isolated from this page's runtime, which has nothing sensitive in it.
+  iframe.setAttribute("sandbox", "allow-scripts allow-modals");
   iframe.setAttribute("referrerpolicy", "no-referrer");
   iframe.className = "share-frame";
   iframe.srcdoc = html;
-  iframe.title = "Relatório do Projeto";
+  iframe.title = "Relatório de obra";
 
   mount.replaceWith(iframe);
 }

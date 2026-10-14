@@ -192,6 +192,7 @@ export async function confirmLeaveEstadoObraIfDirty() {
     message: "Existem alterações por guardar. Quer sair sem guardar?",
     confirmLabel: "Sair sem guardar",
     cancelLabel: "Cancelar",
+    tone: "danger",
   });
 }
 
@@ -839,14 +840,20 @@ function updateSaveButtonState() {
   }
 
   if (hint) {
+    // Tone: unsaved changes = warning, failed save = error, saved = success.
+    let tone = "";
     if (saving) {
       hint.textContent = "";
     } else if (statusMessage.text && (statusMessage.tone === "error" || !dirty)) {
       hint.textContent = statusMessage.text;
+      tone = statusMessage.tone;
     } else {
       hint.textContent = dirty ? "Existem alterações por guardar." : "";
+      if (dirty) tone = "warning";
     }
-    hint.classList.toggle("is-success", !saving && !dirty && statusMessage.tone === "success");
+    hint.classList.toggle("is-success", tone === "success");
+    hint.classList.toggle("is-warning", tone === "warning");
+    hint.classList.toggle("is-error", tone === "error");
   }
 
   // The sticky save bar only takes footer space while there is something to

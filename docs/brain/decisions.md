@@ -1,6 +1,6 @@
 # Standing Engineering Decisions
 
-Cross-feature principles established from real bugs or real disagreements. Load when working on anything the principle applies to. Do not duplicate content already in a feature file — link to it instead.
+Cross-feature principles established from real bugs or real disagreements. Load when working on anything the principle applies to. Do not duplicate content already in a feature file — link to it instead. Individual architecture decisions go in ADRs under `docs/decisions/`; link to an ADR rather than restating it here.
 
 ---
 
@@ -45,6 +45,12 @@ A suite that depends on hand-seeded rows (env vars pointing at pre-existing DB i
 Also: destructive test cleanup belongs behind a default-on negative flag (`E2E_SKIP_CLEANUP=true` to opt out), not a default-off positive one (`E2E_DELETE_ALL_PROJECTS=true` to opt in) — the positive form gets left on permanently in a real `.env` (it did here) and then runs unnoticed on every invocation, including ones nobody meant to be destructive.
 
 Applies to: any Playwright/E2E suite in this repo, and any future one seeding its own DB fixtures.
+
+## Client-facing documents are versioned by their own generation time, never re-styled retroactively
+
+Reports are stored as data (`snapshot_json`) and re-rendered on every open/share, so any renderer change silently rewrites every historical document a client may already hold. REPORT-LAYOUT-V2 established the rule: a presentation change to a client-facing document ships as a new renderer version, selected by the snapshot's own `meta.generatedAt` against one explicit cutover constant (missing/invalid → oldest version), with the old version frozen as a verbatim copy that shares no helpers/CSS/labels with the new one and is pinned by byte-for-byte golden tests. `schemaVersion` describes data shape, not presentation, and is not used for this.
+
+Applies to: `js/reports/report-renderer*.js` and any future client-facing rendered document (quotes, autos, invoices).
 
 ---
 

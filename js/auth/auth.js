@@ -254,7 +254,7 @@ function showAuthMessage(message, isError = false) {
   if (!el) return;
 
   el.textContent = message || "";
-  el.style.color = isError ? "var(--rust)" : "var(--forest)";
+  el.style.color = isError ? "var(--danger)" : "var(--status-done-text)";
 }
 
 async function showLoggedInUI() {
@@ -302,14 +302,14 @@ function renderUserInfo() {
       top: 12px;
       right: 12px;
       z-index: 9999;
-      background: var(--card);
-      border: 1px solid var(--paper-line);
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
       border-radius: 8px;
       padding: 8px 10px;
       font-size: 12px;
-      font-family: 'IBM Plex Sans', sans-serif;
-      color: var(--ink);
-      box-shadow: 0 4px 12px rgba(22,38,58,0.08);
+      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--text-primary);
+      box-shadow: 0 4px 12px rgba(34,37,42,0.08);
     `;
     document.body.appendChild(el);
   }
