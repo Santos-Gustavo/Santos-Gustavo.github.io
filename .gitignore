@@ -6,3 +6,4 @@ supabase/.branches/
 supabase/.temp/
 supabase/.cache/
 tests/e2e/.fixtures-state.json
+artifacts/
